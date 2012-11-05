@@ -22,6 +22,8 @@ enum {
          MODE_SETDATE_DAY,
     MODE_MENU_SETBRIGHT,
          MODE_SETBRIGHT_LEVEL,
+    MODE_MENU_SETVOLUME,
+         MODE_SETVOLUME_LEVEL,
 };
 
 
@@ -32,6 +34,7 @@ enum {
 #define MODE_TMP_MINUTE 1
 #define MODE_TMP_SECOND 2
 #define MODE_TMP_BRIGHT 0
+#define MODE_TMP_VOLUME 0
 
 
 typedef struct {

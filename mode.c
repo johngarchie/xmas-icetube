@@ -12,6 +12,7 @@ void mode_setalarm_display(void);
 void mode_settime_display(void);
 void mode_setdate_display(void);
 void mode_setbright_display(void);
+void mode_setvolume_display(void);
 
 volatile mode_t mode;
 
@@ -272,7 +273,7 @@ void mode_semitick(void) {
 	case MODE_MENU_SETBRIGHT:
 	    switch(button_process()) {
 		case BUTTON_MENU:
-		    mode_update(MODE_TIME);
+		    mode_update(MODE_MENU_SETVOLUME);
 		    break;
 		case BUTTON_SET:
 		    mode.tmp[MODE_TMP_BRIGHT] = display.brightness;
@@ -301,6 +302,43 @@ void mode_semitick(void) {
 		    *mode.tmp %= 11;
 		    display_setbright(mode.tmp[MODE_TMP_BRIGHT]);
 		    mode_update(MODE_SETBRIGHT_LEVEL);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_MENU_SETVOLUME:
+	    switch(button_process()) {
+		case BUTTON_MENU:
+		    mode_update(MODE_TIME);
+		    break;
+		case BUTTON_SET:
+		    mode.tmp[MODE_TMP_VOLUME] = alarm.volume;
+		    alarm_beep(1000);
+		    mode_update(MODE_SETVOLUME_LEVEL);
+		    break;
+		case BUTTON_PLUS:
+		    mode_update(MODE_TIME);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_SETVOLUME_LEVEL:
+	    switch(button_process()) {
+		case BUTTON_MENU:
+		    alarm.volume = mode.tmp[MODE_TMP_VOLUME];
+		    mode_update(MODE_TIME);
+		    break;
+		case BUTTON_SET:
+		    alarm_savevolume();
+		    mode_update(MODE_TIME);
+		    break;
+		case BUTTON_PLUS:
+		    ++alarm.volume;
+		    alarm.volume %= 11;
+		    alarm_beep(1000);
+		    mode_update(MODE_SETVOLUME_LEVEL);
 		    break;
 		default:
 		    break;
@@ -393,6 +431,13 @@ void mode_update(uint8_t new_state) {
 	    break;
 	case MODE_SETBRIGHT_LEVEL:
 	    mode_setbright_display();
+	    break;
+	case MODE_MENU_SETVOLUME:
+	    display_clear(0);
+	    display_string("set vol ");
+	    break;
+	case MODE_SETVOLUME_LEVEL:
+	    mode_setvolume_display();
 	    break;
 	default:
 	    break;
@@ -518,4 +563,13 @@ void mode_setbright_display(void) {
     display_digit(8, mode.tmp[MODE_TMP_BRIGHT] % 10);
     display_dot(7, 1);
     display_dot(8, 1);
+}
+
+
+void mode_setvolume_display(void) {
+    display_string(" vol    ");
+    display_digit(6, alarm.volume / 10);
+    display_digit(7, alarm.volume % 10);
+    display_dot(6, 1);
+    display_dot(7, 1);
 }

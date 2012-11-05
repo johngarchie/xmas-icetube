@@ -1,4 +1,5 @@
 #include <avr/eeprom.h>
+#include <avr/pgmspace.h>
 #include <avr/io.h>      
 #include <avr/power.h>
 #include <avr/interrupt.h>
@@ -14,11 +15,16 @@ volatile alarm_t alarm;
 // default alarm time
 uint8_t ee_alarm_hour   EEMEM = ALARM_DEFAULT_HOUR;
 uint8_t ee_alarm_minute EEMEM = ALARM_DEFAULT_MINUTE;
+uint8_t ee_alarm_volume EEMEM = ALARM_DEFAULT_VOLUME;
+
+
+// table used to convert alarm volume into timer settings below
+const uint8_t alarm_vol2cm[] PROGMEM = {1,4,15,22,28,35,45,57,73,94,128};
 
 
 // initialize alarm on startup
 void alarm_init(void) {
-    alarm_load();  // load alarm time from eeprom
+    alarm_load();  // load alarm time and volume from eeprom
 
     // clamp alarm switch pin to ground
     PORTD &= ~_BV(PD2); // disable pull-up resistor
@@ -164,17 +170,21 @@ void alarm_settime(uint8_t hour, uint8_t minute) {
     eeprom_write_byte(&ee_alarm_minute, alarm.minute);
 }
 
+void alarm_savevolume(void) {
+    eeprom_write_byte(&ee_alarm_volume, alarm.volume);
+}
 
 // set alarm time from eeprom
 void alarm_load(void) {
     alarm.hour   = eeprom_read_byte(&ee_alarm_hour)   % 24;
     alarm.minute = eeprom_read_byte(&ee_alarm_minute) % 60;
+    alarm.volume = eeprom_read_byte(&ee_alarm_volume) % 10;
 }
 
 
 // make a the pizo elemen click
 void alarm_click(void) {
-    // never beep and click, it could kill someone
+    // never click while beeping, it's dangerous
     if(alarm.status & ALARM_BEEP) return;
 
     // +5v to buzzer
@@ -190,8 +200,11 @@ void alarm_click(void) {
 
 // enable buzzer for the specified number of semiticks
 void alarm_beep(uint16_t duration) {
-    // never beep and click, it could kill someone
-    if(alarm.status & ALARM_CLICK) return;
+    // let a beep override a click
+    if(alarm.status & ALARM_CLICK) {
+	PORTB &= ~_BV(PB2) & ~_BV(PB1); // pull both speaker pins low
+	alarm.status &= ~ALARM_CLICK;
+    }
 
     // set timer and flag, so click routine can be
     // completed in subsequent calls to alarm_semitick()
@@ -200,8 +213,8 @@ void alarm_beep(uint16_t duration) {
     alarm.status |= ALARM_BEEP;
 }
 
-
 void alarm_buzzeron(void) {
+
     power_timer1_enable();  // enable counter1 (buzzer timer)
 
     // configure Timer/Counter1 to generate buzzer sound:
@@ -218,8 +231,10 @@ void alarm_buzzeron(void) {
     // set TOP to 250; buzzer frequency is 1 MHz / 250 or 4 kHz.
     ICR1 = 250;
 
-    // set Compare Match to 125; 50% duty cycle for OC1A and OC1B
-    OCR1A = OCR1B = 125;
+    // set compare match registers for desired volume
+    uint8_t cm = pgm_read_byte(alarm_vol2cm + alarm.volume % 11);
+    OCR1A = cm;
+    OCR1B = 256 - cm;
 }
 
 
@@ -228,6 +243,3 @@ void alarm_buzzeroff(void) {
     power_timer1_disable(); // disable timer/counter1 (buzzer timer)
     PORTB &= ~_BV(PB2) & ~_BV(PB1);  // pull both speaker pins low
 }
-
-
-// TODO: power saving: try setting speaker pins to input

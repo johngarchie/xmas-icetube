@@ -3,6 +3,8 @@
 #include <avr/power.h>     // for controlling system clock speed
 #include <avr/wdt.h>       // for using the watchdog timer
 
+#include <util/delay.h>
+
 // include headers for all submodules
 #include "power.h"
 #include "time.h"
