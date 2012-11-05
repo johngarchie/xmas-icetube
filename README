@@ -1,0 +1,23 @@
+Basic clock still needs:
+
+(1) show day-of-week and date on button press when displaying time
+
+(2) date format select
+
+(3) time format select
+
+
+Desired extra features:
+
+(1) Shorten the snooze time so I don't fall asleep before the alarm goes off again.  Changing the snooze time is easy, but figuring out the ideal snooze time for me is requiring some trial and error...
+
+(2) Add volume adjustment:  The volume of a piezo element can be controlled by the duty cycle of the oscillator powering it.
+
+(3) Automatically adjust for the clock running too fast or slow:  If you set the clock time, and set the time again a week later, the clock can figure out if it's running fast or slow...and adjust it's timekeeping accordingly!
+
+(4) Lower power consumption when clock sleeps:  When the power goes out, the clock goes to sleep and runs on the internal battery.  Currently the battery lasts two weeks, but in theory it could last years.  All I need to do is shut
+down the watchdog timer, analog comparator and maybe some other features.  Analog comparator could be enabled on tick to detect when power is restored.
+
+(5) Alarm should still function even if on battery power only.
+
+(6) Automatic adjustment for daylight savings time in US.
