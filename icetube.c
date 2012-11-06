@@ -25,12 +25,15 @@
 #include "display.h"
 #include "mode.h"
 
+// set to 1 every ~1 millisecond or so
+uint8_t semitick_successful = 0;
 
 // start everything for the first time
 int main(void) {
-    // disable interrupts until sleep or idle loop
-    cli();
-    wdt_disable();
+    cli(); // disable interrupts until sleep or idle loop
+    MCUSR = 0; // clear any watchdog timer flags
+    wdt_reset(); // reset default watchdog timer
+    wdt_enable(WDTO_2S); // enable watchdog timer
 
     power_init();
 
@@ -75,12 +78,15 @@ ISR(TIMER2_COMPA_vect) {
     if(power.status & POWER_SLEEP) {
 	time_tick();
 	alarm_tick();
+	wdt_reset();
     } else {
 	time_tick();
 	button_tick();
 	alarm_tick();
 	mode_tick();
 	display_tick();
+	if(semitick_successful) wdt_reset();
+	semitick_successful = 0;
     }
 }
 
@@ -103,6 +109,8 @@ ISR(TIMER0_OVF_vect) {
     alarm_semitick();
     mode_semitick();
     display_semitick();
+
+    semitick_successful = 1;
 }
 
 
