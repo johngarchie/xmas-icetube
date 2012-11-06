@@ -1,17 +1,17 @@
 #ifndef POWER_H
 #define POWER_H
 
-#include <stdint.h>
+#include <stdint.h>  // for using standard integer types
 
+// return codes for the power_source() function
 enum {
     POWER_ADAPTOR,
     POWER_BATTERY,
 };
 
-enum {
-    POWER_SLEEP,
-    POWER_WAKE,
-};
+// flags for power.status
+#define POWER_SLEEP   0x01
+#define POWER_ALARMON 0x02
 
 typedef struct {
     uint8_t status;

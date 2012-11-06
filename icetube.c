@@ -1,11 +1,23 @@
+// icetube.c
+//
+// This is the main file for my Ice Tube Clock firmware.  The code here is
+// minimal and mostly calls functions in other files.
+//
+// power.c   - power management
+// time.c    - date and time keeping
+// alarm.c   - alarm and buzzer
+// button.c  - button inputs (menu, set, and plus)
+// display.c - boost, MAX6921, and VFD
+// mode.c    - clock mode (displayed time, menus, etc.)
+
+
 #include <stdint.h>        // for using standard integer types
 #include <avr/interrupt.h> // for defining interrupt handlers
 #include <avr/power.h>     // for controlling system clock speed
 #include <avr/wdt.h>       // for using the watchdog timer
 
-#include <util/delay.h>
 
-// include headers for all submodules
+// headers for this project
 #include "power.h"
 #include "time.h"
 #include "alarm.h"
@@ -14,9 +26,9 @@
 #include "mode.h"
 
 
-// start ice tube clock
+// start everything for the first time
 int main(void) {
-    // disable interrupts until sleep loop or idle loop
+    // disable interrupts until sleep or idle loop
     cli();
     wdt_disable();
 
@@ -35,7 +47,10 @@ int main(void) {
 	power_sleep_loop();
     }
 
-    // wake the system up
+    // with normal power, the mcu can safely run at 8 MHz
+    clock_prescale_set(clock_div_1);
+
+    // wake everything up
     time_wake();
     button_wake();
     alarm_wake();
@@ -45,20 +60,21 @@ int main(void) {
     // beep for one second on first powered startup
     alarm_beep(1000);
 
-    // functions are entirelly interrupt-driven after
+    // clock function is entirelly interrupt-driven after
     // this point, so let the system idle indefinetly
     power_idle_loop();
 }
 
 
-// counter0 compare match interrupt;
+// counter0 compare match interrupt
 // triggered every second
 // counter0 is clocked by the clock crystal
 ISR(TIMER2_COMPA_vect) {
     sei();  // allow nested interrupts
 
-    if(power.status == POWER_SLEEP) {
+    if(power.status & POWER_SLEEP) {
 	time_tick();
+	alarm_tick();
     } else {
 	time_tick();
 	button_tick();
@@ -69,7 +85,7 @@ ISR(TIMER2_COMPA_vect) {
 }
 
 
-// timer0 overflow interrupt;
+// timer0 overflow interrupt
 // triggered every 32 microseconds (32.25 khz);
 // pwm output from timer0 controls boost power
 ISR(TIMER0_OVF_vect) {
@@ -90,12 +106,12 @@ ISR(TIMER0_OVF_vect) {
 }
 
 
-// analog comparator interrupt,
+// analog comparator interrupt
 // triggered when voltage at AIN1 falls below internal
 // bandgap (~1.1v), indicating external power failure
 ISR(ANALOG_COMP_vect) {
     // if the system is already sleeping, do nothing
-    if(power.status == POWER_SLEEP) return;
+    if(power.status & POWER_SLEEP) return;
 
     // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
     // An 8 or 4 MHz clock is unstable at 1.7v, but a 2 MHz clock is okay:

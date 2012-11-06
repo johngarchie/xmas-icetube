@@ -1,6 +1,6 @@
 #include <avr/io.h>       // for using avr register names
-#include <avr/pgmspace.h> // for storing data in flash memory
-#include <avr/eeprom.h>   // for storing data in eeprom memory
+#include <avr/pgmspace.h> // for accessing data in program memory
+#include <avr/eeprom.h>   // for accessing data in eeprom memory
 #include <avr/power.h>    // for enabling/disabling chip features
 #include <util/atomic.h>  // for enabling and disabling interrupts
 

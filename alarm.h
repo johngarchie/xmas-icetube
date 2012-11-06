@@ -3,12 +3,12 @@
 
 #include <avr/pgmspace.h>
 
-// defalut alarm time is 10:00am
+// default alarm time is 10:00am
 #define ALARM_DEFAULT_HOUR   10
 #define ALARM_DEFAULT_MINUTE  0
 
-// default alarm volume on lowest setting [0, 10]
-#define ALARM_DEFAULT_VOLUME 0
+// alarm volume range: [0, 10]
+#define ALARM_DEFAULT_VOLUME 3
 
 
 #define ALARM_SET      0x01

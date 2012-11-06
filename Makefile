@@ -36,15 +36,15 @@ AVROBJCOPYOPT ?=
 
 # fuse options for avrdude as implied by $(AVRMCU)
 ifeq ($(AVRMCU),atmega168)
-    FUSEOPT ?= -u -U lfuse:w:0xE2:m -u -U hfuse:w:0xD6:m
+    FUSEOPT ?= -u -U lfuse:w:0x62:m -u -U hfuse:w:0xD6:m
 endif
 
 ifeq ($(AVRMCU),atmega168p)
-    FUSEOPT ?= -u -U lfuse:w:0xE2:m -u -U hfuse:w:0xD6:m
+    FUSEOPT ?= -u -U lfuse:w:0x62:m -u -U hfuse:w:0xD6:m
 endif
 
 ifeq ($(AVRMCU),atmega328p)
-    FUSEOPT ?= -u -U lfuse:w:0xE2:m -u -U hfuse:w:0xD1:m -u -U efuse:w:0x06:m
+    FUSEOPT ?= -u -U lfuse:w:0x62:m -u -U hfuse:w:0xD1:m -u -U efuse:w:0x06:m
 endif
 
 ifndef FUSEOPT

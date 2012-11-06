@@ -1,3 +1,8 @@
+Implemented features:
+
+(1) fine volume adjustment
+
+
 Basic clock still needs:
 
 (1) show day-of-week and date on button press when displaying time
@@ -11,7 +16,7 @@ Desired extra features:
 
 (1) Shorten the snooze time so I don't fall asleep before the alarm goes off again.  Changing the snooze time is easy, but figuring out the ideal snooze time for me is requiring some trial and error...
 
-(2) Add volume adjustment:  The volume of a piezo element can be controlled by the duty cycle of the oscillator powering it.
+(2) progressive alarm
 
 (3) Automatically adjust for the clock running too fast or slow:  If you set the clock time, and set the time again a week later, the clock can figure out if it's running fast or slow...and adjust it's timekeeping accordingly!
 
@@ -21,3 +26,5 @@ down the watchdog timer, analog comparator and maybe some other features.  Analo
 (5) Alarm should still function even if on battery power only.
 
 (6) Automatic adjustment for daylight savings time in US.
+
+(7) Brightness adjustment based on ambient light
