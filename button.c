@@ -1,27 +1,45 @@
-#include <avr/io.h>
+#include <avr/io.h>  // for using avr register names
 
 #include "button.h"
 #include "alarm.h"
 
+
+// extern'ed button input data
 volatile button_t button;
 
+
+// set initial state after system reset
 void button_init(void) {
-    button.state   = BUTTON_PROCESSED;
-    button.pressed = 0;
+    button.state = button.pressed = 0;
+    button_sleep(); // clamp button pins to ground
 }
 
+
+// clamp button pins to ground
 void button_sleep(void) {
-    // disable internal pull-up resistors
+    // disable pull-up resistors
     PORTD &= ~_BV(PD5) & ~_BV(PD4);
     PORTB &= ~_BV(PB0);
+
+    // set to output (clamp to ground)
+    DDRD |= _BV(PD5) | _BV(PD4);
+    DDRB |= _BV(PB0);
 }
 
+
+// enable button pins as inputs with pull-ups enabled
 void button_wake(void) {
-    // enable internal pull-up resistors
+    // set to input
+    DDRD &= ~_BV(PD5) & ~_BV(PD4);
+    DDRB &= ~_BV(PB0);
+
+    // enable pull-up resistors
     PORTD |= _BV(PD5) | _BV(PD4);
     PORTB |= _BV(PB0);
 }
 
+
+// check for button presses every semisecond
 void button_semitick(void) {
     uint8_t sensed = 0;  // which buttons are pressed?
 
@@ -69,6 +87,9 @@ void button_semitick(void) {
     }
 }
 
+
+// process a button press: if a button is pressed and not
+// previously processed, return it.  otherwise return zero.
 uint8_t button_process(void) {
     // return nothing if there is no button pressed
     // or if any buttons pressed have already been processed

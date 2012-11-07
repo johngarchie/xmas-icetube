@@ -33,16 +33,11 @@ const uint8_t alarm_vol2cm[] PROGMEM = {1,7,11,15,21,28,38,51,69,93,125};
 void alarm_init(void) {
     alarm_load();  // load alarm time and volume from eeprom
 
-    // clamp alarm switch pin to ground
-    PORTD &= ~_BV(PD2); // disable pull-up resistor
-    DDRD  |=  _BV(PD2); // set as ouput, clamped to ground
-
     // set buzzer pins to output now, so the spi subsystem doesn't
     // hijack PB2 (aka Slave Select) when SPCR gets set
     DDRB |= _BV(PB2) | _BV(PB1);
 
-    // pull both buzzer pins low
-    PORTB &= ~_BV(PB2) & ~_BV(PB1);
+    alarm_sleep(); // configure pins for low-power mode
 }
 
 
@@ -57,6 +52,9 @@ void alarm_sleep(void) {
     if(!(power.status & POWER_ALARMON)) {
 	alarm_buzzeroff();
     }
+    
+    // pull both buzzer pins low
+    PORTB &= ~_BV(PB2) & ~_BV(PB1);
 }
 
 

@@ -112,23 +112,23 @@ void display_init(void) {
     DDRC  |=  _BV(PC0) |  _BV(PC3); // set to output
     PORTC &= ~_BV(PC0) & ~_BV(PC3); // clamp to ground
 
+    // configure spi sck and mosi pins as floating inputs
+    // (these pins use the least power when they are configured
+    // as inputs *without* pull-ups!?!?)
+    DDRB  &= ~_BV(PB5) & ~_BV(PB3);  // set to input
+
+    // note: miso is an unused pin and the pull-up resistor
+    // is enabled in the power_init() function
+
     // set OCR0A (brightness) from eeprom memory
     display_loadbright();
 
     // for some reason, on my atmega168v, sleep fails unless spi has been
-    // enabled and configured at least once (?!?!?)
-
-    // enable spi module
+    // enabled and configured at least once (?!?!?), so briefly enable it
     power_spi_enable();
-
-    // set spi clk and mosi pins to output
-    DDRB |= _BV(PB5) | _BV(PB3);
-
-    // configure spi
     SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR0);
-
-    // disable spi module
     power_spi_disable();
+
 }
 
 
@@ -139,11 +139,16 @@ void display_sleep(void) {
     PORTD &= ~_BV(PD6); // boost fet off (pull low)
     PORTD |=  _BV(PD3); // MAX6921 power off (pull high)
 
-    // disable display-control output pins
-    DDRB &= ~_BV(PB5) & ~_BV(PB3); // spi clk and mosi outputs
-    DDRC &= ~_BV(PC0) & ~_BV(PC3); // MAX6921 load and blank outputs
+    // note: PC0 and PC3 are already clamped to ground: PC3 is
+    // never changed and PC0 is only briefly toggled high in
+    // an atomic code block
+    PORTC &= ~_BV(PC0) & ~_BV(PC3); // clamp to ground
 
-    power_spi_disable();  // disable spi
+    // configure spi sck and mosi pins as high-impedance inputs
+    DDRB &= ~_BV(PB5) & ~_BV(PB3);
+
+    // disable spi
+    power_spi_disable();
 }
 
 
@@ -152,9 +157,8 @@ void display_wake(void) {
     // enable spi
     power_spi_enable();
 
-    // set spi and MAX6921 control pins to output
-    DDRB |= _BV(PB5) | _BV(PB3); // spi clk and mosi pins
-    DDRC |= _BV(PC0) | _BV(PC3); // MAX6921 load and blank
+    // configure spi sck and mosi pins as outputs
+    DDRB |= _BV(PB5) | _BV(PB3);
 
     // setup spi
     SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR0);
@@ -171,7 +175,6 @@ void display_wake(void) {
     display_setbright(display.brightness);
 
     PORTD &= ~_BV(PD3); // MAX6921 power on (pull low)
-
 }
 
 

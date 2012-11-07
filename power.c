@@ -11,6 +11,11 @@ volatile power_t power;
 void power_init(void) {
     power.status &= ~POWER_SLEEP;
 
+    // enable pull-up resistors on unused pins
+    //PORTC |= _BV(PC5) | _BV(PC4) | _BV(PC2) | _BV(PC1) | _BV(PC0);
+    //PORTD |= _BV(PD1) | _BV(PD0); // rxd, txd
+    //PORTB |= _BV(PB4); // msoi
+
     // use internal bandgap as reference for analog comparator
     // and enable analog comparator interrupt on falling edge
     // of AIN1 (interrupt triggers when adaptor power fails)

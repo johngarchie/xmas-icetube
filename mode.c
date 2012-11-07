@@ -207,7 +207,7 @@ void mode_semitick(void) {
 	case MODE_MENU_SETDATE:
 	    switch(btn) {
 		case BUTTON_MENU:
-		    mode_update(MODE_MENU_SETPREFS);
+		    mode_update(MODE_MENU_SETFORMAT);
 		    break;
 		case BUTTON_SET:
 		    // fetch the current date
@@ -296,7 +296,7 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_MENU_SETPREFS:
+	case MODE_MENU_SETFORMAT:
 	    switch(btn) {
 		case BUTTON_MENU:
 		    mode_update(MODE_MENU_SETBRIGHT);
@@ -568,8 +568,8 @@ void mode_update(uint8_t new_state) {
 	    mode_date_display();
 	    display_dotselect(7, 8);
 	    break;
-	case MODE_MENU_SETPREFS:
-	    display_pstr(PSTR("set pref"));
+	case MODE_MENU_SETFORMAT:
+	    display_pstr(PSTR("set form"));
 	    break;
 	case MODE_MENU_SETBRIGHT:
 	    display_pstr(PSTR("set brit"));
