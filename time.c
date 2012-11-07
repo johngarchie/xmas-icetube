@@ -5,10 +5,13 @@
 #include "time.h"
 #include "timedef.h"
 
-// current time and date
+
+// extern'ed time and date data
 volatile time_t time;
 
+
 // places to store the current time in EEMEM
+uint8_t ee_time_status EEMEM = 0;
 uint8_t ee_time_year   EEMEM = TIME_DEFAULT_YEAR;
 uint8_t ee_time_month  EEMEM = TIME_DEFAULT_MONTH;
 uint8_t ee_time_day    EEMEM = TIME_DEFAULT_MDAY;
@@ -19,7 +22,21 @@ uint8_t ee_time_second EEMEM = TIME_DEFAULT_SECOND;
 
 // load time from eeprom, setup counter2 with clock crystal
 void time_init(void) {
-    time_load();  // set clock with last known time
+    // eeprom could be uninitialized or corrupted,
+    // so force reasonable values for restored data
+    time.year   = eeprom_read_byte(&ee_time_year  ) % 100;
+    time.month  = eeprom_read_byte(&ee_time_month ) % 13;
+    time.day    = eeprom_read_byte(&ee_time_day   ) % 32;
+    time.hour   = eeprom_read_byte(&ee_time_hour  ) % 24;
+    time.minute = eeprom_read_byte(&ee_time_minute) % 60;
+    time.second = eeprom_read_byte(&ee_time_second) % 60;
+
+    // for month and day, zero is an invalid value
+    if(time.month == 0) time.month = 1;
+    if(time.day   == 0) time.day   = 1;
+
+    time.status = eeprom_read_byte(&ee_time_status);
+    time.status |= TIME_UNSET;
 
     power_timer2_enable();  // enable counter 2
 
@@ -43,18 +60,29 @@ void time_sleep(void) {
     // stored in capacitor should be sufficient to save current time.
     // if the power outage is brief, time will be restored from eeprom and
     // the clock will still have a semi-reasonable time.
-    time_save();
+    time_savetime();
 }
 
 
-// save time and date to eeprom
-void time_save(void) {
-    eeprom_write_byte(&ee_time_year,   time.year  );
-    eeprom_write_byte(&ee_time_month,  time.month );
-    eeprom_write_byte(&ee_time_day,    time.day   );
+// save time to eeprom
+void time_savedate(void) {
+    eeprom_write_byte(&ee_time_year,  time.year );
+    eeprom_write_byte(&ee_time_month, time.month);
+    eeprom_write_byte(&ee_time_day,   time.day  );
+}
+
+
+// save date to eeprom
+void time_savetime(void) {
     eeprom_write_byte(&ee_time_hour,   time.hour  );
     eeprom_write_byte(&ee_time_minute, time.minute);
     eeprom_write_byte(&ee_time_second, time.second);
+}
+
+
+// save status to eeprom
+void time_savestatus(void) {
+    eeprom_write_byte(&ee_time_status, time.status);
 }
 
 
@@ -75,25 +103,6 @@ void time_setdate(uint8_t year, uint8_t month, uint8_t day) {
     time.year   = year;
     time.month  = month;
     time.day    = day;
-}
-
-
-// load time and date from eeprom
-void time_load(void) {
-    // eeprom could be uninitialized or corrupted,
-    // so force reasonable values for restored data
-    time.year   = eeprom_read_byte(&ee_time_year  ) % 100;
-    time.month  = eeprom_read_byte(&ee_time_month ) % 13;
-    time.day    = eeprom_read_byte(&ee_time_day   ) % 32;
-    time.hour   = eeprom_read_byte(&ee_time_hour  ) % 24;
-    time.minute = eeprom_read_byte(&ee_time_minute) % 60;
-    time.second = eeprom_read_byte(&ee_time_second) % 60;
-
-    // for month and day, zero is an invalid value
-    if(time.month == 0) time.month = 1;
-    if(time.day   == 0) time.day   = 1;
-
-    time.status = TIME_UNSET | TIME_MMDDYY | TIME_12HOUR | TIME_DST;
 }
 
 
@@ -120,6 +129,7 @@ void time_tick(void) {
     } else {
 	time.hour = 0;
 	++time.day;
+	eeprom_write_byte(&ee_time_day, time.day);
     }
 
     if(time.day <= time_daysinmonth(time.year, time.month)) {
@@ -127,6 +137,7 @@ void time_tick(void) {
     } else {
 	time.day = 1;
 	++time.month;
+	eeprom_write_byte(&ee_time_month, time.month);
     }
 
     if(time.month <= 12) {
@@ -134,6 +145,7 @@ void time_tick(void) {
     } else {
 	time.month = 1;
 	++time.year;
+	eeprom_write_byte(&ee_time_year, time.year);
     }
 }
 

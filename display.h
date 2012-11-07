@@ -1,7 +1,8 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include <stdint.h>
+#include <stdint.h>       // for using standard integer types
+#include <avr/pgmspace.h> // for accessing data in program memory
 
 #define DISPLAY_SIZE 9
 
@@ -23,12 +24,13 @@ void display_setbright(uint8_t value);
 void display_savebright(void);
 void display_loadbright(void);
 
-void display_string(const char str[]);
+void display_pstr(PGM_P pstr);
 void display_digit(uint8_t idx, uint8_t n);
 void display_char(uint8_t idx, char c);
 void display_clear(uint8_t idx);
 
-void display_dot (uint8_t idx, uint8_t show);
+void display_dotselect(uint8_t idx_start, uint8_t idx_end);
+void display_dot(uint8_t idx, uint8_t show);
 void display_dash(uint8_t idx, uint8_t show);
 
 #endif

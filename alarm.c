@@ -1,17 +1,20 @@
-#include <avr/io.h>       // for using avr register names
-#include <avr/pgmspace.h> // for accessing data in program memory
-#include <avr/eeprom.h>   // for accessing data in eeprom
-#include <avr/power.h>    // for enabling/disabling microcontroller modules
-#include <avr/cpufunc.h>  // for using the _NOP() macro
+#include <avr/io.h>           // for using avr register names
+#include <avr/pgmspace.h>     // for accessing data in program memory
+#include <avr/eeprom.h>       // for accessing data in eeprom
+#include <avr/power.h>        // for enabling/disabling microcontroller modules
+#include <util/delay_basic.h> // for the _delay_loop_1() macro
+
 
 #include "alarm.h"
 #include "time.h"
 #include "power.h"
 #include "button.h"
+#include "mode.h"
 
 
-// current alarm settings
+// extern'ed alarm data
 volatile alarm_t alarm;
+
 
 // default alarm time
 uint8_t ee_alarm_hour   EEMEM = ALARM_DEFAULT_HOUR;
@@ -63,8 +66,8 @@ void alarm_wake(void) {
     DDRD  &= ~_BV(PD2); // set as input pin
     PORTD |=  _BV(PD2); // enable pull-up resistor
 
-    // give the system five cycles to update PIND
-    _NOP(); _NOP(); _NOP(); _NOP(); _NOP();
+    // give the system time to set PIND
+    _delay_loop_1(2);
 
     // set initial alarm status from alarm switch
     if(PIND & _BV(PD2)) {
@@ -185,6 +188,7 @@ void alarm_semitick(void) {
 	} else {
 	    if(++alarm_debounce >= ALARM_DEBOUNCE_TIME) {
 		alarm.status |= ALARM_SET;
+		mode_alarmset();
 	    }
 	}
     } else {
@@ -192,6 +196,7 @@ void alarm_semitick(void) {
 	    if(++alarm_debounce >= ALARM_DEBOUNCE_TIME) {
 		alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING & ~ALARM_SNOOZE;
 		alarm_buzzeroff();
+		mode_alarmoff();
 	    }
 	} else {
 	    alarm_debounce = 0;
@@ -257,7 +262,6 @@ void alarm_beep(uint16_t duration) {
 
 // enable the pizo buzzer
 void alarm_buzzeron(void) {
-
     power_timer1_enable();  // enable counter1 (buzzer timer)
 
     // configure Timer/Counter1 to generate buzzer sound:

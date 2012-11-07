@@ -6,7 +6,7 @@
 // debounce and repeat settings
 #define BUTTON_DEBOUNCE_TIME   20
 #define BUTTON_REPEAT_AFTER  1000
-#define BUTTON_REPEAT_RATE    200
+#define BUTTON_REPEAT_RATE    100
 
 // button flags (for button.state and button.pressed)
 #define BUTTON_MENU      0x01

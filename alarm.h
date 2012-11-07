@@ -8,7 +8,7 @@
 #define ALARM_DEFAULT_MINUTE  0
 
 // alarm volume range: [0, 10]
-#define ALARM_DEFAULT_VOLUME 3
+#define ALARM_DEFAULT_VOLUME 4
 
 
 #define ALARM_SET      0x01

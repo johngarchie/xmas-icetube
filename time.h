@@ -45,16 +45,18 @@ extern volatile time_t time;
 
 void time_init(void);
 
-void time_save(void);
-void time_settime(uint8_t hour, uint8_t minute, uint8_t second);
-void time_setdate(uint8_t year, uint8_t month, uint8_t day);
-void time_load(void);
-
 void time_sleep(void);
 inline void time_wake(void) {};
 
 void time_tick(void);
 inline void time_semitick(void) {};
+
+void time_savetime(void);
+void time_savedate(void);
+void time_savestatus(void);
+
+void time_settime(uint8_t hour, uint8_t minute, uint8_t second);
+void time_setdate(uint8_t year, uint8_t month, uint8_t day);
 
 uint8_t time_dayofweek(uint8_t year, uint8_t month, uint8_t day);
 uint8_t time_daysinmonth(uint8_t year, uint8_t month);

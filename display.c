@@ -4,10 +4,15 @@
 #include <avr/power.h>    // for enabling/disabling chip features
 #include <util/atomic.h>  // for enabling and disabling interrupts
 
+
 #include "display.h"
 
 
-// display brightness
+// extern'ed data pertaining the display
+volatile display_t display;
+
+
+// permanent place to store display brightness
 uint8_t ee_brightness EEMEM = 0;
 
 
@@ -95,8 +100,8 @@ const uint8_t vfd_segment_pins[] PROGMEM = {
     19, // segment A
 };
 
-volatile display_t display;
 
+// initialize display after system reset
 void display_init(void) {
     // disable boost and vfd
     DDRD  |= _BV(PD6) | _BV(PD3); // enable boost fet and vfd transistor
@@ -126,6 +131,8 @@ void display_init(void) {
     power_spi_disable();
 }
 
+
+// disable display for low-power mode
 void display_sleep(void) {
     power_timer0_disable(); // disable counter0
 
@@ -140,6 +147,7 @@ void display_sleep(void) {
 }
 
 
+// enable display after low-power mode
 void display_wake(void) {
     // enable spi
     power_spi_enable();
@@ -166,6 +174,8 @@ void display_wake(void) {
 
 }
 
+
+// called every semisecond; controls the MAX6921/VFD
 void display_semitick(void) {
     static uint8_t digit_idx = 0;  
     digit_idx %= DISPLAY_SIZE;
@@ -196,19 +206,23 @@ void display_semitick(void) {
 }
 
 
+// clear the given display position
 void display_clear(uint8_t idx) {
     display.buffer[idx] = DISPLAY_SPACE;
 }
 
-void display_string(const char str[]) {
+// display the given string from program memory
+void display_pstr(PGM_P pstr) {
     uint8_t idx = 0;
 
     // clear first display position
-    display_clear(idx++);
+    display_clear(idx);
 
     // display the string
-    for(char c = str[0]; c && idx < DISPLAY_SIZE; c = str[idx++]) {
+    char c = pgm_read_byte(pstr + idx++);
+    while(c && idx < DISPLAY_SIZE) {
 	display_char(idx, c);
+        c = pgm_read_byte(pstr + idx++);
     }
 
     // clear any remaining positions
@@ -217,6 +231,8 @@ void display_string(const char str[]) {
     }
 }
 
+
+// set new display brightness
 void display_setbright(uint8_t level) {
     // convert range 0-10 to 30-60 for OCR0A
     uint8_t new_OCR0A = 30 + 6 * level;
@@ -232,11 +248,13 @@ void display_setbright(uint8_t level) {
 }
 
 
+// save display brightness to eeprom
 void display_savebright(void) {
     eeprom_write_byte(&ee_brightness, display.brightness);
 }
 
 
+// load display brightness from eeprom
 void display_loadbright(void) {
     display.brightness = eeprom_read_byte(&ee_brightness);
 }
@@ -268,6 +286,14 @@ void display_char(uint8_t idx, char c) {
 		display.buffer[idx] = DISPLAY_WILDCARD;
 		break;
 	}
+    }
+}
+
+
+// displays decimals at positions between idx_start and idx_end, inclusive
+void display_dotselect(uint8_t idx_start, uint8_t idx_end) {
+    for(uint8_t idx = idx_start; idx <= idx_end && idx < DISPLAY_SIZE; ++idx) {
+	display.buffer[idx] |= DISPLAY_DOT;
     }
 }
 

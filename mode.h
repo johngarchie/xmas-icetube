@@ -8,22 +8,30 @@
 
 
 enum {
-    MODE_TIME,
+    MODE_TIME_DISPLAY,
+        MODE_DAYOFWEEK_DISPLAY,
+        MODE_MONTHDAY_DISPLAY,
+        MODE_ALARMSET_DISPLAY,
+        MODE_ALARMTIME_DISPLAY,
+        MODE_ALARMOFF_DISPLAY,
     MODE_MENU_SETALARM,
-         MODE_SETALARM_HOUR,
-         MODE_SETALARM_MINUTE,
+        MODE_SETALARM_HOUR,
+        MODE_SETALARM_MINUTE,
     MODE_MENU_SETTIME,
-         MODE_SETTIME_HOUR,
-         MODE_SETTIME_MINUTE,
-         MODE_SETTIME_SECOND,
+        MODE_SETTIME_HOUR,
+        MODE_SETTIME_MINUTE,
+        MODE_SETTIME_SECOND,
     MODE_MENU_SETDATE,
-         MODE_SETDATE_YEAR,
-         MODE_SETDATE_MONTH,
-         MODE_SETDATE_DAY,
+        MODE_SETDATE_YEAR,
+        MODE_SETDATE_MONTH,
+        MODE_SETDATE_DAY,
+    MODE_MENU_SETPREFS,
+        MODE_SETTIME_FORMAT,
+        MODE_SETDATE_FORMAT,
     MODE_MENU_SETBRIGHT,
-         MODE_SETBRIGHT_LEVEL,
+        MODE_SETBRIGHT_LEVEL,
     MODE_MENU_SETVOLUME,
-         MODE_SETVOLUME_LEVEL,
+        MODE_SETVOLUME_LEVEL,
 };
 
 
@@ -52,5 +60,8 @@ void mode_semitick(void);
 
 inline void mode_wake(void) {};
 inline void mode_sleep(void) {};
+
+void mode_alarmset(void);
+void mode_alarmoff(void);
 
 #endif
