@@ -35,7 +35,7 @@ int main(void) {
     wdt_reset(); // reset default watchdog timer
     wdt_enable(WDTO_2S); // enable watchdog timer
 
-    power_init();
+    power_init(); // setup power manager
 
     // initialize the clock; each init function leaves
     // the system in a low-power configuration
@@ -49,6 +49,8 @@ int main(void) {
     if(power_source() == POWER_BATTERY) {
 	power_sleep_loop();
     }
+
+    sei();  // allow interupts
 
     // with normal power, the mcu can safely run at 8 MHz
     clock_prescale_set(clock_div_1);
@@ -130,10 +132,16 @@ ISR(ANALOG_COMP_vect) {
     alarm_sleep();    // disable alarm switch pull-up resistor
     button_sleep();   // disable button pull-up resistors
 
+    wdt_reset();   // reset watchdog timer
+    wdt_disable(); // disable watchdog timer (saves power)
+
     power_sleep_loop(); // sleep until power restored
 
+    sei();  // allow interrupts
+    wdt_reset(); // reset default watchdog timer
+    wdt_enable(WDTO_2S); // enable watchdog timer
     clock_prescale_set(clock_div_1); // restore normal clock speed
-    
+
     button_wake();    // enable button pull-ups
     alarm_wake();     // enable alarm switch pull-up
     time_wake();      // does nothing (empty function)
