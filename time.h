@@ -1,7 +1,8 @@
 #ifndef TIME_H
 #define TIME_H
 
-#include <avr/pgmspace.h>
+#include <stdint.h>       // for using standard integer types
+#include <avr/pgmspace.h> // for accessing data in program memory
 
 // month numbers
 #define TIME_JAN 1
@@ -26,10 +27,21 @@
 #define TIME_FRI 5
 #define TIME_SAT 6
 
-#define TIME_UNSET  0x01
-#define TIME_DST    0x02
-#define TIME_MMDDYY 0x04
-#define TIME_12HOUR 0x08
+// return states for time_isdst_usa()
+#ifndef TRUE
+#define TRUE  1
+#endif
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+// flags for time.status
+#define TIME_UNSET       0x01
+#define TIME_DST         0x02
+#define TIME_MMDDYY      0x04
+#define TIME_12HOUR      0x08
+#define TIME_AUTODST_USA 0x10
+
 
 typedef struct {
     uint8_t  status;   // status flags
@@ -41,7 +53,9 @@ typedef struct {
     uint8_t  second;   // seconds past minute
 } time_t;
 
+
 extern volatile time_t time;
+
 
 void time_init(void);
 
@@ -60,5 +74,12 @@ void time_setdate(uint8_t year, uint8_t month, uint8_t day);
 
 uint8_t time_dayofweek(uint8_t year, uint8_t month, uint8_t day);
 uint8_t time_daysinmonth(uint8_t year, uint8_t month);
+
+void time_autodst(uint8_t);
+void time_dston(uint8_t adj_time);
+void time_dstoff(uint8_t adj_time);
+void time_springforward(void);
+void time_fallback(void);
+uint8_t time_isdst_usa(void);
 
 #endif

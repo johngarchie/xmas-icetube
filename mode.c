@@ -1,4 +1,5 @@
 #include <avr/pgmspace.h> // for defining program memory strings with PSTR()
+#include <util/atomic.h>  // for defining non-interruptable blocks
 
 #include "mode.h"
 #include "display.h"
@@ -37,7 +38,7 @@ void mode_tick(void) {
 		display_clear(i);
 	    }
 	} else {
-	    mode_time_display(time.hour, time.minute, time.second);
+	    mode_update(MODE_TIME_DISPLAY);
 	}
     }
 }
@@ -190,9 +191,12 @@ void mode_semitick(void) {
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTON_SET:
-		    time_settime(mode.tmp[MODE_TMP_HOUR],
-			         mode.tmp[MODE_TMP_MINUTE],
-			         mode.tmp[MODE_TMP_SECOND]);
+		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+			time_settime(mode.tmp[MODE_TMP_HOUR],
+				     mode.tmp[MODE_TMP_MINUTE],
+				     mode.tmp[MODE_TMP_SECOND]);
+			time_autodst(FALSE);
+		    }
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTON_PLUS:
@@ -207,7 +211,7 @@ void mode_semitick(void) {
 	case MODE_MENU_SETDATE:
 	    switch(btn) {
 		case BUTTON_MENU:
-		    mode_update(MODE_MENU_SETFORMAT);
+		    mode_update(MODE_MENU_SETDST);
 		    break;
 		case BUTTON_SET:
 		    // fetch the current date
@@ -281,9 +285,12 @@ void mode_semitick(void) {
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTON_SET:
-		    time_setdate(mode.tmp[MODE_TMP_YEAR],
-				 mode.tmp[MODE_TMP_MONTH],
-				 mode.tmp[MODE_TMP_DAY]);
+		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+			time_setdate(mode.tmp[MODE_TMP_YEAR],
+				     mode.tmp[MODE_TMP_MONTH],
+				     mode.tmp[MODE_TMP_DAY]);
+			time_autodst(FALSE);
+		    }
 		    time_savedate();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
@@ -296,10 +303,146 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_MENU_SETFORMAT:
+	case MODE_MENU_SETDST:
 	    switch(btn) {
 		case BUTTON_MENU:
 		    mode_update(MODE_MENU_SETBRIGHT);
+		    break;
+		case BUTTON_SET:
+		    mode.tmp[0]  = time.status;
+		    mode_update(MODE_SETDST_STATE);
+		    break;
+		case BUTTON_PLUS:
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_SETDST_STATE:
+	    switch(btn) {
+		case BUTTON_MENU:
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTON_SET:
+		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+			if(mode.tmp[0] & TIME_AUTODST_USA) {
+			    time.status |= TIME_AUTODST_USA;
+			    time_autodst(FALSE);
+			} else {
+			    if(mode.tmp[0] & TIME_DST) {
+				time_dston(TRUE);
+				time.status &= ~TIME_AUTODST_USA;
+			    } else {
+				time_dstoff(TRUE);
+				time.status &= ~TIME_AUTODST_USA;
+			    }
+			}
+		    }
+		    time_savestatus();
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTON_PLUS:
+		    if(mode.tmp[0] & TIME_AUTODST_USA) {
+			// after autodst on, the next option should
+			// be whatever the current dst state is
+			mode.tmp[0] = time.status & ~TIME_AUTODST_USA;
+		    } else {
+			if( (mode.tmp[0] & TIME_DST)
+				== (time.status & TIME_DST) ) {
+			    // after dst state matches the currently set
+			    // time, toggle the dst state
+			    mode.tmp[0] ^= TIME_DST;
+			} else {
+			    // after dst does not match the currently set
+			    // state, try autodst for the usa
+			    mode.tmp[0] = time.status | TIME_AUTODST_USA;
+			}
+		    }
+		    mode_update(MODE_SETDST_STATE);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_MENU_SETBRIGHT:
+	    switch(btn) {
+		case BUTTON_MENU:
+		    mode_update(MODE_MENU_SETVOLUME);
+		    break;
+		case BUTTON_SET:
+		    mode.tmp[MODE_TMP_BRIGHT] = display.brightness;
+		    mode_update(MODE_SETBRIGHT_LEVEL);
+		    break;
+		case BUTTON_PLUS:
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_SETBRIGHT_LEVEL:
+	    switch(btn) {
+		case BUTTON_MENU:
+		    display_setbright(display.brightness);
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTON_SET:
+		    display.brightness = mode.tmp[MODE_TMP_BRIGHT];
+		    display_savebright();
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTON_PLUS:
+		    ++(mode.tmp[MODE_TMP_BRIGHT]);
+		    *mode.tmp %= 11;
+		    display_setbright(mode.tmp[MODE_TMP_BRIGHT]);
+		    mode_update(MODE_SETBRIGHT_LEVEL);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_MENU_SETVOLUME:
+	    switch(btn) {
+		case BUTTON_MENU:
+		    mode_update(MODE_MENU_SETFORMAT);
+		    break;
+		case BUTTON_SET:
+		    mode.tmp[MODE_TMP_VOLUME] = alarm.volume;
+		    alarm_beep(1000);
+		    mode_update(MODE_SETVOLUME_LEVEL);
+		    break;
+		case BUTTON_PLUS:
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_SETVOLUME_LEVEL:
+	    switch(btn) {
+		case BUTTON_MENU:
+		    alarm.volume = mode.tmp[MODE_TMP_VOLUME];
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTON_SET:
+		    alarm_savevolume();
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTON_PLUS:
+		    ++alarm.volume;
+		    alarm.volume %= 11;
+		    alarm_beep(1000);
+		    mode_update(MODE_SETVOLUME_LEVEL);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_MENU_SETFORMAT:
+	    switch(btn) {
+		case BUTTON_MENU:
+		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTON_SET:
 		    mode.tmp[0] = time.status & TIME_12HOUR;
@@ -363,80 +506,6 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_MENU_SETBRIGHT:
-	    switch(btn) {
-		case BUTTON_MENU:
-		    mode_update(MODE_MENU_SETVOLUME);
-		    break;
-		case BUTTON_SET:
-		    mode.tmp[MODE_TMP_BRIGHT] = display.brightness;
-		    mode_update(MODE_SETBRIGHT_LEVEL);
-		    break;
-		case BUTTON_PLUS:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_SETBRIGHT_LEVEL:
-	    switch(btn) {
-		case BUTTON_MENU:
-		    display_setbright(display.brightness);
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTON_SET:
-		    display.brightness = mode.tmp[MODE_TMP_BRIGHT];
-		    display_savebright();
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTON_PLUS:
-		    ++(mode.tmp[MODE_TMP_BRIGHT]);
-		    *mode.tmp %= 11;
-		    display_setbright(mode.tmp[MODE_TMP_BRIGHT]);
-		    mode_update(MODE_SETBRIGHT_LEVEL);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_MENU_SETVOLUME:
-	    switch(btn) {
-		case BUTTON_MENU:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTON_SET:
-		    mode.tmp[MODE_TMP_VOLUME] = alarm.volume;
-		    alarm_beep(1000);
-		    mode_update(MODE_SETVOLUME_LEVEL);
-		    break;
-		case BUTTON_PLUS:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_SETVOLUME_LEVEL:
-	    switch(btn) {
-		case BUTTON_MENU:
-		    alarm.volume = mode.tmp[MODE_TMP_VOLUME];
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTON_SET:
-		    alarm_savevolume();
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTON_PLUS:
-		    ++alarm.volume;
-		    alarm.volume %= 11;
-		    alarm_beep(1000);
-		    mode_update(MODE_SETVOLUME_LEVEL);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
 	default:
 	    break;
     }
@@ -471,6 +540,7 @@ void mode_update(uint8_t new_state) {
     switch(mode.state) {
 	case MODE_TIME_DISPLAY:
 	    mode_time_display(time.hour, time.minute, time.second);
+	    if(time.status & TIME_DST) display_dot(8, 1);
 	    break;
 	case MODE_DAYOFWEEK_DISPLAY:
 	    mode_dayofweek_display();
@@ -511,14 +581,6 @@ void mode_update(uint8_t new_state) {
 	case MODE_MENU_SETTIME:
 	    display_pstr(PSTR("set time"));
 	    break;
-	case MODE_SETTIME_FORMAT:
-	    if(mode.tmp[0]) {
-		display_pstr(PSTR("12-hour"));
-	    } else {
-		display_pstr(PSTR("24-hour"));
-	    }
-	    display_dotselect(1, 2);
-	    break;
 	case MODE_SETTIME_HOUR:
 	    mode_time_display(mode.tmp[MODE_TMP_HOUR],
 		              mode.tmp[MODE_TMP_MINUTE],
@@ -540,14 +602,6 @@ void mode_update(uint8_t new_state) {
 	case MODE_MENU_SETDATE:
 	    display_pstr(PSTR("set date"));
 	    break;
-	case MODE_SETDATE_FORMAT:
-	    if(mode.tmp[0]) {
-		display_pstr(PSTR("mm-dd-yy"));
-	    } else {
-		display_pstr(PSTR("dd-mm-yy"));
-	    }
-	    display_dotselect(1, 8);
-	    break;
 	case MODE_SETDATE_DAY:
 	    mode_date_display();
 	    if(time.status & TIME_MMDDYY) {
@@ -568,8 +622,41 @@ void mode_update(uint8_t new_state) {
 	    mode_date_display();
 	    display_dotselect(7, 8);
 	    break;
+	case MODE_MENU_SETDST:
+	    display_pstr(PSTR("set dst"));
+	    break;
+	case MODE_SETDST_STATE:
+	    if(mode.tmp[0] & TIME_AUTODST_USA) {
+		display_pstr(PSTR("dst  usa"));
+		display_dotselect(6, 8);
+	    } else {
+		if(mode.tmp[0] & TIME_DST) {
+		    display_pstr(PSTR("dst   on"));
+		    display_dotselect(7, 8);
+		} else {
+		    display_pstr(PSTR("dst  off"));
+		    display_dotselect(6, 8);
+		}
+	    }
+	    break;
 	case MODE_MENU_SETFORMAT:
 	    display_pstr(PSTR("set form"));
+	    break;
+	case MODE_SETDATE_FORMAT:
+	    if(mode.tmp[0]) {
+		display_pstr(PSTR("mm-dd-yy"));
+	    } else {
+		display_pstr(PSTR("dd-mm-yy"));
+	    }
+	    display_dotselect(1, 8);
+	    break;
+	case MODE_SETTIME_FORMAT:
+	    if(mode.tmp[0]) {
+		display_pstr(PSTR("12-hour"));
+	    } else {
+		display_pstr(PSTR("24-hour"));
+	    }
+	    display_dotselect(1, 2);
 	    break;
 	case MODE_MENU_SETBRIGHT:
 	    display_pstr(PSTR("set brit"));

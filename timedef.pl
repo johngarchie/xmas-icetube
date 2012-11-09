@@ -3,7 +3,7 @@
 use warnings;
 use strict;
 
-my @timeFields = qw/SECOND MINUTE HOUR MDAY MONTH YEAR WDAY YDAY ISDST/;
+my @timeFields = qw/SECOND MINUTE HOUR MDAY MONTH YEAR WDAY YDAY DST/;
 my @timeData = localtime(time);
 
 # start month numbering at one, not zero

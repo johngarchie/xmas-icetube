@@ -22,6 +22,9 @@ AVRCLOCK ?= 8000000
 # avr in-system programmer
 AVRISP ?= usbtiny
 
+# explicitly specify a bourne-compatable shell
+SHELL=/bin/sh
+
 # avr programming utilities
 AVRCPP     ?= avr-gcc
 AVRSIZE    ?= avr-size
@@ -30,7 +33,8 @@ AVROBJCOPY ?= avr-objcopy
 
 # options for avr programming utilities
 AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK)
-AVRSIZEOPT    ?= -C --mcu=$(AVRMCU)
+#AVRSIZEOPT    ?= -C --mcu=$(AVRMCU)
+AVRSIZEOPT    ?= -A
 AVRDUDEOPT    ?= -p $(AVRMCU) -c $(AVRISP)
 AVROBJCOPYOPT ?=
 

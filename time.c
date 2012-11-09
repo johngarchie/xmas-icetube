@@ -9,9 +9,12 @@
 // extern'ed time and date data
 volatile time_t time;
 
-
 // places to store the current time in EEMEM
+#if TIME_DEFAULT_DST == 0
 uint8_t ee_time_status EEMEM = 0;
+#else
+uint8_t ee_time_status EEMEM = TIME_DST;
+#endif
 uint8_t ee_time_year   EEMEM = TIME_DEFAULT_YEAR;
 uint8_t ee_time_month  EEMEM = TIME_DEFAULT_MONTH;
 uint8_t ee_time_day    EEMEM = TIME_DEFAULT_MDAY;
@@ -110,43 +113,31 @@ void time_setdate(uint8_t year, uint8_t month, uint8_t day) {
 void time_tick(void) {
     ++time.second;
 
-    if(time.second < 60) {
-	return;
-    } else {
+    if(time.second >= 60) {
 	time.second = 0;
 	++time.minute;
+	if(time.minute >= 60) {
+	    time.minute = 0;
+	    ++time.hour;
+	    if(time.hour >= 24) {
+		time.hour = 0;
+		++time.day;
+		eeprom_write_byte(&ee_time_day, time.day);
+		if(time.day > time_daysinmonth(time.year, time.month)) {
+		    time.day = 1;
+		    ++time.month;
+		    eeprom_write_byte(&ee_time_month, time.month);
+		    if(time.month > 12) {
+			time.month = 1;
+			++time.year;
+			eeprom_write_byte(&ee_time_year, time.year);
+		    }
+		}
+	    }
+	}
     }
 
-    if(time.minute < 60) {
-	return;
-    } else {
-	time.minute = 0;
-	++time.hour;
-    }
-
-    if(time.hour < 24) {
-	return;
-    } else {
-	time.hour = 0;
-	++time.day;
-	eeprom_write_byte(&ee_time_day, time.day);
-    }
-
-    if(time.day <= time_daysinmonth(time.year, time.month)) {
-	return;
-    } else {
-	time.day = 1;
-	++time.month;
-	eeprom_write_byte(&ee_time_month, time.month);
-    }
-
-    if(time.month <= 12) {
-	return;
-    } else {
-	time.month = 1;
-	++time.year;
-	eeprom_write_byte(&ee_time_year, time.year);
-    }
+    time_autodst(TRUE);
 }
 
 
@@ -200,4 +191,152 @@ uint8_t time_dayofweek(uint8_t year, uint8_t month, uint8_t day) {
     // let 0 be sun, 1 be mon; ...; and 6 be sat.
     // dec 31, 1999 was 5 (fri); so day of week is
     return (5 + total_days) % 7;
+}
+
+
+// if autodst is enabled, set dst accordingly; if adj_time is
+// true and the dst state is changed, adjust time accordingly
+void time_autodst(uint8_t adj_time) {
+    if(time.status & TIME_AUTODST_USA) {
+	if(time_isdst_usa()) {
+	    time_dston(adj_time);
+	} else {
+	    time_dstoff(adj_time);
+	}
+    }
+}
+
+
+// enable dst; if adj_time is true and dst is
+// not already enabled, adjust time accordingly
+void time_dston(uint8_t adj_time) {
+    if(adj_time && !(time.status & TIME_DST)) {
+	time_springforward();
+    }
+
+    time.status |= TIME_DST;
+}
+
+
+// disable dst; if adj_time is true and dst is
+// not already enabled, adjust time accordingly
+void time_dstoff(uint8_t adj_time) {
+    if(adj_time && time.status & TIME_DST) {
+	time_fallback();
+    }
+
+    time.status &= ~TIME_DST;
+}
+
+
+// adds one hour from the current time
+// (in the spring, clocks "spring forward")
+void time_springforward(void) {
+    ++time.hour;
+    if(time.hour < 24) return;
+    time.hour = 0;
+
+    ++time.day;
+    if(time.day <= time_daysinmonth(time.year, time.month)) return;
+    time.day = 1;
+
+    if(++time.month > 12) {
+	time.month = 1;
+	++time.year;
+    }
+}
+
+
+// subtracts one hour from the current time
+// (in the fall, clocks "fall back")
+void time_fallback(void) {
+    // if time.hour is 0, underflow will make it 255
+    --time.hour;
+
+    if(time.hour < 24) return;
+    time.hour = 23;
+
+    --time.day;
+    if(time.day > 0) return;
+    --time.month;
+
+    if(time.month < TIME_JAN) {
+	time.month = TIME_DEC;
+	--time.year;
+    }
+
+    time.day = time_daysinmonth(time.year, time.month);
+}
+
+
+// returns TRUE if currently observing DST, FALSE otherwise
+uint8_t time_isdst_usa(void) {
+    uint8_t first_day, dst_day;
+
+    switch(time.month) {
+	case TIME_MAR:
+	    // dst begins on the second sunday in march
+	    first_day = time_dayofweek(time.year, time.month, 1);
+	    if(first_day == TIME_SUN) {
+		dst_day = 8;
+	    } else {
+		dst_day = 15 - first_day;
+	    }
+
+	    // before that day, dst is not in effect;
+	    // after that day, dst is in effect
+	    if(time.day < dst_day) return FALSE;
+	    if(time.day > dst_day) return TRUE;
+
+	    // at 2:00, time jumps forward to 3:00, so
+	    // 2:00 to 2:59 is an invalid time range
+	    // a time in this range probably means dst should
+	    // be enabled, but is not yet, so return true
+	    if(time.hour <  2) {
+		return FALSE;
+	    } else {
+		return TRUE;
+	    }
+
+	    break;
+	case TIME_NOV:
+	    // dst ends on the first sunday in november
+	    first_day = time_dayofweek(time.year, time.month, 1);
+	    if(first_day == TIME_SUN) {
+		dst_day = 1;
+	    } else {
+		dst_day = 8 - first_day;
+	    }
+
+	    // before that day, dst is in effect;
+	    // after that day, dst is not in effect
+	    if(time.day < dst_day) return TRUE;
+	    if(time.day > dst_day) return FALSE;
+
+	    // at 2:00, time falls back to 1:00, so
+	    // 1:00 to 1:59 is an ambiguous time range
+	    if(time.hour <  1) return TRUE;
+	    if(time.hour >= 2) return FALSE;
+
+	    // if time is ambiguous, return current dst state
+	    if(time.status & TIME_DST) {
+		return TRUE;
+	    } else {
+		return FALSE;
+	    }
+
+	    break;
+	default:
+	    if(TIME_MAR < time.month && time.month < TIME_NOV) {
+		// between march and november,
+	        // daylight saving time is in effect
+		return TRUE;
+	    } else {
+		// before march and after november,
+	        // daylight saving time is not in effect
+		return FALSE;
+	    }
+
+	    break;
+    }
 }

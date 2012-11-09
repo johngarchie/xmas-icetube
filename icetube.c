@@ -123,6 +123,9 @@ ISR(ANALOG_COMP_vect) {
     // if the system is already sleeping, do nothing
     if(power.status & POWER_SLEEP) return;
 
+    // if power is good, do nothing
+    if(power_source() == POWER_ADAPTOR) return;
+
     // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
     // An 8 or 4 MHz clock is unstable at 1.7v, but a 2 MHz clock is okay:
     clock_prescale_set(clock_div_4);
@@ -132,14 +135,10 @@ ISR(ANALOG_COMP_vect) {
     alarm_sleep();    // disable alarm switch pull-up resistor
     button_sleep();   // disable button pull-up resistors
 
-    wdt_reset();   // reset watchdog timer
-    wdt_disable(); // disable watchdog timer (saves power)
-
     power_sleep_loop(); // sleep until power restored
 
+    time_savetime();  // save current time in case of disaster
     sei();  // allow interrupts
-    wdt_reset(); // reset default watchdog timer
-    wdt_enable(WDTO_2S); // enable watchdog timer
     clock_prescale_set(clock_div_1); // restore normal clock speed
 
     button_wake();    // enable button pull-ups

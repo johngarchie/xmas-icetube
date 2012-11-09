@@ -21,7 +21,7 @@ void power_init(void) {
     // use internal bandgap as reference for analog comparator
     // and enable analog comparator interrupt on falling edge
     // of AIN1 (interrupt triggers when adaptor power fails)
-    ACSR = _BV(ACBG) | _BV(ACIE) | _BV(ACIS1) | _BV(ACI);
+    ACSR = _BV(ACBG) | _BV(ACIE) | _BV(ACI);
 
     // disable digital input on analog comparator input, AIN1
     DIDR1 = _BV(AIN1D);
@@ -51,9 +51,6 @@ void power_sleep_loop(void) {
     power.status |= POWER_SLEEP; // set sleep flag
 
     do {
-	// disable analog comparator interrupt
-	ACSR = _BV(ACBG) | _BV(ACI);
-
 	do {
 	    // if the alarm buzzer is going, remain in idle mode to keep buzzer
 	    // active for the next second
@@ -67,12 +64,8 @@ void power_sleep_loop(void) {
 	    sleep_cpu();
 	    cli();
 	} while(power_source() == POWER_BATTERY);
-
 	// debounce power-restored signal; delay is actually 100 ms
 	_delay_ms(25);  // because clock is divided by four
-
-	// enable analog comparator interrupt
-	ACSR = _BV(ACBG) | _BV(ACIE) | _BV(ACIS1) | _BV(ACI);
     } while(power_source() == POWER_BATTERY);
 
     power.status &= ~POWER_SLEEP; // clear sleep flag
