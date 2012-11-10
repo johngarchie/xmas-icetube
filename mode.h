@@ -14,6 +14,7 @@ enum {
         MODE_ALARMSET_DISPLAY,
         MODE_ALARMTIME_DISPLAY,
         MODE_ALARMOFF_DISPLAY,
+        MODE_SNOOZEON_DISPLAY,
     MODE_MENU_SETALARM,
         MODE_SETALARM_HOUR,
         MODE_SETALARM_MINUTE,
@@ -31,20 +32,27 @@ enum {
         MODE_SETBRIGHT_LEVEL,
     MODE_MENU_SETVOLUME,
         MODE_SETVOLUME_LEVEL,
+        MODE_SETVOLUME_MIN,
+        MODE_SETVOLUME_MAX,
     MODE_MENU_SETFORMAT,
         MODE_SETTIME_FORMAT,
         MODE_SETDATE_FORMAT,
+    MODE_MENU_SETSNOOZE,
+        MODE_SETSNOOZE_TIME,
 };
 
 
-#define MODE_TMP_YEAR   0
-#define MODE_TMP_MONTH  1
-#define MODE_TMP_DAY    2
+#define MODE_TMP_YEAR  0
+#define MODE_TMP_MONTH 1
+#define MODE_TMP_DAY   2
+
 #define MODE_TMP_HOUR   0
 #define MODE_TMP_MINUTE 1
 #define MODE_TMP_SECOND 2
-#define MODE_TMP_BRIGHT 0
-#define MODE_TMP_VOLUME 0
+
+#define MODE_TMP_VOL     0
+#define MODE_TMP_VOL_MIN 1
+#define MODE_TMP_VOL_MAX 2
 
 
 typedef struct {
@@ -65,5 +73,6 @@ inline void mode_sleep(void) {};
 
 void mode_alarmset(void);
 void mode_alarmoff(void);
+void mode_snoozing(void);
 
 #endif

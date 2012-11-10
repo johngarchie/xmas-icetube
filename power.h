@@ -15,6 +15,7 @@ enum {
 
 typedef struct {
     uint8_t status;
+    uint8_t initial_mcusr;
 } power_t;
 
 extern volatile power_t power;

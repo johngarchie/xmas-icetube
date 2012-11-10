@@ -25,15 +25,14 @@
 #include "display.h"
 #include "mode.h"
 
+
 // set to 1 every ~1 millisecond or so
 uint8_t semitick_successful = 0;
+
 
 // start everything for the first time
 int main(void) {
     cli(); // disable interrupts until sleep or idle loop
-    MCUSR = 0; // clear any watchdog timer flags
-    wdt_reset(); // reset default watchdog timer
-    wdt_enable(WDTO_2S); // enable watchdog timer
 
     power_init(); // setup power manager
 
@@ -45,10 +44,8 @@ int main(void) {
     display_init();
     mode_init();
 
-    // if the system is on low power
-    if(power_source() == POWER_BATTERY) {
-	power_sleep_loop();
-    }
+    // if the system is on low power, sleep until power restored
+    if(power_source() == POWER_BATTERY) power_sleep_loop();
 
     sei();  // allow interupts
 
@@ -126,14 +123,14 @@ ISR(ANALOG_COMP_vect) {
     // if power is good, do nothing
     if(power_source() == POWER_ADAPTOR) return;
 
-    // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
-    // An 8 or 4 MHz clock is unstable at 1.7v, but a 2 MHz clock is okay:
-    clock_prescale_set(clock_div_4);
-
     display_sleep();  // stop boost timer and disable display
     time_sleep();     // save current time
     alarm_sleep();    // disable alarm switch pull-up resistor
     button_sleep();   // disable button pull-up resistors
+
+    // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
+    // An 8 or 4 MHz clock is unstable at 1.7v, but a 2 MHz clock is okay:
+    clock_prescale_set(clock_div_4);
 
     power_sleep_loop(); // sleep until power restored
 

@@ -4,7 +4,6 @@
 #include <avr/power.h>        // for enabling/disabling microcontroller modules
 #include <util/delay_basic.h> // for the _delay_loop_1() macro
 
-
 #include "alarm.h"
 #include "time.h"
 #include "power.h"
@@ -16,10 +15,12 @@
 volatile alarm_t alarm;
 
 
-// default alarm time
-uint8_t ee_alarm_hour   EEMEM = ALARM_DEFAULT_HOUR;
-uint8_t ee_alarm_minute EEMEM = ALARM_DEFAULT_MINUTE;
-uint8_t ee_alarm_volume EEMEM = ALARM_DEFAULT_VOLUME;
+// default alarm time, volume range, and snooze timeout
+uint8_t ee_alarm_hour        EEMEM = ALARM_DEFAULT_HOUR;
+uint8_t ee_alarm_minute      EEMEM = ALARM_DEFAULT_MINUTE;
+uint8_t ee_alarm_volume_min  EEMEM = ALARM_DEFAULT_VOLUME_MIN;
+uint8_t ee_alarm_volume_max  EEMEM = ALARM_DEFAULT_VOLUME_MAX;
+uint8_t ee_alarm_snooze_time EEMEM = ALARM_DEFAULT_SNOOZE_TIME;
 
 
 // The table below is used to convert alarm volume (0 to 10) into timer
@@ -95,17 +96,19 @@ void alarm_tick(void) {
 	if(alarm.status & ALARM_SET) {
 	    alarm.alarm_timer  = 0;
 	    alarm.buzzer_timer = 0;
+	    alarm.volume = alarm.volume_min;
 	    alarm.status |= ALARM_SOUNDING;
 	}
     }
     
     // sound alarm if snooze times out
     if(alarm.status & ALARM_SNOOZE) {
-	if(++alarm.alarm_timer == ALARM_SNOOZE_TIMEOUT) {
-	    alarm.alarm_timer = 0;
+	if(++alarm.alarm_timer == alarm.snooze_time) {
+	    alarm.alarm_timer  = 0;
 	    alarm.buzzer_timer = 0;
-	    alarm.status &= ~ALARM_SNOOZE;
-	    alarm.status |=  ALARM_SOUNDING;
+	    alarm.volume       = alarm.volume_min;
+	    alarm.status      &= ~ALARM_SNOOZE;
+	    alarm.status      |=  ALARM_SOUNDING;
 	}
     }
 
@@ -127,8 +130,15 @@ void alarm_tick(void) {
 		alarm_buzzeron();
 	    }
 
-	    if(++alarm.alarm_timer >= ALARM_SOUNDING_TIMEOUT) {
+	    ++alarm.alarm_timer;
+
+	    if(alarm.alarm_timer >= ALARM_SOUNDING_TIMEOUT) {
 		alarm.status &= ~ALARM_SOUNDING;
+	    }
+
+	    if( !(alarm.alarm_timer % ALARM_RAMP_INTERVAL)
+		    && alarm.volume < alarm.volume_max ) {
+		++alarm.volume;
 	    }
 	} else {
 	    power.status &= ~POWER_ALARMON;
@@ -144,11 +154,14 @@ void alarm_tick(void) {
 // and reads alarm switch
 void alarm_semitick(void) {
     // trigger snooze if button pressed during alarm
-    if(alarm.status & ALARM_SOUNDING && button_process()) {
-	alarm.status &= ~ALARM_SOUNDING;
-	alarm.status |=  ALARM_SNOOZE;
-	alarm.alarm_timer = 0;
-	alarm_buzzeroff();
+    if(alarm.snooze_time && alarm.status & ALARM_SOUNDING) {
+	if(button_process()) {
+	    alarm.status &= ~ALARM_SOUNDING;
+	    alarm.status |=  ALARM_SNOOZE;
+	    alarm.alarm_timer = 0;
+	    alarm_buzzeroff();
+	    mode_snoozing();
+	}
     }
 
     // extend snooze if any button is pressed
@@ -214,15 +227,31 @@ void alarm_settime(uint8_t hour, uint8_t minute) {
 
 // save alarm volume to eeprom
 void alarm_savevolume(void) {
-    eeprom_write_byte(&ee_alarm_volume, alarm.volume);
+    eeprom_write_byte(&ee_alarm_volume_min, alarm.volume_min);
+    eeprom_write_byte(&ee_alarm_volume_max, alarm.volume_max);
+}
+
+
+// save alarm snooze time (in seconds) to eeprom (in minutes)
+void alarm_savesnooze(void) {
+    // save snooze time as minutes, not seconds
+    eeprom_write_byte(&ee_alarm_snooze_time, alarm.snooze_time / 60);
 }
 
 
 // load alarm settings from eeprom
 void alarm_load(void) {
-    alarm.hour   = eeprom_read_byte(&ee_alarm_hour)   % 24;
-    alarm.minute = eeprom_read_byte(&ee_alarm_minute) % 60;
-    alarm.volume = eeprom_read_byte(&ee_alarm_volume) % 10;
+    alarm.hour         = eeprom_read_byte(&ee_alarm_hour)        % 24;
+    alarm.minute       = eeprom_read_byte(&ee_alarm_minute)      % 60;
+    alarm.volume_min   = eeprom_read_byte(&ee_alarm_volume_min)  % 11;
+    alarm.volume_max   = eeprom_read_byte(&ee_alarm_volume_max)  % 11;
+    alarm.snooze_time  = eeprom_read_byte(&ee_alarm_snooze_time) % 31;
+
+    // convert snooze time from minutes to seconds
+    alarm.snooze_time *= 60;
+
+    // initial volume should be minimum volume
+    alarm.volume = alarm.volume_min;
 }
 
 
@@ -276,10 +305,11 @@ void alarm_buzzeron(void) {
 	// set buzzer frequency to 2 MHz / 500 = 4.00 kHz
 	ICR1 = 500;
 
-	// set compare match registers for desired volume
-	uint16_t volume = alarm.volume + 1;
-	if(volume > 10) volume = 10;
-	uint16_t compare_match = pgm_read_byte(alarm_vol2cm + volume);
+	// set compare match registers for desired volume; adjust
+	// volume to compensate for lower voltage of battery power
+	uint16_t extra_volume = alarm.volume + 1;
+	if(extra_volume > 10) extra_volume = 10;
+	uint16_t compare_match = pgm_read_byte(alarm_vol2cm + extra_volume);
 	compare_match *= 2;
 	OCR1A = compare_match;
 	OCR1B = 500 - compare_match;
