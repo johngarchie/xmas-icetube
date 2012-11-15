@@ -35,6 +35,13 @@
 #define FALSE 0
 #endif
 
+// drift correction table size
+#define TIME_DRIFT_TABLE_SIZE 7    // keep previous 7 adjustments
+#define TIME_MIN_DRIFT_ADJUST 39   // (~200 ppm)
+#define TIME_MAX_DRIFT_TIME   1200 // seconds (10 min)
+#define TIME_MIN_DRIFT_TIME   30   //  seconds
+#define TIME_DRIFT_SAVE_DELAY 600  // seconds (10 min)
+
 // flags for time.status
 #define TIME_UNSET       0x01
 #define TIME_DST         0x02
@@ -44,13 +51,33 @@
 
 
 typedef struct {
-    uint8_t  status;   // status flags
-    uint8_t  year;     // years past 2000
-    uint8_t  month;    // month (1 is jan)
-    uint8_t  day;      // day of month
-    uint8_t  hour;     // hours past midnight
-    uint8_t  minute;   // minutes past hour
-    uint8_t  second;   // seconds past minute
+    uint8_t status;  // status flags
+    uint8_t year;    // years past 2000
+    uint8_t month;   // month (1 is jan)
+    uint8_t day;     // day of month
+    uint8_t hour;    // hours past midnight
+    uint8_t minute;  // minutes past hour
+    uint8_t second;  // seconds past minute
+
+    int16_t drift_adjust; // current drift adjustment:
+    // the number of seconds before time should be adjusted by 1/128 seconds;
+    // positive values indicate the clock is slow; negative values indicate the
+    // clock is fast; 0 indicates no adjustment
+
+    uint16_t drift_adjust_timer; // incremented every second; when
+    // drift_adjust_timer equals abs(drift_adjust), time is adjusted by
+    // 1/128 seconds and the timer is reset to zero
+
+    int32_t drift_delta_seconds; // when clock is set, the difference between
+    // the old and new time accumulates here; drift_delta_seconds is reset
+    // to zero when drift_total_seconds is reset
+
+    uint32_t drift_total_seconds;  // total number of seconds between clock sets
+    // e.g. if no drift adjustment is currently being made, drift would be
+    // [drift (ppm)] = 1000000 * [drift_delta_seconds] / [drift_delta_timer]
+
+    uint16_t drift_delay_timer;  // seconds until system computes a new
+    // drift adjustment uisng drift_delta_seconds and drift_total_seconds
 } time_t;
 
 
@@ -69,7 +96,7 @@ void time_savetime(void);
 void time_savedate(void);
 void time_savestatus(void);
 
-void time_settime(uint8_t hour, uint8_t minute, uint8_t second);
+void time_settime(const uint8_t hour, const uint8_t minute, const uint8_t second);
 void time_setdate(uint8_t year, uint8_t month, uint8_t day);
 
 uint8_t time_dayofweek(uint8_t year, uint8_t month, uint8_t day);
@@ -81,5 +108,9 @@ void time_dstoff(uint8_t adj_time);
 void time_springforward(void);
 void time_fallback(void);
 uint8_t time_isdst_usa(void);
+
+void time_autodrift(void);
+void time_newdrift(void);
+void time_loaddriftmedian(void);
 
 #endif

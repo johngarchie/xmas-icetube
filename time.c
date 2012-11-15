@@ -1,6 +1,7 @@
 #include <avr/io.h>      // for using register names
 #include <avr/eeprom.h>  // for storing data in eeprom memory
 #include <avr/power.h>   // for enabling/disabling chip features
+#include <util/atomic.h> // for non-interruptable blocks
 
 #include "time.h"
 #include "timedef.h"
@@ -22,6 +23,11 @@ uint8_t ee_time_hour   EEMEM = TIME_DEFAULT_HOUR;
 uint8_t ee_time_minute EEMEM = TIME_DEFAULT_MINUTE;
 uint8_t ee_time_second EEMEM = TIME_DEFAULT_SECOND;
 
+// drift adjustment data
+uint8_t ee_time_drift_count EEMEM = 0;
+uint8_t ee_time_drift_idx   EEMEM = 0;
+int16_t ee_time_drift_table[TIME_DRIFT_TABLE_SIZE] EEMEM;
+
 
 // load time from eeprom, setup counter2 with clock crystal
 void time_init(void) {
@@ -38,7 +44,16 @@ void time_init(void) {
     if(time.month == 0) time.month = 1;
     if(time.day   == 0) time.day   = 1;
 
-    time.status = eeprom_read_byte(&ee_time_status);
+    // explicitly initialize drift variables
+    time.drift_adjust_timer  = 0;
+    time.drift_delay_timer   = 0;
+    time.drift_total_seconds = 0;
+    time.drift_delta_seconds = 0;
+
+    // load drift_adjust
+    time_loaddriftmedian();
+
+    time.status  = eeprom_read_byte(&ee_time_status);
     time.status |= TIME_UNSET;
 
     power_timer2_enable();  // enable counter 2
@@ -91,11 +106,57 @@ void time_savestatus(void) {
 
 // set current time
 void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
-    time.status &= ~TIME_UNSET;
+    // stage time change for later drift correction
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	if(!(time.status & TIME_UNSET)) {
+	    int8_t delta_hour, delta_minute, delta_second;
 
-    time.hour   = hour;
-    time.minute = minute;
-    time.second = second;
+	    // compute the time difference between old and new times
+	    delta_hour   = hour   - time.hour;
+	    delta_minute = minute - time.minute;
+	    delta_second = second - time.second;
+
+	    int32_t total_delta = delta_hour;
+	    total_delta *= 60;            // hours to minutes
+	    total_delta += delta_minute;  // add minutes
+	    total_delta *= 60;            // minutes to seconds
+	    total_delta += delta_second;  // add seconds
+
+	    // if time reset within drift delay period,
+	    // update the number of seconds of clock drift
+	    time.drift_delta_seconds += total_delta;
+
+	    // adjust drift_delta_seconds for clock wrap-around
+	    if(time.drift_delta_seconds > (int32_t)12 * 60 * 60) {
+		time.drift_delta_seconds -= (int32_t)24 * 60 * 60;
+	    }
+
+	    if(time.drift_delta_seconds < (int32_t)-12 * 60 * 60) {
+		time.drift_delta_seconds += (int32_t)24 * 60 * 60;
+	    }
+
+	    // defer setting drift adjustment to allow correction of
+	    // an incorrectly entered time; only set drift after clock
+	    // changed by at least TIME_MIN_DRIFT_TIME
+	    if(-TIME_MIN_DRIFT_TIME < time.drift_delta_seconds
+		    && time.drift_delta_seconds < TIME_MIN_DRIFT_TIME) {
+		time.drift_delay_timer = 0;
+	    } else {
+		time.drift_delay_timer = TIME_DRIFT_SAVE_DELAY;
+	    }
+	} else {
+	    // reset drift timer
+	    time.drift_total_seconds = 0;
+	    time.drift_delta_seconds = 0;
+	}
+
+	// set the new time
+	time.hour   = hour;
+	time.minute = minute;
+	time.second = second;
+
+	time.status &= ~TIME_UNSET;
+    }
 }
 
 
@@ -138,6 +199,7 @@ void time_tick(void) {
     }
 
     time_autodst(TRUE);
+    time_autodrift();
 }
 
 
@@ -338,5 +400,140 @@ uint8_t time_isdst_usa(void) {
 	    }
 
 	    break;
+    }
+}
+
+
+// manages drift correction
+void time_autodrift(void) {
+    // adjust timekeeping according to current drift_adjust
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	++time.drift_total_seconds;  // seconds since clock last set
+
+	if(time.drift_adjust_timer) {
+	    // seconds until next drift correction
+	    --time.drift_adjust_timer;
+	}
+
+	// set timer2 top value to adjust duration of next second
+	if(!time.drift_adjust_timer && time.drift_adjust > 0) {
+	    // reset drift correction timer
+	    time.drift_adjust_timer = time.drift_adjust;
+
+	    // clock is slow: make next "second" faster
+	    OCR2A = 126;  // 127 values, including zero
+	} else if(!time.drift_adjust_timer && time.drift_adjust < 0) {
+	    // reset drift correction timer
+	    time.drift_adjust_timer = -time.drift_adjust;
+
+	    // clock is fast: make next "second" longer
+	    OCR2A = 128;  // 129 values, including zero
+	} else {
+	    // make next "second" of normal duration
+	    OCR2A = 127; // 128 values, including zero
+	}
+
+	// if drift adjustment calculation deferred and timer expires,
+	// calculate and store new adjustment and update drift_adjust
+	if(time.drift_delay_timer) {
+	    --time.drift_delay_timer;
+	    if(!time.drift_delay_timer) {
+		// calculate and save new drift adjustment
+		time_newdrift();
+
+		NONATOMIC_BLOCK(NONATOMIC_FORCEOFF) {
+		    // load new median adjustment
+		    time_loaddriftmedian();
+		}
+	    }
+	}
+    }
+}
+
+
+// calculates and saves new drift value
+// ***interrupts must be disabled while calling this function***
+void time_newdrift(void) {
+    int32_t new_adj;  // new drift adjustment value
+
+    // do not record if time change too large or small
+    if(   ( time.drift_delta_seconds < -TIME_MAX_DRIFT_TIME
+		|| time.drift_delta_seconds > TIME_MAX_DRIFT_TIME )
+       || ( -TIME_MIN_DRIFT_TIME < time.drift_delta_seconds
+		&& time.drift_delta_seconds < TIME_MIN_DRIFT_TIME ) ) {
+	return;
+    }
+
+    // subtract effect of current drift adjustment, if any
+    if(time.drift_adjust) {
+	time.drift_total_seconds -= (int32_t)time.drift_total_seconds
+						   / time.drift_adjust / 128;
+    }
+
+    // calculate new drift adjustment
+    new_adj = (int32_t)(time.drift_total_seconds)
+			      / time.drift_delta_seconds / 128;
+
+    // ultimately drift correction is stored as an int16,
+    // so constrain new_adj to those bounds
+    if(new_adj > INT16_MAX) new_adj = INT16_MAX;
+    if(new_adj < INT16_MIN) new_adj = INT16_MAX;
+
+    time.drift_total_seconds = 0;
+    time.drift_delta_seconds = 0;
+
+    // do not record if abs(new_adj) is too small; the smaller the adjustment
+    // value, faster or slower.
+    if(-TIME_MIN_DRIFT_ADJUST < new_adj && new_adj < TIME_MIN_DRIFT_ADJUST) {
+	return;
+    }
+
+    // save drift adjustment
+    uint8_t idx   = eeprom_read_byte(&ee_time_drift_idx  );
+    uint8_t count = eeprom_read_byte(&ee_time_drift_count);
+    eeprom_write_word((uint16_t*)&(ee_time_drift_table[idx]), new_adj);
+    ++idx;
+    if(count < idx) count = idx;
+    idx %= TIME_DRIFT_TABLE_SIZE;
+    eeprom_write_byte(&ee_time_drift_idx,   idx);
+    eeprom_write_byte(&ee_time_drift_count, count);
+}
+
+
+// load drift correction from memory
+void time_loaddriftmedian(void) {
+    uint8_t table_size, half_table, min_idx;
+    int16_t processed, min_val, cur_val;
+
+    min_val = 0;  // default median if no data
+    processed = 0;
+    table_size = eeprom_read_byte(&ee_time_drift_count);
+    half_table = table_size / 2;
+    if(table_size) ++half_table;
+
+    // find the median value in the drift table,
+    // for small n, this O(n^2) method is quick
+    for(uint8_t i = 0; i < half_table; ++i) {
+	min_val = INT16_MAX; min_idx = 0;
+	for(uint8_t j = 0; j < table_size; ++j) {
+	    if( !(processed & _BV(j)) ) {
+		cur_val=eeprom_read_word((uint16_t*)&(ee_time_drift_table[j]));
+		if(cur_val < min_val) {
+		    min_val = cur_val;
+		    min_idx = j;
+		}
+	    }
+	}
+	processed |= _BV(min_idx);
+    }
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+	time.drift_adjust = min_val;
+
+	if(time.drift_adjust > 0) {
+	    time.drift_adjust_timer =  time.drift_adjust;
+	} else {
+	    time.drift_adjust_timer = -time.drift_adjust;
+	}
     }
 }

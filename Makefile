@@ -11,13 +11,15 @@
 PROJECT ?= icetube
 
 # object files
-OBJECTS ?= icetube.o time.o alarm.o button.o display.o power.o mode.o
+OBJECTS ?= icetube.o time.o alarm.o button.o display.o power.o mode.o usart.o
 
 # avr microcontroller processing unit
 AVRMCU ?= atmega168
+#AVRMCU ?= atmega328p
 
 # avr system clock speed
-AVRCLOCK ?= 8000000 
+#AVRCLOCK ?= 8000000 
+AVRCLOCK ?= 16000000 
 
 # avr in-system programmer
 AVRISP ?= usbtiny
@@ -32,9 +34,9 @@ AVRDUDE    ?= avrdude
 AVROBJCOPY ?= avr-objcopy
 
 # options for avr programming utilities
-AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK)
-#AVRSIZEOPT    ?= -C --mcu=$(AVRMCU)
-AVRSIZEOPT    ?= -A
+AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK) -DDEBUG=1
+AVRSIZEOPT    ?= -C --mcu=$(AVRMCU)
+#AVRSIZEOPT    ?= -A
 AVRDUDEOPT    ?= -p $(AVRMCU) -c $(AVRISP)
 AVROBJCOPYOPT ?=
 

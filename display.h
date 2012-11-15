@@ -7,8 +7,8 @@
 #define DISPLAY_SIZE 9
 
 typedef struct {
-    volatile uint8_t buffer[DISPLAY_SIZE];  // display contents
-    volatile uint8_t brightness; // display brightness
+    uint8_t buffer[DISPLAY_SIZE];  // display contents
+    uint8_t brightness; // display brightness
 } display_t;
 
 volatile extern display_t display;

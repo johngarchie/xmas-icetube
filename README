@@ -1,28 +1,15 @@
 Improvements over original firmware
 
-(1) refined volume adjustment
-(2) alarm works during sleep
+(1) adjustable volume
+(2) progressive alarm
+(3) DST support (USA and manual)
+(4) automatic drift correction
+(5) alarm sounds during power outage
+(6) clock not restarted on power outage
+
 
 
 Wish List:
 
-(1) adjustable snooze [1-30]
-
-(2) progressive alarm
-
-(3) automatic drift correction
-
-Automatically adjust for the clock running too fast or slow:  If you set the clock time, and set the time again a week later, the clock can figure out if it's running fast or slow...and adjust it's timekeeping accordingly!
-
-(4) optimized power savings
-
-Lower power consumption when clock sleeps:  When the power goes out, the clock goes to sleep and runs on the internal battery.  Currently the battery lasts two weeks, but in theory it could last years.  All I need to do is shut
-down the watchdog timer, analog comparator and maybe some other features.  Analog comparator could be enabled on tick to detect when power is restored.
-
-(5) DST adjustment
-
-Automatic adjustment for daylight savings time in US.
-
-(6) auto dimmer
-
-Brightness adjustment based on ambient light.
+(1) auto dimmer
+(2) DST by EU rules

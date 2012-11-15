@@ -17,13 +17,13 @@ void power_init(void) {
     power.initial_mcusr = MCUSR;  // save MCUSR
     MCUSR = 0;  // clear any watchdog timer flags
     wdt_reset();  // reset default watchdog timer
-    wdt_enable(WDTO_2S);  // enable watchdog timer
+    wdt_disable();
+    //wdt_enable(WDTO_2S);  // enable watchdog timer
 
     power.status &= ~POWER_SLEEP;
 
     // enable pull-up resistors on unused pins to ensure a defined value
     PORTC |= _BV(PC5) | _BV(PC4) | _BV(PC2) | _BV(PC1) | _BV(PC0);
-    PORTD |= _BV(PD1) | _BV(PD0); // rxd, txd
     PORTB |= _BV(PB4); // msoi
 
     // use internal bandgap as reference for analog comparator

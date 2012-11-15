@@ -38,6 +38,7 @@ int main(void) {
 
     // initialize the clock; each init function leaves
     // the system in a low-power configuration
+    usart_init();
     time_init();
     button_init();
     alarm_init();
@@ -53,6 +54,7 @@ int main(void) {
     clock_prescale_set(clock_div_1);
 
     // wake everything up
+    usart_wake();
     time_wake();
     button_wake();
     alarm_wake();
@@ -124,6 +126,7 @@ ISR(ANALOG_COMP_vect) {
     if(power_source() == POWER_ADAPTOR) return;
 
     display_sleep();  // stop boost timer and disable display
+    usart_sleep();    // disable usart
     time_sleep();     // save current time
     alarm_sleep();    // disable alarm switch pull-up resistor
     button_sleep();   // disable button pull-up resistors
@@ -135,11 +138,12 @@ ISR(ANALOG_COMP_vect) {
     power_sleep_loop(); // sleep until power restored
 
     time_savetime();  // save current time in case of disaster
-    sei();  // allow interrupts
+    sei();            // allow interrupts
     clock_prescale_set(clock_div_1); // restore normal clock speed
 
-    button_wake();    // enable button pull-ups
-    alarm_wake();     // enable alarm switch pull-up
-    time_wake();      // does nothing (empty function)
-    display_wake();   // start boost timer and enable display
+    button_wake();   // enable button pull-ups
+    alarm_wake();    // enable alarm switch pull-up
+    time_wake();     // does nothing (empty function)
+    usart_sleep();   // enable and configure usart
+    display_wake();  // start boost timer and enable display
 }

@@ -18,8 +18,8 @@
 #define BUTTON_REPEATING 0x20
 
 typedef struct {
-    volatile uint8_t  state;  // sensed buttons and state
-    volatile uint8_t pressed; // debounced button presses
+    uint8_t  state;  // sensed buttons and state
+    uint8_t pressed; // debounced button presses
 } button_t;
 
 extern volatile button_t button;
