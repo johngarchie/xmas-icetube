@@ -20,6 +20,7 @@
 // headers for this project
 #include "power.h"
 #include "time.h"
+#include "usart.h"
 #include "alarm.h"
 #include "button.h"
 #include "display.h"

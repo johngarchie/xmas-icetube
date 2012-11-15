@@ -259,12 +259,29 @@ uint8_t time_dayofweek(uint8_t year, uint8_t month, uint8_t day) {
 // if autodst is enabled, set dst accordingly; if adj_time is
 // true and the dst state is changed, adjust time accordingly
 void time_autodst(uint8_t adj_time) {
-    if(time.status & TIME_AUTODST_USA) {
-	if(time_isdst_usa()) {
-	    time_dston(adj_time);
-	} else {
-	    time_dstoff(adj_time);
-	}
+    uint8_t is_dst = time.status & TIME_DST;
+
+    switch(time.status & TIME_AUTODST_MASK) {
+	case TIME_AUTODST_USA:
+	    is_dst = time_isdst_usa();
+	    break;
+	case TIME_AUTODST_EU_GMT:
+	    is_dst = time_isdst_eu(0); // gmt + 0
+	    break;
+	case TIME_AUTODST_EU_CET:
+	    is_dst = time_isdst_eu(1); // gmt + 1
+	    break;
+	case TIME_AUTODST_EU_EET:
+	    is_dst = time_isdst_eu(2); // gmt + 2
+	    break;
+	default:
+	    break;
+    }
+
+    if(is_dst) {
+	time_dston(adj_time);
+    } else {
+	time_dstoff(adj_time);
     }
 }
 
@@ -328,6 +345,72 @@ void time_fallback(void) {
     }
 
     time.day = time_daysinmonth(time.year, time.month);
+}
+
+
+// returns TRUE if currently observing DST, FALSE otherwise
+uint8_t time_isdst_eu(int8_t rel_gmt) {
+    uint8_t dst_day;
+
+    // time changes at 1:00 GMT
+    int8_t dst_hour = 1 + rel_gmt;
+
+    switch(time.month) {
+	case TIME_MAR:
+	    // dst begins on the last sunday in march
+	    dst_day = 31 - time_dayofweek(time.year, time.month, 31);
+
+	    // before that day, dst is not in effect;
+	    // after that day, dst is in effect
+	    if(time.day < dst_day) return FALSE;
+	    if(time.day > dst_day) return TRUE;
+
+	    // at dst_hour, time jumps forward to dst_hour + 1,
+	    // so the time between is an invalid range a time in
+	    // this range probably means dst should be enabled,
+	    // but is not yet, so return true
+	    if(time.hour <  dst_hour) {
+		return FALSE;
+	    } else {
+		return TRUE;
+	    }
+
+	    break;
+	case TIME_OCT:
+	    // dst ends on the last sunday in october
+	    dst_day = 31 - time_dayofweek(time.year, time.month, 31);
+
+	    // before that day, dst is in effect;
+	    // after that day, dst is not in effect
+	    if(time.day < dst_day) return TRUE;
+	    if(time.day > dst_day) return FALSE;
+
+	    // at dst_hour, time falls back to dst_hour - 1, so
+	    // the time in between is an ambiguous time range
+	    if(time.hour + 1 <  dst_hour) return TRUE;
+	    if(time.hour     >= dst_hour) return FALSE;
+
+	    // if time is ambiguous, return current dst state
+	    if(time.status & TIME_DST) {
+		return TRUE;
+	    } else {
+		return FALSE;
+	    }
+
+	    break;
+	default:
+	    if(TIME_MAR < time.month && time.month < TIME_OCT) {
+		// between march and october,
+	        // daylight saving time is in effect
+		return TRUE;
+	    } else {
+		// before march and after october,
+	        // daylight saving time is not in effect
+		return FALSE;
+	    }
+
+	    break;
+    }
 }
 
 
@@ -505,6 +588,7 @@ void time_loaddriftmedian(void) {
     uint8_t table_size, half_table, min_idx;
     int16_t processed, min_val, cur_val;
 
+    min_idx = 0;
     min_val = 0;  // default median if no data
     processed = 0;
     table_size = eeprom_read_byte(&ee_time_drift_count);
@@ -514,13 +598,16 @@ void time_loaddriftmedian(void) {
     // find the median value in the drift table,
     // for small n, this O(n^2) method is quick
     for(uint8_t i = 0; i < half_table; ++i) {
-	min_val = INT16_MAX; min_idx = 0;
+	min_val = 1;  // largest possible drift correction value
 	for(uint8_t j = 0; j < table_size; ++j) {
 	    if( !(processed & _BV(j)) ) {
 		cur_val=eeprom_read_word((uint16_t*)&(ee_time_drift_table[j]));
-		if(cur_val < min_val) {
-		    min_val = cur_val;
+		// values need be ranked in reciprocal space
+		// (e.g., ordered like -70, -90, -100, 100, 90)
+		if( ((cur_val < 0) == (min_val < 0) ?
+			    cur_val > min_val : cur_val < min_val) ) {
 		    min_idx = j;
+		    min_val = cur_val;
 		}
 	    }
 	}

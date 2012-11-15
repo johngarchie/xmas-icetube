@@ -47,7 +47,14 @@
 #define TIME_DST         0x02
 #define TIME_MMDDYY      0x04
 #define TIME_12HOUR      0x08
-#define TIME_AUTODST_USA 0x10
+
+// top nibble indicates DST
+#define TIME_AUTODST_MASK   0xF0
+#define TIME_AUTODST_NONE   0x00
+#define TIME_AUTODST_EU_GMT 0x10
+#define TIME_AUTODST_EU_CET 0x20
+#define TIME_AUTODST_EU_EET 0x30
+#define TIME_AUTODST_USA    0x40
 
 
 typedef struct {
@@ -107,6 +114,7 @@ void time_dston(uint8_t adj_time);
 void time_dstoff(uint8_t adj_time);
 void time_springforward(void);
 void time_fallback(void);
+uint8_t time_isdst_eu(int8_t rel_gmt);
 uint8_t time_isdst_usa(void);
 
 void time_autodrift(void);

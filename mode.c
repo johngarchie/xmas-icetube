@@ -329,40 +329,103 @@ void mode_semitick(void) {
 		    break;
 		case BUTTON_SET:
 		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-			if(*mode.tmp & TIME_AUTODST_USA) {
-			    time.status |= TIME_AUTODST_USA;
+			uint8_t autodst = *mode.tmp & TIME_AUTODST_MASK;
+
+			if(autodst) {
 			    time_autodst(FALSE);
 			} else {
 			    if(*mode.tmp & TIME_DST) {
 				time_dston(TRUE);
-				time.status &= ~TIME_AUTODST_USA;
 			    } else {
 				time_dstoff(TRUE);
-				time.status &= ~TIME_AUTODST_USA;
 			    }
 			}
+
+			time.status = *mode.tmp;
+			time_savestatus();
+
+			switch(autodst) {
+			    case TIME_AUTODST_USA:
+			    case TIME_AUTODST_NONE:
+				mode_update(MODE_TIME_DISPLAY);
+				break;
+			    default:  // GMT, CET, or EET
+				mode_update(MODE_SETDST_ZONE);
+				break;
+			}
 		    }
-		    time_savestatus();
+		    break;
+		case BUTTON_PLUS:
+		    switch(*mode.tmp & TIME_AUTODST_MASK) {
+			case TIME_AUTODST_USA:
+			    // after autodst usa, go to manual
+			    // dst for current dst state
+			    *mode.tmp &= ~TIME_AUTODST_MASK;
+			    break;
+			case TIME_AUTODST_NONE:
+			    if( (*mode.tmp & TIME_DST)
+				    == (time.status & TIME_DST) ) {
+				// after current dst state,
+				// go to other dst state
+				*mode.tmp ^= TIME_DST;
+			    } else {
+				// after other dst state,
+				// go to autodst eu
+				*mode.tmp ^= TIME_DST;
+				switch(time.status & TIME_AUTODST_MASK) {
+				    case TIME_AUTODST_EU_CET:
+					*mode.tmp |= TIME_AUTODST_EU_CET;
+					break;
+				    case TIME_AUTODST_EU_EET:
+					*mode.tmp |= TIME_AUTODST_EU_EET;
+					break;
+				    default:
+					*mode.tmp |= TIME_AUTODST_EU_GMT;
+					break;
+				}
+			    }
+			    break;
+			default:  // GMT, CET, or EET
+			    // after autodst eu, go to autodst usa
+			    *mode.tmp &= ~TIME_AUTODST_MASK;
+			    *mode.tmp |=  TIME_AUTODST_USA;
+			    break;
+		    }
+		    mode_update(MODE_SETDST_STATE);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_SETDST_ZONE:
+	    switch(btn) {
+		case BUTTON_MENU:
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTON_SET:
+		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+			time.status = *mode.tmp;
+			time_autodst(FALSE);
+			time_savestatus();
+		    }
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTON_PLUS:
-		    if(*mode.tmp & TIME_AUTODST_USA) {
-			// after autodst on, the next option should
-			// be whatever the current dst state is
-			*mode.tmp = time.status & ~TIME_AUTODST_USA;
-		    } else {
-			if( (*mode.tmp & TIME_DST)
-				== (time.status & TIME_DST) ) {
-			    // after dst state matches the currently set
-			    // time, toggle the dst state
-			    *mode.tmp ^= TIME_DST;
-			} else {
-			    // after dst does not match the currently set
-			    // state, try autodst for the usa
-			    *mode.tmp = time.status | TIME_AUTODST_USA;
-			}
+		    switch(*mode.tmp & TIME_AUTODST_MASK) {
+			case TIME_AUTODST_EU_CET:
+			    *mode.tmp &= ~TIME_AUTODST_MASK;
+			    *mode.tmp |=  TIME_AUTODST_EU_EET;
+			    break;
+			case TIME_AUTODST_EU_EET:
+			    *mode.tmp &= ~TIME_AUTODST_MASK;
+			    *mode.tmp |=  TIME_AUTODST_EU_GMT;
+			    break;
+			default:  // GMT
+			    *mode.tmp &= ~TIME_AUTODST_MASK;
+			    *mode.tmp |=  TIME_AUTODST_EU_CET;
+			    break;
 		    }
-		    mode_update(MODE_SETDST_STATE);
+		    mode_update(MODE_SETDST_ZONE);
 		    break;
 		default:
 		    break;
@@ -743,30 +806,53 @@ void mode_update(uint8_t new_state) {
 	    display_dotselect(7, 8);
 	    break;
 	case MODE_MENU_SETDST:
-	    display_pstr(PSTR("set dst"));
+	    display_pstr(PSTR("set  dst"));
 	    break;
 	case MODE_SETDST_STATE:
-	    if(*mode.tmp & TIME_AUTODST_USA) {
-		display_pstr(PSTR("dst  usa"));
-		display_dotselect(6, 8);
-	    } else {
-		if(*mode.tmp & TIME_DST) {
-		    display_pstr(PSTR("dst   on"));
-		    display_dotselect(7, 8);
-		} else {
-		    display_pstr(PSTR("dst  off"));
+	    switch(*mode.tmp & TIME_AUTODST_MASK) {
+		case TIME_AUTODST_USA:
+		    display_pstr(PSTR("dst  usa"));
 		    display_dotselect(6, 8);
-		}
+		    break;
+		case TIME_AUTODST_NONE:
+		    if(*mode.tmp & TIME_DST) {
+			display_pstr(PSTR("dst   on"));
+			display_dotselect(7, 8);
+		    } else {
+			display_pstr(PSTR("dst  off"));
+			display_dotselect(6, 8);
+		    }
+		    break;
+		default:  // GMT, CET, or EET
+		    display_pstr(PSTR("dst   eu"));
+		    display_dotselect(7, 8);
+		    break;
+	    }
+	    break;
+	case MODE_SETDST_ZONE:
+	    switch(*mode.tmp & TIME_AUTODST_MASK) {
+		case TIME_AUTODST_EU_CET:
+		    display_pstr(PSTR("zone cet"));
+		    display_dotselect(6, 8);
+		    break;
+		case TIME_AUTODST_EU_EET:
+		    display_pstr(PSTR("zone eet"));
+		    display_dotselect(6, 8);
+		    break;
+		default:  // GMT
+		    display_pstr(PSTR("zone gmt"));
+		    display_dotselect(6, 8);
+		    break;
 	    }
 	    break;
 	case MODE_MENU_SETBRIGHT:
 	    display_pstr(PSTR("set brit"));
 	    break;
 	case MODE_SETBRIGHT_LEVEL:
-	    mode_textnum_display(PSTR("brite"), *mode.tmp);
+	    mode_textnum_display(PSTR("bri"), *mode.tmp);
 	    break;
 	case MODE_MENU_SETVOLUME:
-	    display_pstr(PSTR("set vol"));
+	    display_pstr(PSTR("set  vol"));
 	    break;
 	case MODE_SETVOLUME_LEVEL:
 	    if(mode.tmp[MODE_TMP_VOL] == 11) {

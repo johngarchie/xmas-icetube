@@ -1,15 +1,16 @@
 Improvements over original firmware
 
-(1) adjustable volume
-(2) progressive alarm
-(3) DST support (USA and manual)
+(1) adjustable buzzer volume
+(2) progressive alarm buzzer
+(3) DST support (USA, EU, or manual)
 (4) automatic drift correction
 (5) alarm sounds during power outage
-(6) clock not restarted on power outage
+(6) no reset during power outage
 
 
-
-Wish List:
+Wish list:
 
 (1) auto dimmer
-(2) DST by EU rules
+(2) adjustable progressive alarm duration (0-30), "time  00"
+(3) different time and date formats
+(4) gps time support
