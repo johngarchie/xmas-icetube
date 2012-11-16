@@ -122,13 +122,6 @@ void display_init(void) {
 
     // set OCR0A (brightness) from eeprom memory
     display_loadbright();
-
-    // for some reason, on my atmega168v, sleep fails unless spi has been
-    // enabled and configured at least once (?!?!?), so briefly enable it
-    power_spi_enable();
-    SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR0);
-    power_spi_disable();
-
 }
 
 

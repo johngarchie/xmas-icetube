@@ -15,6 +15,7 @@
 #include <avr/interrupt.h> // for defining interrupt handlers
 #include <avr/power.h>     // for controlling system clock speed
 #include <avr/wdt.h>       // for using the watchdog timer
+#include <util/delay.h>    //
 
 
 // headers for this project
@@ -47,7 +48,11 @@ int main(void) {
     mode_init();
 
     // if the system is on low power, sleep until power restored
-    if(power_source() == POWER_BATTERY) power_sleep_loop();
+    if(power_source() == POWER_BATTERY) {
+	// without a delay here, sleep fails on my atmega168v (?!?!?)
+	_delay_ms(100);
+	power_sleep_loop();
+    }
 
     sei();  // allow interupts
 
