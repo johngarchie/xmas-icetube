@@ -84,17 +84,21 @@ void time_sleep(void) {
 
 // save time to eeprom
 void time_savedate(void) {
-    eeprom_write_byte(&ee_time_year,  time.year );
-    eeprom_write_byte(&ee_time_month, time.month);
-    eeprom_write_byte(&ee_time_day,   time.day  );
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+	eeprom_write_byte(&ee_time_year,  time.year );
+	eeprom_write_byte(&ee_time_month, time.month);
+	eeprom_write_byte(&ee_time_day,   time.day  );
+    }
 }
 
 
 // save date to eeprom
 void time_savetime(void) {
-    eeprom_write_byte(&ee_time_hour,   time.hour  );
-    eeprom_write_byte(&ee_time_minute, time.minute);
-    eeprom_write_byte(&ee_time_second, time.second);
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+	eeprom_write_byte(&ee_time_hour,   time.hour  );
+	eeprom_write_byte(&ee_time_minute, time.minute);
+	eeprom_write_byte(&ee_time_second, time.second);
+    }
 }
 
 
@@ -164,34 +168,38 @@ void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
 void time_setdate(uint8_t year, uint8_t month, uint8_t day) {
     time.status &= ~TIME_UNSET;
 
-    time.year   = year;
-    time.month  = month;
-    time.day    = day;
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	time.year   = year;
+	time.month  = month;
+	time.day    = day;
+    }
 }
 
 
 // add one second to current time
 void time_tick(void) {
-    ++time.second;
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	++time.second;
 
-    if(time.second >= 60) {
-	time.second = 0;
-	++time.minute;
-	if(time.minute >= 60) {
-	    time.minute = 0;
-	    ++time.hour;
-	    if(time.hour >= 24) {
-		time.hour = 0;
-		++time.day;
-		eeprom_write_byte(&ee_time_day, time.day);
-		if(time.day > time_daysinmonth(time.year, time.month)) {
-		    time.day = 1;
-		    ++time.month;
-		    eeprom_write_byte(&ee_time_month, time.month);
-		    if(time.month > 12) {
-			time.month = 1;
-			++time.year;
-			eeprom_write_byte(&ee_time_year, time.year);
+	if(time.second >= 60) {
+	    time.second = 0;
+	    ++time.minute;
+	    if(time.minute >= 60) {
+		time.minute = 0;
+		++time.hour;
+		if(time.hour >= 24) {
+		    time.hour = 0;
+		    ++time.day;
+		    eeprom_write_byte(&ee_time_day, time.day);
+		    if(time.day > time_daysinmonth(time.year, time.month)) {
+			time.day = 1;
+			++time.month;
+			eeprom_write_byte(&ee_time_month, time.month);
+			if(time.month > 12) {
+			    time.month = 1;
+			    ++time.year;
+			    eeprom_write_byte(&ee_time_year, time.year);
+			}
 		    }
 		}
 	    }
@@ -311,17 +319,19 @@ void time_dstoff(uint8_t adj_time) {
 // adds one hour from the current time
 // (in the spring, clocks "spring forward")
 void time_springforward(void) {
-    ++time.hour;
-    if(time.hour < 24) return;
-    time.hour = 0;
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	++time.hour;
+	if(time.hour < 24) return;
+	time.hour = 0;
 
-    ++time.day;
-    if(time.day <= time_daysinmonth(time.year, time.month)) return;
-    time.day = 1;
+	++time.day;
+	if(time.day <= time_daysinmonth(time.year, time.month)) return;
+	time.day = 1;
 
-    if(++time.month > 12) {
-	time.month = 1;
-	++time.year;
+	if(++time.month > 12) {
+	    time.month = 1;
+	    ++time.year;
+	}
     }
 }
 
@@ -329,22 +339,24 @@ void time_springforward(void) {
 // subtracts one hour from the current time
 // (in the fall, clocks "fall back")
 void time_fallback(void) {
-    // if time.hour is 0, underflow will make it 255
-    --time.hour;
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	// if time.hour is 0, underflow will make it 255
+	--time.hour;
 
-    if(time.hour < 24) return;
-    time.hour = 23;
+	if(time.hour < 24) return;
+	time.hour = 23;
 
-    --time.day;
-    if(time.day > 0) return;
-    --time.month;
+	--time.day;
+	if(time.day > 0) return;
+	--time.month;
 
-    if(time.month < TIME_JAN) {
-	time.month = TIME_DEC;
-	--time.year;
+	if(time.month < TIME_JAN) {
+	    time.month = TIME_DEC;
+	    --time.year;
+	}
+
+	time.day = time_daysinmonth(time.year, time.month);
     }
-
-    time.day = time_daysinmonth(time.year, time.month);
 }
 
 
@@ -492,12 +504,16 @@ void time_autodrift(void) {
     // adjust timekeeping according to current drift_adjust
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
 	++time.drift_total_seconds;  // seconds since clock last set
+    }
 
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
 	if(time.drift_adjust_timer) {
 	    // seconds until next drift correction
 	    --time.drift_adjust_timer;
 	}
+    }
 
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
 	// set timer2 top value to adjust duration of next second
 	if(!time.drift_adjust_timer && time.drift_adjust > 0) {
 	    // reset drift correction timer
@@ -515,7 +531,9 @@ void time_autodrift(void) {
 	    // make next "second" of normal duration
 	    OCR2A = 127; // 128 values, including zero
 	}
+    }
 
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
 	// if drift adjustment calculation deferred and timer expires,
 	// calculate and store new adjustment and update drift_adjust
 	if(time.drift_delay_timer) {

@@ -12,13 +12,13 @@
 #define ALARM_DEFAULT_VOLUME_MIN 3  // range [0, 10]
 #define ALARM_DEFAULT_VOLUME_MAX 7  // range [0, 10]
 
+// during alarm, this value gives the amount of time
+// required to move from the minimum to maximum volume
+#define ALARM_DEFAULT_RAMP_TIME 1  // minutes
+
 // snooze time (minutes), range is [0, 30], 0=off
 #define ALARM_DEFAULT_SNOOZE_TIME 9  // minutes
 
-
-// during alarm, this value is number of seconds
-// before the volume increases by one unit
-#define ALARM_RAMP_INTERVAL 10  // seconds
 
 // turn alarm off after five minutes
 #define ALARM_SOUNDING_TIMEOUT 300  // seconds
@@ -49,6 +49,8 @@ typedef struct {
     uint16_t snooze_time;  // duration of snooze in seconds
     uint16_t alarm_timer;  // timer for alarm and snooze
     uint16_t buzzer_timer; // timer for a beep, see clock_beep()
+    uint8_t  ramp_time;    // ramp time for progressive alarm (minutes)
+    uint16_t ramp_int;     // ramp interval for progressive alarm (seconds)
 } alarm_t;
 
 
@@ -63,9 +65,11 @@ void alarm_sleep(void);
 void alarm_tick(void);
 void alarm_semitick(void);
 
-void alarm_load(void);
 void alarm_savevolume(void);
 void alarm_savesnooze(void);
+
+void alarm_saveramp(void);
+void alarm_newramp(void);
 
 void alarm_settime(uint8_t hour, uint8_t minute);
 

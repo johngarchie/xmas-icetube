@@ -21,6 +21,7 @@ uint8_t ee_alarm_minute      EEMEM = ALARM_DEFAULT_MINUTE;
 uint8_t ee_alarm_volume_min  EEMEM = ALARM_DEFAULT_VOLUME_MIN;
 uint8_t ee_alarm_volume_max  EEMEM = ALARM_DEFAULT_VOLUME_MAX;
 uint8_t ee_alarm_snooze_time EEMEM = ALARM_DEFAULT_SNOOZE_TIME;
+uint8_t ee_alarm_ramp_time   EEMEM = ALARM_DEFAULT_RAMP_TIME;
 
 
 // The table below is used to convert alarm volume (0 to 10) into timer
@@ -32,7 +33,28 @@ const uint8_t alarm_vol2cm[] PROGMEM = {1,7,11,15,21,28,38,51,69,93,125};
 
 // initialize alarm after system reset
 void alarm_init(void) {
-    alarm_load();  // load alarm time and volume from eeprom
+    // load alarm configuration and ensure reasonable values
+    alarm.hour         = eeprom_read_byte(&ee_alarm_hour)        % 24;
+    alarm.minute       = eeprom_read_byte(&ee_alarm_minute)      % 60;
+    alarm.snooze_time  = eeprom_read_byte(&ee_alarm_snooze_time) % 31;
+    alarm.ramp_time    = eeprom_read_byte(&ee_alarm_ramp_time)   % 31;
+    alarm.volume_max   = eeprom_read_byte(&ee_alarm_volume_max)  % 10;
+    alarm.volume_min   = eeprom_read_byte(&ee_alarm_volume_min);
+
+    if(alarm.volume_min > alarm.volume_max) {
+	alarm.volume_min = alarm.volume_min;
+    }
+
+    if(!alarm.ramp_time) alarm.ramp_time = 1;
+
+    // initial volume should be minimum volume
+    alarm.volume = alarm.volume_min;
+
+    // convert snooze time from minutes to seconds
+    alarm.snooze_time *= 60;
+
+    // calculate time.ramp_int
+    alarm_newramp();
 
     // set buzzer pins to output now, so the spi subsystem doesn't
     // hijack PB2 (aka Slave Select) when SPCR gets set
@@ -136,9 +158,10 @@ void alarm_tick(void) {
 		alarm.status &= ~ALARM_SOUNDING;
 	    }
 
-	    if( !(alarm.alarm_timer % ALARM_RAMP_INTERVAL)
+	    if(alarm.alarm_timer >= alarm.ramp_int
 		    && alarm.volume < alarm.volume_max ) {
 		++alarm.volume;
+	        alarm.alarm_timer = 0;
 	    }
 	} else {
 	    power.status &= ~POWER_ALARMON;
@@ -225,10 +248,22 @@ void alarm_settime(uint8_t hour, uint8_t minute) {
 }
 
 
+// compute new ramp interval from ramp time
+void alarm_newramp(void) {
+    alarm.ramp_int = alarm.ramp_time * 60
+			 / (alarm.volume_max - alarm.volume_min + 1);
+}
+
+
 // save alarm volume to eeprom
 void alarm_savevolume(void) {
     eeprom_write_byte(&ee_alarm_volume_min, alarm.volume_min);
     eeprom_write_byte(&ee_alarm_volume_max, alarm.volume_max);
+}
+
+// save ramp interval to eeprom
+void alarm_saveramp(void) {
+    eeprom_write_byte(&ee_alarm_ramp_time, alarm.ramp_time);
 }
 
 
@@ -236,22 +271,6 @@ void alarm_savevolume(void) {
 void alarm_savesnooze(void) {
     // save snooze time as minutes, not seconds
     eeprom_write_byte(&ee_alarm_snooze_time, alarm.snooze_time / 60);
-}
-
-
-// load alarm settings from eeprom
-void alarm_load(void) {
-    alarm.hour         = eeprom_read_byte(&ee_alarm_hour)        % 24;
-    alarm.minute       = eeprom_read_byte(&ee_alarm_minute)      % 60;
-    alarm.volume_min   = eeprom_read_byte(&ee_alarm_volume_min)  % 11;
-    alarm.volume_max   = eeprom_read_byte(&ee_alarm_volume_max)  % 11;
-    alarm.snooze_time  = eeprom_read_byte(&ee_alarm_snooze_time) % 31;
-
-    // convert snooze time from minutes to seconds
-    alarm.snooze_time *= 60;
-
-    // initial volume should be minimum volume
-    alarm.volume = alarm.volume_min;
 }
 
 

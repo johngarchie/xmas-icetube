@@ -8,9 +8,22 @@ Improvements over original firmware
 (6) no reset during power outage
 
 
+For Ice-Tube-Hackers, this firmware has
+
+(1) compatibility with atmega328p
+(2) pseudo object-oriented design
+(3) fairly good commenting
+(4) menus implemented as a finite state machine
+
+
 Wish list:
 
 (1) auto dimmer
-(2) adjustable progressive alarm duration (0-30), "time  00"
-(3) different time and date formats
-(4) gps time support
+(2) different time and date formats
+    - toggle am/pm:		"a/pm cir" "a/pm txt"
+    - toggle seconds		"sec show" "sec hide"
+    - toggle 24-hour mode	"hours 24" "hours 12"
+    - toggle showdst            "dst show" "dst hide"
+    - toggle w-day              "wday sho" "wday hid"
+    - date format		"date dmy" "date mdy" "date yymd"
+(3) gps time support
