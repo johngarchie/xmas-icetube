@@ -176,6 +176,7 @@ void display_sleep(void) {
     PORTC &= ~_BV(PC5);  // output +5v
 
     // disable analog to digital converter
+    ADCSRA = 0;  // power_adc_disable() is not sufficient (?!?!?)
     power_adc_disable();
 
     // configure MAX6921 LOAD and BLANK pins

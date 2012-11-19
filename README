@@ -6,6 +6,7 @@ Improvements over original firmware
 (4) automatic drift correction
 (5) alarm sounds during power outage
 (6) no reset during power outage
+(7) autodimmer with pull-up and photoresistor
 
 
 For Ice-Tube-Hackers, this firmware has
@@ -18,12 +19,11 @@ For Ice-Tube-Hackers, this firmware has
 
 Wish list:
 
-(1) auto dimmer
-(2) different time and date formats
+(1) different time and date formats
     - toggle am/pm:		"a/pm cir" "a/pm txt"
     - toggle seconds		"sec show" "sec hide"
     - toggle 24-hour mode	"hours 24" "hours 12"
     - toggle showdst            "dst show" "dst hide"
     - toggle w-day              "wday sho" "wday hid"
     - date format		"date dmy" "date mdy" "date yymd"
-(3) gps time support
+(2) gps time support
