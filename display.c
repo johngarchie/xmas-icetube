@@ -14,6 +14,8 @@ volatile display_t display;
 
 // permanent place to store display brightness
 uint8_t ee_brightness EEMEM = 0;
+uint8_t ee_display_bright_min EEMEM = 0;
+uint8_t ee_display_bright_max EEMEM = 5;
 
 
 // display of letters and numbers is coded by 
@@ -113,15 +115,53 @@ void display_init(void) {
     PORTC &= ~_BV(PC0) & ~_BV(PC3); // clamp to ground
 
     // configure spi sck and mosi pins as floating inputs
-    // (these pins use the least power when they are configured
+    // (these pins seem to use less power when configured
     // as inputs *without* pull-ups!?!?)
     DDRB  &= ~_BV(PB5) & ~_BV(PB3);  // set to input
 
-    // note: miso is an unused pin and the pull-up resistor
-    // is enabled in the power_init() function
+    // configure photoresistor pull-up pin
+    DDRC  |=  _BV(PC5);  // set pin as output
+    PORTC &= ~_BV(PC5);  // pull to ground
 
-    // set OCR0A (brightness) from eeprom memory
+    // disable analog circuitry on photoresistor pins
+    DIDR0 |= _BV(ADC5D) | _BV(ADC4D);
+}
+
+
+// enable display after low-power mode
+void display_wake(void) {
+    // enable photoresistor pull-up
+    PORTC |= _BV(PC5);  // output +5v
+
+    // enable analog to digital converter
+    power_adc_enable();
+
+    // select ADC4 as analog to digital input
+    //   MUX3:0 = 0100:  ADC4 as input
+    ADMUX = _BV(MUX2);
+
+    // configure analog to digital converter
+    // ADEN    =   1:  enable analog to digital converter
+    // ADSC    =   1:  start ADC conversion now
+    // ADPS2:0 = 110:  system clock / 64  (8 MHz / 4 = 125 kHz)
+    ADCSRA = _BV(ADEN) | _BV(ADSC) | _BV(ADPS2) | _BV(ADPS1);
+
+    // configure spi sck and mosi pins as outputs
+    DDRB |= _BV(PB5) | _BV(PB3);
+
+    // enable and configure Timer/Counter0:
+    power_timer0_enable();
+
+    // COM0A1:0 = 10: clear OC0A on compare match; set at BOTTOM
+    // WGM02:0 = 011: clear timer on compare match; TOP = OCR0A
+    TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
+    TCCR0B = _BV(CS00);   // clock counter0 with system clock
+    TIMSK0 = _BV(TOIE0);  // enable counter0 overflow interrupt
+
+    // set OCR0A for desired display brightness
     display_loadbright();
+
+    PORTD &= ~_BV(PD3); // MAX6921 power on (pull low)
 }
 
 
@@ -132,42 +172,26 @@ void display_sleep(void) {
     PORTD &= ~_BV(PD6); // boost fet off (pull low)
     PORTD |=  _BV(PD3); // MAX6921 power off (pull high)
 
-    // note: PC0 and PC3 are already clamped to ground: PC3 is
-    // never changed and PC0 is only briefly toggled high in
-    // an atomic code block
+    // disable photoresistor pull-up pin
+    PORTC &= ~_BV(PC5);  // output +5v
+
+    // disable analog to digital converter
+    power_adc_disable();
+
+    // configure MAX6921 LOAD and BLANK pins
     PORTC &= ~_BV(PC0) & ~_BV(PC3); // clamp to ground
 
-    // configure spi sck and mosi pins as high-impedance inputs
-    DDRB &= ~_BV(PB5) & ~_BV(PB3);
-
-    // disable spi
-    power_spi_disable();
+    // configure MAX6921 CLK and DIN pins
+    // (these pins seem to use less power when configured
+    // as inputs *without* pull-ups!?!?)
+    DDRB  &= ~_BV(PB5) & ~_BV(PB3);  // set as input
+    PORTB &= ~_BV(PB5) & ~_BV(PB3);  // disable pull-ups
 }
 
 
-// enable display after low-power mode
-void display_wake(void) {
-    // enable spi
-    power_spi_enable();
-
-    // configure spi sck and mosi pins as outputs
-    DDRB |= _BV(PB5) | _BV(PB3);
-
-    // setup spi
-    SPCR = _BV(SPE) | _BV(MSTR) | _BV(SPR0);
-
-    // enable and configure Timer/Counter0:
-    power_timer0_enable();
-    // COM0A1:0 = 10: clear OC0A on compare match; set at BOTTOM
-    // WGM02:0 = 011: clear timer on compare match; TOP = OCR0A
-    TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
-    TCCR0B = _BV(CS00);   // clock counter0 with system clock
-    TIMSK0 = _BV(TOIE0);  // enable counter0 overflow interrupt
-
-    // set OCR0A according to display brightness
-    display_setbright(display.brightness);
-
-    PORTD &= ~_BV(PD3); // MAX6921 power on (pull low)
+// update display brightness every second
+void display_tick(void) {
+    display_autodim();
 }
 
 
@@ -176,7 +200,7 @@ void display_semitick(void) {
     static uint8_t digit_idx = 0;  
     digit_idx %= DISPLAY_SIZE;
 
-    // select the digit to display
+    // select the digit position to display
     uint32_t bits = (uint32_t)1 << pgm_read_byte(vfd_digit_pins + digit_idx);
 
     // select the segments to display
@@ -186,19 +210,51 @@ void display_semitick(void) {
 	}
     }
 
-    // send the bits via SPI
+    // send bits to the MAX6921 (vfd driver chip)
     ATOMIC_BLOCK(ATOMIC_FORCEON) {  // disable interrupts
-	for(int8_t shift = 16; shift >= 0; shift -= 8) {
-	    SPDR = bits >> shift;
-	    while(!(SPSR & _BV(SPIF)));
+	// Note that one system clock cycle is 1 / 8 MHz seconds or 125 ns.
+	// According to the MAX6921 datasheet, the minimum pulse-width on the
+	// MAX6921 CLK and LOAD pins need only be 90 ns and 55 ns,
+	// respectively.  The minimum period for CLK must be at least 200 ns.
+	// Therefore, no delays should be necessary in the code below.
+
+	for(uint8_t i = 0; i < 20; ++i, bits <<= 1) {
+	    if(bits & 0x00080000) {  // if 20th bit set
+		// output high on MAX6921 DIN pin
+		PORTB |= _BV(PB3);
+	    } else {
+		// output low on MAX6921 DIN pin
+		PORTB &= ~_BV(PB3);
+	    }
+
+	    // pulse MAX6921 CLK pin:  shifts DIN input into
+	    // the 20-bit shift register on rising edge
+	    PORTB |=  _BV(PB5);
+	    PORTB &= ~_BV(PB5);
 	}
 
-	// pulse MAX6921 load pin
+	// pulse MAX6921 LOAD pin:  transfers shift
+	// register to latch when high; latches when low
 	PORTC |=  _BV(PC0);
 	PORTC &= ~_BV(PC0);
     }
 
     ++digit_idx;
+
+
+    // get ambient lighting from photosensor every 50 semiseconds,
+    // and update running average of photosensor values; note that
+    // the running average has a range of [0, 0xFFFF]
+    static uint8_t photo_timer = 50;
+
+    if(! --photo_timer) {
+        photo_timer = 50;
+	display.photo_avg -= (display.photo_avg >> 6);
+	display.photo_avg += ADC;
+
+        // begin next analog to digital conversion
+        ADCSRA |= _BV(ADSC);
+    }
 }
 
 
@@ -206,6 +262,7 @@ void display_semitick(void) {
 void display_clear(uint8_t idx) {
     display.buffer[idx] = DISPLAY_SPACE;
 }
+
 
 // display the given string from program memory
 void display_pstr(PGM_P pstr) {
@@ -228,32 +285,41 @@ void display_pstr(PGM_P pstr) {
 }
 
 
-// set new display brightness
-void display_setbright(uint8_t level) {
-    // convert range 0-10 to 30-60 for OCR0A
-    uint8_t new_OCR0A = 30 + 6 * level;
-
-    // ensure display will not be too dim or too bright:
-    // if too dim, low voltage may not light digit segments;
-    // if too bright, excessive voltage may damage display.
-    if(new_OCR0A < 30) new_OCR0A = 30;
-    if(new_OCR0A > 90) new_OCR0A = 90;
-
-    // set and save new brightness
-    OCR0A = new_OCR0A;
+// load display brightness from eeprom
+void display_loadbright(void) {
+    display.bright_min = eeprom_read_byte(&ee_display_bright_min);
+    display.bright_max = eeprom_read_byte(&ee_display_bright_max);
+    display_autodim();
 }
 
 
 // save display brightness to eeprom
 void display_savebright(void) {
-    eeprom_write_byte(&ee_brightness, display.brightness);
+    eeprom_write_byte(&ee_display_bright_min, display.bright_min);
+    eeprom_write_byte(&ee_display_bright_max, display.bright_max);
 }
 
 
-// load display brightness from eeprom
-void display_loadbright(void) {
-    display.brightness = eeprom_read_byte(&ee_brightness);
+// set display brightness from display.bright_min,
+// display.bright_max, and display.photo_avg
+void display_autodim(void) {
+    // convert photoresistor value to 20-90 for OCR0A
+    uint8_t new_OCR0A = 20 + 7 * display.bright_max
+			    - (display.photo_avg >> 8) * 7
+                               * (display.bright_max - display.bright_min)
+			           / 256;
+
+    // ensure display will not be too dim or too bright:
+    // if too dim, low voltage may not light digit segments;
+    // if too bright, excessive voltage may damage display.
+    if(new_OCR0A < 20) new_OCR0A = 20;
+    if(new_OCR0A > 90) new_OCR0A = 90;
+
+    // set new brightness
+    OCR0A = new_OCR0A;
 }
+
+
 
 
 // display digit (n) on display position (idx)

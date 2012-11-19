@@ -7,22 +7,25 @@
 #define DISPLAY_SIZE 9
 
 typedef struct {
-    uint8_t buffer[DISPLAY_SIZE];  // display contents
-    uint8_t brightness; // display brightness
+    uint8_t  buffer[DISPLAY_SIZE];  // display contents
+    uint8_t  bright_min;  // minimum display brightness
+    uint8_t  bright_max;  // maximum display brightness
+    uint16_t photo_avg;   // average photoresistor value
 } display_t;
 
 volatile extern display_t display;
 
 void display_init(void);
-void display_sleep(void);
 void display_wake(void);
+void display_sleep(void);
 
-inline void display_tick(void) {};
+void display_tick(void);
 void display_semitick(void);
 
-void display_setbright(uint8_t value);
-void display_savebright(void);
 void display_loadbright(void);
+void display_savebright(void);
+
+void display_autodim(void);
 
 void display_pstr(PGM_P pstr);
 void display_digit(uint8_t idx, uint8_t n);

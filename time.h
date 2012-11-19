@@ -93,8 +93,8 @@ extern volatile time_t time;
 
 void time_init(void);
 
+void time_wake(void);
 void time_sleep(void);
-inline void time_wake(void) {};
 
 void time_tick(void);
 inline void time_semitick(void) {};

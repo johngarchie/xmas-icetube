@@ -34,8 +34,6 @@ uint8_t semitick_successful = 0;
 
 // start everything for the first time
 int main(void) {
-    cli(); // disable interrupts until sleep or idle loop
-
     power_init(); // setup power manager
 
     // initialize the clock; each init function leaves
@@ -50,11 +48,12 @@ int main(void) {
     // if the system is on low power, sleep until power restored
     if(power_source() == POWER_BATTERY) {
 	// without a delay here, sleep fails on my atmega168v (?!?!?)
-	_delay_ms(100);
+	_delay_ms(50);  // since clock is divided by eight,
+			// delay is actually 400 ms
 	power_sleep_loop();
     }
 
-    sei();  // allow interupts
+    sei(); // enable interrupts
 
     // with normal power, the mcu can safely run at 8 MHz
     clock_prescale_set(clock_div_1);
@@ -133,9 +132,9 @@ ISR(ANALOG_COMP_vect) {
 
     display_sleep();  // stop boost timer and disable display
     usart_sleep();    // disable usart
-    time_sleep();     // save current time
     alarm_sleep();    // disable alarm switch pull-up resistor
     button_sleep();   // disable button pull-up resistors
+    time_sleep();     // save current time
 
     // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
     // An 8 or 4 MHz clock is unstable at 1.7v, but a 2 MHz clock is okay:
@@ -143,13 +142,14 @@ ISR(ANALOG_COMP_vect) {
 
     power_sleep_loop(); // sleep until power restored
 
-    time_savetime();  // save current time in case of disaster
-    sei();            // allow interrupts
+    sei();  // allow interrupts
+
+    time_wake();     // save current time
+
     clock_prescale_set(clock_div_1); // restore normal clock speed
 
     button_wake();   // enable button pull-ups
     alarm_wake();    // enable alarm switch pull-up
-    time_wake();     // does nothing (empty function)
     usart_sleep();   // enable and configure usart
     display_wake();  // start boost timer and enable display
 }

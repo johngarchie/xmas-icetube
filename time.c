@@ -73,6 +73,15 @@ void time_init(void) {
 
 
 // save current time to eeprom
+void time_wake(void) {
+    // saving time to eeprom doesn't hurt. if something goes wrong, during
+    // waking, the watchdog timer will reset the system and the system will
+    // (hopefully) load the correct time after reset
+    time_savetime();
+}
+
+
+// save current time to eeprom
 void time_sleep(void) {
     // saving time to eeprom doesn't hurt. if the backup battery is dead, power
     // stored in capacitor should be sufficient to save current time.
@@ -178,6 +187,7 @@ void time_setdate(uint8_t year, uint8_t month, uint8_t day) {
 
 // add one second to current time
 void time_tick(void) {
+    //alarm_click();
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
 	++time.second;
 

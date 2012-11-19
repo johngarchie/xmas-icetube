@@ -309,7 +309,7 @@ void mode_semitick(void) {
 	case MODE_MENU_SETDST:
 	    switch(btn) {
 		case BUTTON_MENU:
-		    mode_update(MODE_MENU_SETPREFERENCES);
+		    mode_update(MODE_MENU_SETBRIGHT);
 		    break;
 		case BUTTON_SET:
 		    *mode.tmp = time.status;
@@ -452,7 +452,15 @@ void mode_semitick(void) {
 		    mode_update(MODE_MENU_SETVOLUME);
 		    break;
 		case BUTTON_SET:
-		    *mode.tmp = display.brightness;
+		    mode.tmp[MODE_TMP_MIN] = display.bright_min;
+		    mode.tmp[MODE_TMP_MAX] = display.bright_max;
+
+		    if(display.bright_min == display.bright_max) {
+			*mode.tmp = display.bright_min;
+		    } else {
+			*mode.tmp = 11;
+		    }
+
 		    mode_update(MODE_SETBRIGHT_LEVEL);
 		    break;
 		case BUTTON_PLUS:
@@ -465,23 +473,83 @@ void mode_semitick(void) {
 	case MODE_SETBRIGHT_LEVEL:
 	    switch(btn) {
 		case BUTTON_MENU:
-		    display_setbright(display.brightness);
+		    display_loadbright();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTON_SET:
-		    display.brightness = *mode.tmp;
+		    if(*mode.tmp == 11) {
+			*mode.tmp = mode.tmp[MODE_TMP_MIN];
+			mode_update(MODE_SETBRIGHT_MIN);
+		    } else {
+			display_savebright();
+			mode_update(MODE_TIME_DISPLAY);
+		    }
+		    break;
+		case BUTTON_PLUS:
+		    ++(*mode.tmp);
+		    *mode.tmp %= 12;
+		    mode_update(MODE_SETBRIGHT_LEVEL);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			display_loadbright();
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_SETBRIGHT_MIN:
+	    switch(btn) {
+		case BUTTON_MENU:
+		    display_loadbright();
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTON_SET:
+		    // save brightness minimum
+		    mode.tmp[MODE_TMP_MIN] = *mode.tmp;
+
+		    // load brightness maximum
+		    if(mode.tmp[MODE_TMP_MAX] > *mode.tmp) {
+			*mode.tmp = mode.tmp[MODE_TMP_MAX];
+		    } else {
+			++(*mode.tmp);
+		    }
+
+		    // set brightness maximum
+		    mode_update(MODE_SETBRIGHT_MAX);
+		    break;
+		case BUTTON_PLUS:
+		    ++(*mode.tmp);
+		    *mode.tmp %= 10;
+		    mode_update(MODE_SETBRIGHT_MIN);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			display_loadbright();
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_SETBRIGHT_MAX:
+	    switch(btn) {
+		case BUTTON_MENU:
+		    display_loadbright();
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTON_SET:
+		    display.bright_min = mode.tmp[MODE_TMP_MIN];
+		    display.bright_max = *mode.tmp;
+		    display_autodim();
 		    display_savebright();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTON_PLUS:
 		    ++(*mode.tmp);
-		    *mode.tmp %= 11;
-		    display_setbright(*mode.tmp);
-		    mode_update(MODE_SETBRIGHT_LEVEL);
+		    if(*mode.tmp > 10) *mode.tmp = mode.tmp[MODE_TMP_MIN] + 1;
+		    mode_update(MODE_SETBRIGHT_MAX);
 		    break;
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
-			display_setbright(display.brightness);
+			display_loadbright();
 		    }
 		    break;
 	    }
@@ -493,14 +561,14 @@ void mode_semitick(void) {
 		    break;
 		case BUTTON_SET:
 		    if(alarm.volume_min != alarm.volume_max) {
-			mode.tmp[MODE_TMP_VOL] = 11;
+			*mode.tmp = 11;
 		    } else {
-			mode.tmp[MODE_TMP_VOL] = alarm.volume_min;
+			*mode.tmp = alarm.volume_min;
 			alarm.volume           = alarm.volume_min;
 			alarm_beep(1000);
 		    }
-		    mode.tmp[MODE_TMP_VOL_MIN] = alarm.volume_min;
-		    mode.tmp[MODE_TMP_VOL_MAX] = alarm.volume_max;
+		    mode.tmp[MODE_TMP_MIN] = alarm.volume_min;
+		    mode.tmp[MODE_TMP_MAX] = alarm.volume_max;
 		    mode_update(MODE_SETVOLUME_LEVEL);
 		    break;
 		case BUTTON_PLUS:
@@ -517,24 +585,24 @@ void mode_semitick(void) {
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTON_SET:
-		    if(mode.tmp[MODE_TMP_VOL] < 11) {
-			alarm.volume     = mode.tmp[MODE_TMP_VOL];
-			alarm.volume_min = mode.tmp[MODE_TMP_VOL];
-			alarm.volume_max = mode.tmp[MODE_TMP_VOL];
+		    if(*mode.tmp < 11) {
+			alarm.volume     = *mode.tmp;
+			alarm.volume_min = *mode.tmp;
+			alarm.volume_max = *mode.tmp;
 			alarm_savevolume();
 			mode_update(MODE_TIME_DISPLAY);
 		    } else {
-			alarm.volume = mode.tmp[MODE_TMP_VOL_MIN];
+			alarm.volume = mode.tmp[MODE_TMP_MIN];
 			alarm_beep(1000);
 			mode_update(MODE_SETVOLUME_MIN);
 		    }
 		    break;
 		case BUTTON_PLUS:
-		    ++mode.tmp[MODE_TMP_VOL];
-		    mode.tmp[MODE_TMP_VOL] %= 12;
+		    ++(*mode.tmp);
+		    *mode.tmp %= 12;
 
-		    if(mode.tmp[MODE_TMP_VOL] < 11) {
-			alarm.volume = mode.tmp[MODE_TMP_VOL];
+		    if(*mode.tmp < 11) {
+			alarm.volume = *mode.tmp;
 			alarm_beep(1000);
 		    }
 
@@ -554,14 +622,14 @@ void mode_semitick(void) {
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTON_SET:
-		    alarm.volume = mode.tmp[MODE_TMP_VOL_MAX];
+		    alarm.volume = mode.tmp[MODE_TMP_MAX];
 		    alarm_beep(1000);
 		    mode_update(MODE_SETVOLUME_MAX);
 		    break;
 		case BUTTON_PLUS:
-		    ++mode.tmp[MODE_TMP_VOL_MIN];
-		    mode.tmp[MODE_TMP_VOL_MIN] %= 10;
-		    alarm.volume = mode.tmp[MODE_TMP_VOL_MIN];
+		    ++mode.tmp[MODE_TMP_MIN];
+		    mode.tmp[MODE_TMP_MIN] %= 10;
+		    alarm.volume = mode.tmp[MODE_TMP_MIN];
 		    alarm_beep(1000);
 		    mode_update(MODE_SETVOLUME_MIN);
 		    break;
@@ -579,19 +647,19 @@ void mode_semitick(void) {
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTON_SET:
-		    alarm.volume     = mode.tmp[MODE_TMP_VOL_MIN];
-		    alarm.volume_min = mode.tmp[MODE_TMP_VOL_MIN];
-		    alarm.volume_max = mode.tmp[MODE_TMP_VOL_MAX];
+		    alarm.volume     = mode.tmp[MODE_TMP_MIN];
+		    alarm.volume_min = mode.tmp[MODE_TMP_MIN];
+		    alarm.volume_max = mode.tmp[MODE_TMP_MAX];
 		    alarm_savevolume();
 		    *mode.tmp = alarm.ramp_time;
 		    mode_update(MODE_SETVOLUME_TIME);
 		    break;
 		case BUTTON_PLUS:
-		    ++mode.tmp[MODE_TMP_VOL_MAX];
-		    if(mode.tmp[MODE_TMP_VOL_MAX] > 10) {
-			mode.tmp[MODE_TMP_VOL_MAX]=mode.tmp[MODE_TMP_VOL_MIN]+1;
+		    ++mode.tmp[MODE_TMP_MAX];
+		    if(mode.tmp[MODE_TMP_MAX] > 10) {
+			mode.tmp[MODE_TMP_MAX]=mode.tmp[MODE_TMP_MIN]+1;
 		    }
-		    alarm.volume = mode.tmp[MODE_TMP_VOL_MAX];
+		    alarm.volume = mode.tmp[MODE_TMP_MAX];
 		    alarm_beep(1000);
 		    mode_update(MODE_SETVOLUME_MAX);
 		    break;
@@ -624,7 +692,7 @@ void mode_semitick(void) {
 	case MODE_MENU_SETSNOOZE:
 	    switch(btn) {
 		case BUTTON_MENU:
-		    mode_update(MODE_TIME_DISPLAY);
+		    mode_update(MODE_MENU_SETFORMAT);
 		    break;
 		case BUTTON_SET:
 		    *mode.tmp = alarm.snooze_time / 60;
@@ -853,7 +921,7 @@ void mode_update(uint8_t new_state) {
 	    display_dotselect(7, 8);
 	    break;
 	case MODE_MENU_SETDST:
-	    display_pstr(PSTR("set  dst"));
+	    display_pstr(PSTR("set dst"));
 	    break;
 	case MODE_SETDST_STATE:
 	    switch(*mode.tmp & TIME_AUTODST_MASK) {
@@ -899,24 +967,42 @@ void mode_update(uint8_t new_state) {
 	    display_pstr(PSTR("set brit"));
 	    break;
 	case MODE_SETBRIGHT_LEVEL:
-	    mode_textnum_display(PSTR("brite"), *mode.tmp);
+	    if(*mode.tmp == 11) {
+		display_loadbright();
+		display_pstr(PSTR("bri auto"));
+		display_dotselect(5, 8);
+	    } else {
+		display.bright_min = display.bright_max = *mode.tmp;
+		display_autodim();
+		mode_textnum_display(PSTR("bri"), *mode.tmp);
+	    }
+	    break;
+	case MODE_SETBRIGHT_MIN:
+	    display.bright_min = display.bright_max = *mode.tmp;
+	    display_autodim();
+	    mode_textnum_display(PSTR("b min"), *mode.tmp);
+	    break;
+	case MODE_SETBRIGHT_MAX:
+	    display.bright_min = display.bright_max = *mode.tmp;
+	    display_autodim();
+	    mode_textnum_display(PSTR("b max"), *mode.tmp);
 	    break;
 	case MODE_MENU_SETVOLUME:
-	    display_pstr(PSTR("set  vol"));
+	    display_pstr(PSTR("set vol"));
 	    break;
 	case MODE_SETVOLUME_LEVEL:
-	    if(mode.tmp[MODE_TMP_VOL] == 11) {
-		display_pstr(PSTR("vol ramp"));
-		display_dotselect(5, 7);
+	    if(*mode.tmp == 11) {
+		display_pstr(PSTR("vol prog"));
+		display_dotselect(5, 8);
 	    } else {
-		mode_textnum_display(PSTR("vol"), mode.tmp[MODE_TMP_VOL]);
+		mode_textnum_display(PSTR("vol"), *mode.tmp);
 	    }
 	    break;
 	case MODE_SETVOLUME_MIN:
-	    mode_textnum_display(PSTR("v lo"), mode.tmp[MODE_TMP_VOL_MIN]);
+	    mode_textnum_display(PSTR("v lo"), mode.tmp[MODE_TMP_MIN]);
 	    break;
 	case MODE_SETVOLUME_MAX:
-	    mode_textnum_display(PSTR("v hi"), mode.tmp[MODE_TMP_VOL_MAX]);
+	    mode_textnum_display(PSTR("v hi"), mode.tmp[MODE_TMP_MAX]);
 	    break;
 	case MODE_SETVOLUME_TIME:
 	    mode_textnum_display(PSTR("time"), *mode.tmp);
