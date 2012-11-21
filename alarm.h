@@ -1,6 +1,7 @@
 #ifndef ALARM_H
 #define ALARM_H
 
+
 #include <stdint.h>  // for using standard integer types
 
 
@@ -9,8 +10,8 @@
 #define ALARM_DEFAULT_MINUTE  0  // (minutes past midnight)
 
 // alarm volume ramps from min to max during alarm
-#define ALARM_DEFAULT_VOLUME_MIN 3  // range [0, 10]
-#define ALARM_DEFAULT_VOLUME_MAX 7  // range [0, 10]
+#define ALARM_DEFAULT_VOLUME_MIN 0  // range [0, 10]
+#define ALARM_DEFAULT_VOLUME_MAX 5  // range [0, 10]
 
 // during alarm, this value gives the amount of time
 // required to move from the minimum to maximum volume
@@ -72,6 +73,8 @@ void alarm_saveramp(void);
 void alarm_newramp(void);
 
 void alarm_settime(uint8_t hour, uint8_t minute);
+
+uint8_t alarm_onbutton(void);
 
 void alarm_click(void);
 void alarm_beep(uint16_t);

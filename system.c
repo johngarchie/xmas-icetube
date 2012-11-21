@@ -1,28 +1,42 @@
+// system.c  --  system functions (idle, sleep, interrupts)
+//
+//    PB4 (MOSI)           unused pin
+//    PC2                  unused pin
+//    PC1                  unused pin
+//    AIN1 (PD7)           divided system voltage
+//    analog comparator    detects low voltage (AIN1)
+//
+// system_init() disables all modules in PRR register: TWI, timer2, timer1,
+// timer0, SPI, USART, and ADC.  These modules are and disabled as-needed in
+// the various *_wake() functions in other *.c files.
+//
+
+
 #include <avr/interrupt.h> // for enabling and disabling interrupts
 #include <avr/power.h>     // for disabling microcontroller modules
 #include <avr/sleep.h>     // for entering low-power modes
 #include <avr/wdt.h>       // for using the watchdog timer
 #include <util/delay.h>    // for debouncing delay
-#include <avr/cpufunc.h>
-
-#include "power.h"
 
 
-// extern'ed power status data
-volatile power_t power;
+#include "system.h"
+#include "usart.h"  // for debugging output
+
+
+// extern'ed system status data
+volatile system_t system;
 
 
 // enable low-power detection and disables microcontroller modules
-void power_init(void) {
-    power.initial_mcusr = MCUSR;  // save MCUSR
+void system_init(void) {
+    system.initial_mcusr = MCUSR;  // save MCUSR
     MCUSR = 0;  // clear any watchdog timer flags
-    wdt_reset();  // reset default watchdog timer
-    wdt_enable(WDTO_4S);  // enable watchdog timer
+    wdt_enable(WDTO_4S);  // enable four-second watchdog timer
 
-    power.status &= ~POWER_SLEEP;
+    system.status &= ~SYSTEM_SLEEP;
 
     // enable pull-up resistors on unused pins to ensure a defined value
-    PORTC |= _BV(PC2) | _BV(PC1) | _BV(PC0);
+    PORTC |= _BV(PC2) | _BV(PC1);
     PORTB |= _BV(PB4); // msoi
 
     // use internal bandgap as reference for analog comparator
@@ -40,7 +54,7 @@ void power_init(void) {
 
 
 // repeatedly enter idle mode forevermore
-void power_idle_loop(void) {
+void system_idle_loop(void) {
     sleep_enable();
     for(;;) {
 	cli();
@@ -52,16 +66,16 @@ void power_idle_loop(void) {
 
 
 // repeatedly enter power save mode until power restored
-void power_sleep_loop(void) {
+void system_sleep_loop(void) {
     sleep_enable();  // permit sleep mode
 
-    power.status |= POWER_SLEEP; // set sleep flag
+    system.status |= SYSTEM_SLEEP; // set sleep flag
 
     do {
 	do {
-	    // if the alarm buzzer is going, remain in idle mode to keep buzzer
-	    // active for the next second
-	    if(power.status & POWER_ALARMON) {
+	    // if the alarm buzzer is going, remain in idle mode
+	    // to keep buzzer active for the next second
+	    if(system.status & SYSTEM_ALARMON) {
 		set_sleep_mode(SLEEP_MODE_IDLE);
 	    } else {
 		set_sleep_mode(SLEEP_MODE_PWR_SAVE);
@@ -70,20 +84,20 @@ void power_sleep_loop(void) {
 	    sei();
 	    sleep_cpu();
 	    cli();
-	} while(power_source() == POWER_BATTERY);
+	} while(system_power() == SYSTEM_BATTERY);
 	// debounce power-restored signal; delay is actually 100 ms
-	_delay_ms(25);  // because clock is divided by four
-    } while(power_source() == POWER_BATTERY);
+	_delay_ms(25);  // because system clock is divided by four
+    } while(system_power() == SYSTEM_BATTERY);
 
-    power.status &= ~POWER_SLEEP; // clear sleep flag
+    system.status &= ~SYSTEM_SLEEP; // clear sleep flag
 }
 
 
 // checks the analog comparator and returns current power source
-uint8_t power_source(void) {
+uint8_t system_power(void) {
     if(ACSR & _BV(ACO)) {
-	return POWER_BATTERY;
+	return SYSTEM_BATTERY;
     } else {
-	return POWER_ADAPTOR;
+	return SYSTEM_ADAPTOR;
     }
 }

@@ -1,31 +1,33 @@
-// icetube.c
+// icetube.c  --  handles system initialization and interrupts
 //
-// This is the main file for my Ice Tube Clock firmware.  The code here is
-// minimal and mostly calls functions in other files.
+// The code here is minimal and, for the most part, simply invokes
+// functionality contained within other files:
 //
-// power.c   - power management
-// time.c    - date and time keeping
-// alarm.c   - alarm and buzzer
-// button.c  - button inputs (menu, set, and plus)
-// display.c - boost, MAX6921, and VFD
-// mode.c    - clock mode (displayed time, menus, etc.)
+//    system.c     system management (idle and sleep loops)
+//    time.c       date and time keeping
+//    alarm.c      alarm and buzzer
+//    buttons.c    button inputs (menu, set, and plus)
+//    display.c    boost, MAX6921, and VFD
+//    mode.c       clock mode (displayed time, menus, etc.)
+//    usart.c      serial communication
+//
 
 
-#include <stdint.h>        // for using standard integer types
-#include <avr/interrupt.h> // for defining interrupt handlers
-#include <avr/power.h>     // for controlling system clock speed
-#include <avr/wdt.h>       // for using the watchdog timer
-#include <util/delay.h>    //
+#include <stdint.h>         // for using standard integer types
+#include <avr/interrupt.h>  // for defining interrupt handlers
+#include <avr/power.h>      // for controlling system clock speed
+#include <avr/wdt.h>        // for using the watchdog timer
+#include <util/delay.h>     // for the _delay_ms() function
 
 
 // headers for this project
-#include "power.h"
+#include "system.h"
 #include "time.h"
-#include "usart.h"
 #include "alarm.h"
-#include "button.h"
+#include "buttons.h"
 #include "display.h"
 #include "mode.h"
+#include "usart.h"
 
 
 // set to 1 every ~1 millisecond or so
@@ -34,44 +36,42 @@ uint8_t semitick_successful = 0;
 
 // start everything for the first time
 int main(void) {
-    power_init(); // setup power manager
+    cli();  // disable interrupts until system initialized
 
-    // initialize the clock; each init function leaves
+    // initialize the system: each init function leaves
     // the system in a low-power configuration
+    system_init();
     usart_init();
     time_init();
-    button_init();
+    buttons_init();
     alarm_init();
     display_init();
     mode_init();
 
     // if the system is on low power, sleep until power restored
-    if(power_source() == POWER_BATTERY) {
-	// without a delay here, sleep fails on my atmega168v (?!?!?)
-	_delay_ms(50);  // since clock is divided by eight,
-			// delay is actually 400 ms
-	power_sleep_loop();
+    if(system_power() == SYSTEM_BATTERY) {
+	system_sleep_loop();
     }
+
+    // on normal power, the 8 MHz clock is safe
+    clock_prescale_set(clock_div_1);
 
     sei(); // enable interrupts
 
-    // with normal power, the mcu can safely run at 8 MHz
-    clock_prescale_set(clock_div_1);
-
-    // wake everything up
+    // wakey, wakey
     usart_wake();
     time_wake();
-    button_wake();
+    buttons_wake();
     alarm_wake();
     display_wake();
     mode_wake();
 
-    // beep for one second on first powered startup
-    alarm_beep(1000);
+    // half-second beep on system reset
+    alarm.volume = 3; alarm_beep(500);
 
     // clock function is entirelly interrupt-driven after
     // this point, so let the system idle indefinetly
-    power_idle_loop();
+    system_idle_loop();
 }
 
 
@@ -81,13 +81,13 @@ int main(void) {
 ISR(TIMER2_COMPA_vect) {
     sei();  // allow nested interrupts
 
-    if(power.status & POWER_SLEEP) {
+    if(system.status & SYSTEM_SLEEP) {
 	time_tick();
 	alarm_tick();
 	wdt_reset();
     } else {
 	time_tick();
-	button_tick();
+	buttons_tick();
 	alarm_tick();
 	mode_tick();
 	display_tick();
@@ -111,7 +111,7 @@ ISR(TIMER0_OVF_vect) {
     // code below runs every "semisecond" or
     // every 0.99 microseconds (1.01 khz)
     time_semitick();
-    button_semitick();
+    buttons_semitick();
     alarm_semitick();
     mode_semitick();
     display_semitick();
@@ -124,31 +124,35 @@ ISR(TIMER0_OVF_vect) {
 // triggered when voltage at AIN1 falls below internal
 // bandgap (~1.1v), indicating external power failure
 ISR(ANALOG_COMP_vect) {
+    cli();  // prevent nested interrupts
+
     // if the system is already sleeping, do nothing
-    if(power.status & POWER_SLEEP) return;
+    if(system.status & SYSTEM_SLEEP) return;
 
     // if power is good, do nothing
-    if(power_source() == POWER_ADAPTOR) return;
+    if(system_power() == SYSTEM_ADAPTOR) return;
 
     display_sleep();  // stop boost timer and disable display
     usart_sleep();    // disable usart
-    alarm_sleep();    // disable alarm switch pull-up resistor
-    button_sleep();   // disable button pull-up resistors
+    alarm_sleep();    // disable alarm-switch pull-up resistor
+    buttons_sleep();  // disable button pull-up resistors
     time_sleep();     // save current time
+    mode_sleep();     // does nothing
 
     // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
     // An 8 or 4 MHz clock is unstable at 1.7v, but a 2 MHz clock is okay:
     clock_prescale_set(clock_div_4);
 
-    power_sleep_loop(); // sleep until power restored
+    system_sleep_loop();  // sleep until power restored
+
+    time_wake();  // save current time
+
+    clock_prescale_set(clock_div_1);  // 8 MHz system clock
 
     sei();  // allow interrupts
 
-    time_wake();     // save current time
-
-    clock_prescale_set(clock_div_1); // restore normal clock speed
-
-    button_wake();   // enable button pull-ups
+    mode_wake();     // display time after waking
+    buttons_wake();  // enable button pull-ups
     alarm_wake();    // enable alarm switch pull-up
     usart_sleep();   // enable and configure usart
     display_wake();  // start boost timer and enable display

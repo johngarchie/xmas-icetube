@@ -1,22 +1,33 @@
+// buttons.c  --  button press detection
+// (button presses are processed in mode.c)
+// 
+//    PD5    menu button
+//    PD4    plus button
+//    PB0    set button
+// 
+
+
 #include <avr/io.h>  // for using avr register names
 
-#include "button.h"
-#include "alarm.h"
+
+#include "buttons.h"
+#include "alarm.h"  // for alarm_click() function
+#include "usart.h"  // for debugging output
 
 
 // extern'ed button input data
-volatile button_t button;
+volatile buttons_t buttons;
 
 
 // set initial state after system reset
-void button_init(void) {
-    button.state = button.pressed = 0;
-    button_sleep(); // clamp button pins to ground
+void buttons_init(void) {
+    buttons.state = buttons.pressed = 0;
+    buttons_sleep(); // clamp button pins to ground
 }
 
 
 // clamp button pins to ground
-void button_sleep(void) {
+void buttons_sleep(void) {
     // disable pull-up resistors
     PORTD &= ~_BV(PD5) & ~_BV(PD4);
     PORTB &= ~_BV(PB0);
@@ -28,7 +39,7 @@ void button_sleep(void) {
 
 
 // enable button pins as inputs with pull-ups enabled
-void button_wake(void) {
+void buttons_wake(void) {
     // set to input
     DDRD &= ~_BV(PD5) & ~_BV(PD4);
     DDRB &= ~_BV(PB0);
@@ -40,48 +51,48 @@ void button_wake(void) {
 
 
 // check for button presses every semisecond
-void button_semitick(void) {
+void buttons_semitick(void) {
     uint8_t sensed = 0;  // which buttons are pressed?
 
     // check the menu button (button one)
-    if(!(PIND & _BV(PD5))) sensed |= BUTTON_MENU;
+    if(!(PIND & _BV(PD5))) sensed |= BUTTONS_MENU;
 
     // check the set button (button two)
-    if(!(PINB & _BV(PB0))) sensed |= BUTTON_SET;
+    if(!(PINB & _BV(PB0))) sensed |= BUTTONS_SET;
 
     // check the plus button (button three)
-    if(!(PIND & _BV(PD4))) sensed |= BUTTON_PLUS;
+    if(!(PIND & _BV(PD4))) sensed |= BUTTONS_PLUS;
 
     // timers for button debouncing and repeating
     static uint8_t debounce_timer = 0;
     static uint16_t pressed_timer = 0;
 
     // debounce before storing the currently pressed buttons
-    if(button.pressed != sensed && (button.state & 0x0F) == sensed) {
-	if(++debounce_timer >= BUTTON_DEBOUNCE_TIME) {
-	    button.pressed = sensed;
-	    button.state &= 0x0F;  // clear process and repeating flags
+    if(buttons.pressed != sensed && (buttons.state & 0x0F) == sensed) {
+	if(++debounce_timer >= BUTTONS_DEBOUNCE_TIME) {
+	    buttons.pressed = sensed;
+	    buttons.state &= 0x0F;  // clear process and repeating flags
 	    pressed_timer = 0;
 	}
     } else {
-	button.state &= 0xF0;   // clear button flags
-	button.state |= sensed; // set new button flags
+	buttons.state &= 0xF0;   // clear button flags
+	buttons.state |= sensed; // set new button flags
 	debounce_timer = 0;
     }
 
     // if any buttons are pressed, periodically clear processed flag
     // to allow for press-and-hold repeating
-    if(button.pressed) {
+    if(buttons.pressed) {
 	++pressed_timer;
 
-	if(button.state & BUTTON_REPEATING) {
-	    if(pressed_timer >= BUTTON_REPEAT_RATE) {
-		button.state &= ~BUTTON_PROCESSED;
+	if(buttons.state & BUTTONS_REPEATING) {
+	    if(pressed_timer >= BUTTONS_REPEAT_RATE) {
+		buttons.state &= ~BUTTONS_PROCESSED;
 		pressed_timer = 0;
 	    }
 	} else {
-	    if(pressed_timer >= BUTTON_REPEAT_AFTER) {
-		button.state |= BUTTON_REPEATING;
+	    if(pressed_timer >= BUTTONS_REPEAT_AFTER) {
+		buttons.state |= BUTTONS_REPEATING;
 	    }
 	}
     }
@@ -90,17 +101,17 @@ void button_semitick(void) {
 
 // process a button press: if a button is pressed and not
 // previously processed, return it.  otherwise return zero.
-uint8_t button_process(void) {
+uint8_t buttons_process(void) {
     // return nothing if there is no button pressed
     // or if any buttons pressed have already been processed
-    if(button.state & BUTTON_PROCESSED || !button.pressed) return 0;
+    if(buttons.state & BUTTONS_PROCESSED || !buttons.pressed) return 0;
 
     // mark this button press as processed
-    button.state |= BUTTON_PROCESSED;
+    buttons.state |= BUTTONS_PROCESSED;
 
     // make a nice, satisfying click with processed button press
     alarm_click();
 
     // return the pressed buttons
-    return button.pressed;
+    return buttons.pressed;
 }

@@ -1,3 +1,19 @@
+// display.c  --  low-level control of VFD display
+// (Display contents are controlled in mode.c)
+//
+//    PB5 (SCK)                      MAX6921 CLK pin
+//    PB3 (MOSI)                     MAX6921 DIN pin
+//    PC5                            photoresistor pull-up
+//    PC4 (ADC4)                     photoresistor voltage
+//    PC3                            MAX6921 BLANK pin
+//    PC0                            MAX6921 LOAD pin
+//    PD6                            boost transistor
+//    PD3                            vfd power transistor
+//    counter/timer0                 boost (PD6) and semiticks
+//    analog to digital converter    photoresistor (ADC4) voltage
+//
+
+
 #include <avr/io.h>       // for using avr register names
 #include <avr/pgmspace.h> // for accessing data in program memory
 #include <avr/eeprom.h>   // for accessing data in eeprom memory
@@ -6,6 +22,7 @@
 
 
 #include "display.h"
+#include "usart.h"  // for debugging output
 
 
 // extern'ed data pertaining the display
@@ -13,9 +30,8 @@ volatile display_t display;
 
 
 // permanent place to store display brightness
-uint8_t ee_brightness EEMEM = 0;
-uint8_t ee_display_bright_min EEMEM = 0;
-uint8_t ee_display_bright_max EEMEM = 5;
+uint8_t ee_display_bright_min EEMEM = 1;
+uint8_t ee_display_bright_max EEMEM = 1;
 
 
 // display of letters and numbers is coded by 
@@ -123,15 +139,19 @@ void display_init(void) {
     DDRC  |=  _BV(PC5);  // set pin as output
     PORTC &= ~_BV(PC5);  // pull to ground
 
-    // disable analog circuitry on photoresistor pins
+    // disable digital circuitry on photoresistor pins
     DIDR0 |= _BV(ADC5D) | _BV(ADC4D);
+
+    // set initial photo_avg to maximum ambient light
+    display.photo_avg = UINT16_MAX;
 }
 
 
 // enable display after low-power mode
 void display_wake(void) {
-    // enable photoresistor pull-up
-    PORTC |= _BV(PC5);  // output +5v
+    // enable external and internal photoresistor pull-ups (the latter
+    // ensures a defined value if no photoresistor installed)
+    PORTC |= _BV(PC5) | _BV(PC4);  // output +5v, enable pull-up
 
     // enable analog to digital converter
     power_adc_enable();
@@ -161,7 +181,8 @@ void display_wake(void) {
     // set OCR0A for desired display brightness
     display_loadbright();
 
-    PORTD &= ~_BV(PD3); // MAX6921 power on (pull low)
+    // MAX6921 power on (pull low)
+    PORTD &= ~_BV(PD3);
 }
 
 
@@ -172,11 +193,11 @@ void display_sleep(void) {
     PORTD &= ~_BV(PD6); // boost fet off (pull low)
     PORTD |=  _BV(PD3); // MAX6921 power off (pull high)
 
-    // disable photoresistor pull-up pin
-    PORTC &= ~_BV(PC5);  // output +5v
+    // disable external and internal photoresistor pull-ups
+    PORTC &= ~_BV(PC5) & ~_BV(PC4);  // pull to ground, disable pull-up
 
     // disable analog to digital converter
-    ADCSRA = 0;  // power_adc_disable() is not sufficient (?!?!?)
+    ADCSRA = 0;  // disable ADC before power_adc_disable()
     power_adc_disable();
 
     // configure MAX6921 LOAD and BLANK pins
@@ -187,12 +208,6 @@ void display_sleep(void) {
     // as inputs *without* pull-ups!?!?)
     DDRB  &= ~_BV(PB5) & ~_BV(PB3);  // set as input
     PORTB &= ~_BV(PB5) & ~_BV(PB3);  // disable pull-ups
-}
-
-
-// update display brightness every second
-void display_tick(void) {
-    display_autodim();
 }
 
 
@@ -218,6 +233,10 @@ void display_semitick(void) {
 	// MAX6921 CLK and LOAD pins need only be 90 ns and 55 ns,
 	// respectively.  The minimum period for CLK must be at least 200 ns.
 	// Therefore, no delays should be necessary in the code below.
+
+	// Also, the bits could be sent by SPI (they are in the origional
+	// Adafruit firmware), but I have found that doing so sometimes
+	// results in display flicker.
 
 	for(uint8_t i = 0; i < 20; ++i, bits <<= 1) {
 	    if(bits & 0x00080000) {  // if 20th bit set
@@ -249,12 +268,18 @@ void display_semitick(void) {
     static uint8_t photo_timer = 50;
 
     if(! --photo_timer) {
-        photo_timer = 50;
+	// update adc running average (display.photo_avg)
 	display.photo_avg -= (display.photo_avg >> 6);
 	display.photo_avg += ADC;
 
+	// update brightness from display.photo_avg
+	display_autodim();
+
         // begin next analog to digital conversion
         ADCSRA |= _BV(ADSC);
+
+	// repeat in 50 semiseconds
+        photo_timer = 50;
     }
 }
 
@@ -319,8 +344,6 @@ void display_autodim(void) {
     // set new brightness
     OCR0A = new_OCR0A;
 }
-
-
 
 
 // display digit (n) on display position (idx)

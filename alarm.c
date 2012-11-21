@@ -1,14 +1,24 @@
+// alarm.c  --  alarm functionality
+//
+//    PB2               first  buzzer pin
+//    PB1               second buzzer pin
+//    PD2               alarm switch
+//    counter/timer1    buzzer frequency and volume
+//
+
+
 #include <avr/io.h>           // for using avr register names
 #include <avr/pgmspace.h>     // for accessing data in program memory
 #include <avr/eeprom.h>       // for accessing data in eeprom
 #include <avr/power.h>        // for enabling/disabling microcontroller modules
 #include <util/delay_basic.h> // for the _delay_loop_1() macro
 
+
 #include "alarm.h"
-#include "time.h"
-#include "power.h"
-#include "button.h"
-#include "mode.h"
+#include "time.h"   // alarm must sound at appropriate time
+#include "system.h" // alarm behavior depends on power source
+#include "mode.h"   // mode updated on alarm state changes
+#include "usart.h"  // for debugging output
 
 
 // extern'ed alarm data
@@ -37,7 +47,7 @@ void alarm_init(void) {
     alarm.hour         = eeprom_read_byte(&ee_alarm_hour)        % 24;
     alarm.minute       = eeprom_read_byte(&ee_alarm_minute)      % 60;
     alarm.snooze_time  = eeprom_read_byte(&ee_alarm_snooze_time) % 31;
-    alarm.ramp_time    = eeprom_read_byte(&ee_alarm_ramp_time)   % 31;
+    alarm.ramp_time    = eeprom_read_byte(&ee_alarm_ramp_time)   % 61;
     alarm.volume_max   = eeprom_read_byte(&ee_alarm_volume_max)  % 10;
     alarm.volume_min   = eeprom_read_byte(&ee_alarm_volume_min);
 
@@ -45,6 +55,7 @@ void alarm_init(void) {
 	alarm.volume_min = alarm.volume_min;
     }
 
+    // prevents divide-by-zero error later on
     if(!alarm.ramp_time) alarm.ramp_time = 1;
 
     // initial volume should be minimum volume
@@ -72,7 +83,7 @@ void alarm_sleep(void) {
 
     // disable buzzer, unless the power management code can
     // handle it properly while sleeping
-    if(!(power.status & POWER_ALARMON)) {
+    if(!(system.status & SYSTEM_ALARMON)) {
 	alarm_buzzeroff();
     }
     
@@ -103,12 +114,12 @@ void alarm_wake(void) {
 // control pizo buzzer
 void alarm_tick(void) {
     // sound alarm at correct time if alarm is set
-    if((power.status & POWER_SLEEP || alarm.status & ALARM_SET)
+    if((system.status & SYSTEM_SLEEP || alarm.status & ALARM_SET)
 	    && time.hour   == alarm.hour
 	    && time.minute == alarm.minute
 	    && time.second == 0) {
 
-	if(power.status & POWER_SLEEP) {
+	if(system.status & SYSTEM_SLEEP) {
 	    // briefly waking the alarm will update
 	    // alarm.status from the alarm switch
 	    alarm_wake();
@@ -136,7 +147,7 @@ void alarm_tick(void) {
 
     // toggle buzzer if alarm sounding
     if(alarm.status & ALARM_SOUNDING) {
-	if(power.status & POWER_SLEEP) {
+	if(system.status & SYSTEM_SLEEP) {
 	    // briefly waking the alarm will update
 	    // alarm.status from the alarm switch
 	    alarm_wake();
@@ -145,10 +156,10 @@ void alarm_tick(void) {
 
 	if(alarm.status & ALARM_SOUNDING) {
 	    if(time.second % 2) {
-		power.status &= ~POWER_ALARMON;
+		system.status &= ~SYSTEM_ALARMON;
 		alarm_buzzeroff();
 	    } else {
-		power.status |= POWER_ALARMON;
+		system.status |= SYSTEM_ALARMON;
 		alarm_buzzeron();
 	    }
 
@@ -164,11 +175,11 @@ void alarm_tick(void) {
 	        alarm.alarm_timer = 0;
 	    }
 	} else {
-	    power.status &= ~POWER_ALARMON;
+	    system.status &= ~SYSTEM_ALARMON;
 	    alarm_buzzeroff();
 	}
     } else {
-	power.status &= ~POWER_ALARMON;
+	system.status &= ~SYSTEM_ALARMON;
     }
 }
 
@@ -176,22 +187,6 @@ void alarm_tick(void) {
 // control snooze, alarm_beep and alarm_click duration,
 // and reads alarm switch
 void alarm_semitick(void) {
-    // trigger snooze if button pressed during alarm
-    if(alarm.snooze_time && alarm.status & ALARM_SOUNDING) {
-	if(button_process()) {
-	    alarm.status &= ~ALARM_SOUNDING;
-	    alarm.status |=  ALARM_SNOOZE;
-	    alarm.alarm_timer = 0;
-	    alarm_buzzeroff();
-	    mode_snoozing();
-	}
-    }
-
-    // extend snooze if any button is pressed
-    if(alarm.status & ALARM_SNOOZE && button.pressed) {
-	alarm.alarm_timer = 0;
-    }
-
     if(alarm.status & ALARM_BEEP) {
 	// stop buzzer if beep has timed out
 	if(--alarm.buzzer_timer == 0) {
@@ -290,6 +285,27 @@ void alarm_click(void) {
 }
 
 
+// called on button press; returns true if press should be
+// processed as enabling snooze, false otherwise
+uint8_t alarm_onbutton(void) {
+    if(alarm.snooze_time && alarm.status & ALARM_SOUNDING) {
+	alarm.status &= ~ALARM_SOUNDING;
+	alarm.status |=  ALARM_SNOOZE;
+	alarm.alarm_timer = 0;
+	alarm_buzzeroff();
+	mode_snoozing();
+	return TRUE;
+    }
+
+    // extend snooze on any button press
+    if(alarm.status & ALARM_SNOOZE) {
+	alarm.alarm_timer = 0;
+    }
+
+    return FALSE;
+}
+
+
 // beep for the specified duration (semiseconds)
 void alarm_beep(uint16_t duration) {
     // let a beep override a click
@@ -315,7 +331,7 @@ void alarm_buzzeron(void) {
     // COM1B1 = 11, set OC1B on Compare Match, clear OC1B at BOTTOM
     TCCR1A = _BV(COM1A1) | _BV(COM1B1) | _BV(COM1B0) | _BV(WGM11);
 
-    if(power.status & POWER_SLEEP) {
+    if(system.status & SYSTEM_SLEEP) {
 	// WGM1 = 1110, fast PWM with TOP is ICR1
 	// CS1  = 010,  Timer/Counter1 increments at
 	//              system clock / 1 (2 MHz)
@@ -324,11 +340,19 @@ void alarm_buzzeron(void) {
 	// set buzzer frequency to 2 MHz / 500 = 4.00 kHz
 	ICR1 = 500;
 
-	// set compare match registers for desired volume; adjust
-	// volume to compensate for lower voltage of battery power
-	uint16_t extra_volume = alarm.volume + 1;
-	if(extra_volume > 10) extra_volume = 10;
-	uint16_t compare_match = pgm_read_byte(alarm_vol2cm + extra_volume);
+	// determine desired volume
+	uint16_t sleep_volume = alarm.volume;
+
+	if(system_power() == SYSTEM_BATTERY) {
+	    // progressive alarm uses too much power
+	    if(alarm.status & ALARM_SOUNDING) sleep_volume = alarm.volume_max;
+
+	    // if possible, compensate for lost volume from battery voltage
+	    if(sleep_volume < 10) ++sleep_volume;
+	}
+
+	// set compare match registers for desired volume
+	uint16_t compare_match = pgm_read_byte(alarm_vol2cm + sleep_volume);
 	compare_match *= 2;
 	OCR1A = compare_match;
 	OCR1B = 500 - compare_match;

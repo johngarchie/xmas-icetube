@@ -1,12 +1,21 @@
+// mode.c  --  time display and user interaction
+//
+// Time display and menu configuration are implemented through various
+// modes or states within a finite state machine.
+//
+
+
 #include <avr/pgmspace.h> // for defining program memory strings with PSTR()
 #include <util/atomic.h>  // for defining non-interruptable blocks
 
+
 #include "mode.h"
-#include "power.h"
-#include "display.h"
-#include "time.h"
-#include "alarm.h"
-#include "button.h"
+#include "system.h"   // for system.initial_mcusr
+#include "display.h"  // for setting display contents
+#include "time.h"     // for displaying and setting time and date
+#include "alarm.h"    // for setting and displaying alarm status
+#include "buttons.h"  // for processing button presses
+#include "usart.h"    // for debugging output
 
 
 // extern'ed clock mode data
@@ -15,8 +24,7 @@ volatile mode_t mode;
 
 // private function declarations
 void mode_update(uint8_t new_state);
-void mode_time_display(uint8_t hour,   uint8_t minute,
-	               uint8_t second, uint8_t dst);
+void mode_time_display(uint8_t hour, uint8_t minute, uint8_t second);
 void mode_alarm_display(uint8_t hour, uint8_t minute);
 void mode_date_display(void);
 void mode_textnum_display(PGM_P pstr, uint8_t num);
@@ -35,10 +43,10 @@ void mode_tick(void) {
     if(mode.state == MODE_TIME_DISPLAY) {
 	// update time display for each tick of the clock
 	if(time.status & TIME_UNSET && time.second % 2) {
-	    if(power.initial_mcusr & _BV(WDRF))  display_pstr(PSTR("wdt rset"));
-	    if(power.initial_mcusr & _BV(BORF))  display_pstr(PSTR("bod rset"));
-	    if(power.initial_mcusr & _BV(EXTRF)) display_pstr(PSTR("ext rset"));
-	    if(power.initial_mcusr & _BV(PORF))  display_pstr(PSTR("pwr rset"));
+	   if(system.initial_mcusr & _BV(WDRF))  display_pstr(PSTR("wdt rset"));
+	   if(system.initial_mcusr & _BV(BORF))  display_pstr(PSTR("bod rset"));
+	   if(system.initial_mcusr & _BV(EXTRF)) display_pstr(PSTR("ext rset"));
+	   if(system.initial_mcusr & _BV(PORF))  display_pstr(PSTR("pwr rset"));
 	} else {
 	    mode_update(MODE_TIME_DISPLAY);
 	}
@@ -48,22 +56,20 @@ void mode_tick(void) {
 
 // called each semisecond; updates current mode as required
 void mode_semitick(void) {
-    uint8_t btn = button_process();
+    uint8_t btn = buttons_process();
+
+    // enable or extend snooze on button press
+    if(btn) if(alarm_onbutton()) btn = 0;
 
     switch(mode.state) {
 	case MODE_TIME_DISPLAY:
-	    // display dash to indicate alarm status
-	    display_dash(0, alarm.status & ALARM_SET
-	                    && ( !(alarm.status & ALARM_SNOOZE)
-		             || time.second % 2));
-
 	    // check for button presses
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_MENU_SETALARM);
 		    break;
-		case BUTTON_PLUS:
-		case BUTTON_SET:
+		case BUTTONS_PLUS:
+		case BUTTONS_SET:
 		    mode_update(MODE_DAYOFWEEK_DISPLAY);
 		    break;
 		default:
@@ -84,15 +90,15 @@ void mode_semitick(void) {
 	    return;  // time ourselves; skip code below
 	case MODE_MENU_SETALARM:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_MENU_SETTIME);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    mode.tmp[MODE_TMP_HOUR]   = alarm.hour;
 		    mode.tmp[MODE_TMP_MINUTE] = alarm.minute;
 		    mode_update(MODE_SETALARM_HOUR);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		default:
@@ -101,13 +107,13 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETALARM_HOUR:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    mode_update(MODE_SETALARM_MINUTE);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++mode.tmp[MODE_TMP_HOUR];
 		    mode.tmp[MODE_TMP_HOUR] %= 24;
 		    mode_update(MODE_SETALARM_HOUR);
@@ -118,15 +124,15 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETALARM_MINUTE:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    alarm_settime(mode.tmp[MODE_TMP_HOUR],
 			          mode.tmp[MODE_TMP_MINUTE]);
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++mode.tmp[MODE_TMP_MINUTE];
 		    mode.tmp[MODE_TMP_MINUTE] %= 60;
 		    mode_update(MODE_SETALARM_MINUTE);
@@ -137,17 +143,17 @@ void mode_semitick(void) {
 	    break;
 	case MODE_MENU_SETTIME:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_MENU_SETDATE);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    mode.tmp[MODE_TMP_HOUR]   = time.hour;
 		    mode.tmp[MODE_TMP_MINUTE] = time.minute;
 		    mode.tmp[MODE_TMP_SECOND] = time.second;
 
 		    mode_update(MODE_SETTIME_HOUR);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		default:
@@ -156,13 +162,13 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETTIME_HOUR:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    mode_update(MODE_SETTIME_MINUTE);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++mode.tmp[MODE_TMP_HOUR];
 		    mode.tmp[MODE_TMP_HOUR] %= 24;
 		    mode_update(MODE_SETTIME_HOUR);
@@ -173,13 +179,13 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETTIME_MINUTE:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    mode_update(MODE_SETTIME_SECOND);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++mode.tmp[MODE_TMP_MINUTE];
 		    mode.tmp[MODE_TMP_MINUTE] %= 60;
 		    mode_update(MODE_SETTIME_MINUTE);
@@ -190,10 +196,10 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETTIME_SECOND:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
 			time_settime(mode.tmp[MODE_TMP_HOUR],
 				     mode.tmp[MODE_TMP_MINUTE],
@@ -202,7 +208,7 @@ void mode_semitick(void) {
 		    }
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++mode.tmp[MODE_TMP_SECOND];
 		    mode.tmp[MODE_TMP_SECOND] %= 60;
 		    mode_update(MODE_SETTIME_SECOND);
@@ -213,10 +219,10 @@ void mode_semitick(void) {
 	    break;
 	case MODE_MENU_SETDATE:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_MENU_SETDST);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    // fetch the current date
 		    mode.tmp[MODE_TMP_YEAR]  = time.year;
 		    mode.tmp[MODE_TMP_MONTH] = time.month;
@@ -229,7 +235,7 @@ void mode_semitick(void) {
 			mode_update(MODE_SETDATE_DAY);
 		    }
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		default:
@@ -238,17 +244,17 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETDATE_DAY:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    if(time.status & TIME_MMDDYY) {
 			mode_update(MODE_SETDATE_YEAR);
 		    } else {
 			mode_update(MODE_SETDATE_MONTH);
 		    }
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++mode.tmp[MODE_TMP_DAY];
 		    if(mode.tmp[MODE_TMP_DAY] > 31) {
 			mode.tmp[MODE_TMP_DAY] = 1;
@@ -261,17 +267,17 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETDATE_MONTH:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    if(time.status & TIME_MMDDYY) {
 			mode_update(MODE_SETDATE_DAY);
 		    } else {
 			mode_update(MODE_SETDATE_YEAR);
 		    }
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++mode.tmp[MODE_TMP_MONTH];
 		    if(mode.tmp[MODE_TMP_MONTH] > 12) {
 			mode.tmp[MODE_TMP_MONTH] = 1;
@@ -284,10 +290,10 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETDATE_YEAR:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
 			time_setdate(mode.tmp[MODE_TMP_YEAR],
 				     mode.tmp[MODE_TMP_MONTH],
@@ -297,7 +303,7 @@ void mode_semitick(void) {
 		    time_savedate();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++mode.tmp[MODE_TMP_YEAR];
 		    mode.tmp[MODE_TMP_YEAR] %= 100;
 		    mode_update(MODE_SETDATE_YEAR);
@@ -308,14 +314,14 @@ void mode_semitick(void) {
 	    break;
 	case MODE_MENU_SETDST:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_MENU_SETBRIGHT);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    *mode.tmp = time.status;
 		    mode_update(MODE_SETDST_STATE);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		default:
@@ -324,10 +330,10 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETDST_STATE:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
 			uint8_t autodst = *mode.tmp & TIME_AUTODST_MASK;
 
@@ -355,7 +361,7 @@ void mode_semitick(void) {
 			}
 		    }
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    switch(*mode.tmp & TIME_AUTODST_MASK) {
 			case TIME_AUTODST_USA:
 			    // after autodst usa, go to manual
@@ -399,10 +405,10 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETDST_ZONE:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
 			time.status = *mode.tmp;
 			time_autodst(FALSE);
@@ -410,7 +416,7 @@ void mode_semitick(void) {
 		    }
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    switch(*mode.tmp & TIME_AUTODST_MASK) {
 			case TIME_AUTODST_EU_CET:
 			    *mode.tmp &= ~TIME_AUTODST_MASK;
@@ -431,27 +437,12 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_MENU_SETPREFERENCES:
-	    switch(btn) {
-		case BUTTON_MENU:
-		    mode_update(MODE_MENU_SETFORMAT);
-		    break;
-		case BUTTON_SET:
-		    mode_update(MODE_MENU_SETBRIGHT);
-		    break;
-		case BUTTON_PLUS:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
 	case MODE_MENU_SETBRIGHT:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_MENU_SETVOLUME);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    mode.tmp[MODE_TMP_MIN] = display.bright_min;
 		    mode.tmp[MODE_TMP_MAX] = display.bright_max;
 
@@ -463,7 +454,7 @@ void mode_semitick(void) {
 
 		    mode_update(MODE_SETBRIGHT_LEVEL);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		default:
@@ -472,11 +463,11 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETBRIGHT_LEVEL:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    display_loadbright();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    if(*mode.tmp == 11) {
 			*mode.tmp = mode.tmp[MODE_TMP_MIN];
 			mode_update(MODE_SETBRIGHT_MIN);
@@ -485,7 +476,7 @@ void mode_semitick(void) {
 			mode_update(MODE_TIME_DISPLAY);
 		    }
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++(*mode.tmp);
 		    *mode.tmp %= 12;
 		    mode_update(MODE_SETBRIGHT_LEVEL);
@@ -499,11 +490,11 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETBRIGHT_MIN:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    display_loadbright();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    // save brightness minimum
 		    mode.tmp[MODE_TMP_MIN] = *mode.tmp;
 
@@ -517,7 +508,7 @@ void mode_semitick(void) {
 		    // set brightness maximum
 		    mode_update(MODE_SETBRIGHT_MAX);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++(*mode.tmp);
 		    *mode.tmp %= 10;
 		    mode_update(MODE_SETBRIGHT_MIN);
@@ -531,18 +522,18 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETBRIGHT_MAX:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    display_loadbright();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    display.bright_min = mode.tmp[MODE_TMP_MIN];
 		    display.bright_max = *mode.tmp;
 		    display_autodim();
 		    display_savebright();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++(*mode.tmp);
 		    if(*mode.tmp > 10) *mode.tmp = mode.tmp[MODE_TMP_MIN] + 1;
 		    mode_update(MODE_SETBRIGHT_MAX);
@@ -556,10 +547,10 @@ void mode_semitick(void) {
 	    break;
 	case MODE_MENU_SETVOLUME:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_MENU_SETSNOOZE);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    if(alarm.volume_min != alarm.volume_max) {
 			*mode.tmp = 11;
 		    } else {
@@ -571,7 +562,7 @@ void mode_semitick(void) {
 		    mode.tmp[MODE_TMP_MAX] = alarm.volume_max;
 		    mode_update(MODE_SETVOLUME_LEVEL);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		default:
@@ -580,11 +571,11 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETVOLUME_LEVEL:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    alarm.volume = alarm.volume_min;
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    if(*mode.tmp < 11) {
 			alarm.volume     = *mode.tmp;
 			alarm.volume_min = *mode.tmp;
@@ -597,7 +588,7 @@ void mode_semitick(void) {
 			mode_update(MODE_SETVOLUME_MIN);
 		    }
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++(*mode.tmp);
 		    *mode.tmp %= 12;
 
@@ -617,16 +608,16 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETVOLUME_MIN:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    alarm.volume = alarm.volume_min;
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    alarm.volume = mode.tmp[MODE_TMP_MAX];
 		    alarm_beep(1000);
 		    mode_update(MODE_SETVOLUME_MAX);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++mode.tmp[MODE_TMP_MIN];
 		    mode.tmp[MODE_TMP_MIN] %= 10;
 		    alarm.volume = mode.tmp[MODE_TMP_MIN];
@@ -642,11 +633,11 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETVOLUME_MAX:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    alarm.volume = alarm.volume_min;
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    alarm.volume     = mode.tmp[MODE_TMP_MIN];
 		    alarm.volume_min = mode.tmp[MODE_TMP_MIN];
 		    alarm.volume_max = mode.tmp[MODE_TMP_MAX];
@@ -654,7 +645,7 @@ void mode_semitick(void) {
 		    *mode.tmp = alarm.ramp_time;
 		    mode_update(MODE_SETVOLUME_TIME);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++mode.tmp[MODE_TMP_MAX];
 		    if(mode.tmp[MODE_TMP_MAX] > 10) {
 			mode.tmp[MODE_TMP_MAX]=mode.tmp[MODE_TMP_MIN]+1;
@@ -672,17 +663,17 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETVOLUME_TIME:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    alarm.ramp_time = *mode.tmp;
-		    alarm_newramp();
-		    alarm_saveramp();
+		    alarm_newramp();  // calculate alarm.ramp_int
+		    alarm_saveramp(); // save alarm.ramp_time
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_PLUS:
-		    if(++(*mode.tmp) > 30) *mode.tmp = 1;
+		case BUTTONS_PLUS:
+		    if(++(*mode.tmp) > 60) *mode.tmp = 1;
 		    mode_update(MODE_SETVOLUME_TIME);
 		    break;
 		default:
@@ -691,14 +682,14 @@ void mode_semitick(void) {
 	    break;
 	case MODE_MENU_SETSNOOZE:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_MENU_SETFORMAT);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    *mode.tmp = alarm.snooze_time / 60;
 		    mode_update(MODE_SETSNOOZE_TIME);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		default:
@@ -707,15 +698,15 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETSNOOZE_TIME:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    alarm.snooze_time = *mode.tmp * 60;
 		    alarm_savesnooze();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    ++(*mode.tmp); *mode.tmp %= 31;
 		    mode_update(MODE_SETSNOOZE_TIME);
 		    break;
@@ -725,14 +716,14 @@ void mode_semitick(void) {
 	    break;
 	case MODE_MENU_SETFORMAT:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    *mode.tmp = time.status & TIME_12HOUR;
 		    mode_update(MODE_SETTIME_FORMAT);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		default:
@@ -741,10 +732,10 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETTIME_FORMAT:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    // save the time format
 		    if(*mode.tmp) {
 			time.status |= TIME_12HOUR;
@@ -757,7 +748,7 @@ void mode_semitick(void) {
 		    *mode.tmp = time.status & TIME_MMDDYY;
 		    mode_update(MODE_SETDATE_FORMAT);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    *mode.tmp = !*mode.tmp;
 		    mode_update(MODE_SETTIME_FORMAT);
 		    break;
@@ -767,10 +758,10 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETDATE_FORMAT:
 	    switch(btn) {
-		case BUTTON_MENU:
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_SET:
+		case BUTTONS_SET:
 		    // save the time format
 		    if(*mode.tmp) {
 			time.status |=  TIME_MMDDYY;
@@ -782,7 +773,7 @@ void mode_semitick(void) {
 		    // return to time desplay
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
-		case BUTTON_PLUS:
+		case BUTTONS_PLUS:
 		    *mode.tmp = !*mode.tmp;
 		    mode_update(MODE_SETDATE_FORMAT);
 		    break;
@@ -797,6 +788,12 @@ void mode_semitick(void) {
     if(++mode.timer > MODE_TIMEOUT) {
 	mode_update(MODE_TIME_DISPLAY);
     }
+}
+
+
+// set default mode when waking from sleep
+void mode_wake(void) {
+    mode_update(MODE_TIME_DISPLAY);
 }
 
 
@@ -831,8 +828,23 @@ void mode_update(uint8_t new_state) {
 
     switch(mode.state) {
 	case MODE_TIME_DISPLAY:
-	    mode_time_display(time.hour, time.minute,
-		    	      time.second, time.status & TIME_DST);
+	    // display current time
+	    mode_time_display(time.hour, time.minute, time.second);
+
+	    // show daylight savings time indicator
+	    if(time.status & TIME_12HOUR) {
+		// show rightmost decimal if dst
+		display_dot(8, time.status & TIME_DST);
+	    } else {
+		// otherwise, show circle if dst
+		display_dot(0, time.status & TIME_DST);
+	    }
+
+	    // show alarm status with leftmost dash
+	    display_dash(0, alarm.status & ALARM_SET
+	                    && ( !(alarm.status & ALARM_SNOOZE)
+		             || time.second % 2));
+
 	    break;
 	case MODE_DAYOFWEEK_DISPLAY:
 	    mode_dayofweek_display();
@@ -879,22 +891,19 @@ void mode_update(uint8_t new_state) {
 	case MODE_SETTIME_HOUR:
 	    mode_time_display(mode.tmp[MODE_TMP_HOUR],
 		              mode.tmp[MODE_TMP_MINUTE],
-			      mode.tmp[MODE_TMP_SECOND],
-			      FALSE);
+			      mode.tmp[MODE_TMP_SECOND]);
 	    display_dotselect(1, 2);
 	    break;
 	case MODE_SETTIME_MINUTE:
 	    mode_time_display(mode.tmp[MODE_TMP_HOUR],
 		              mode.tmp[MODE_TMP_MINUTE],
-			      mode.tmp[MODE_TMP_SECOND],
-			      FALSE);
+			      mode.tmp[MODE_TMP_SECOND]);
 	    display_dotselect(4, 5);
 	    break;
 	case MODE_SETTIME_SECOND:
 	    mode_time_display(mode.tmp[MODE_TMP_HOUR],
 		              mode.tmp[MODE_TMP_MINUTE],
-			      mode.tmp[MODE_TMP_SECOND],
-			      FALSE);
+			      mode.tmp[MODE_TMP_SECOND]);
 	    display_dotselect(7, 8);
 	    break;
 	case MODE_MENU_SETDATE:
@@ -959,9 +968,6 @@ void mode_update(uint8_t new_state) {
 		    display_dotselect(6, 8);
 		    break;
 	    }
-	    break;
-	case MODE_MENU_SETPREFERENCES:
-	    display_pstr(PSTR("set pref"));
 	    break;
 	case MODE_MENU_SETBRIGHT:
 	    display_pstr(PSTR("set brit"));
@@ -1048,7 +1054,7 @@ void mode_update(uint8_t new_state) {
 
 // updates the time display every second
 void mode_time_display(uint8_t hour, uint8_t minute,
-		       uint8_t second, uint8_t dst) {
+		       uint8_t second) {
     uint8_t hour_to_display = hour;
 
     if(time.status & TIME_12HOUR) {
@@ -1066,12 +1072,9 @@ void mode_time_display(uint8_t hour, uint8_t minute,
     display_digit(7, second / 10);
     display_digit(8, second % 10);
 
-    // show am/pm and/or dst indicators
+    // set or clear am or pm indicator
     if(time.status & TIME_12HOUR) {
 	display_dot(0, hour >= 12);  // left-most circle if pm
-	display_dot(8, dst);  // show rightmost dot if dst
-    } else {
-	display_dot(0, dst);  // show leftmost circle if dst
     }
 }
 

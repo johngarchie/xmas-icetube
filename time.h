@@ -1,8 +1,10 @@
 #ifndef TIME_H
 #define TIME_H
 
-#include <stdint.h>       // for using standard integer types
-#include <avr/pgmspace.h> // for accessing data in program memory
+
+#include <stdint.h>        // for using standard integer types
+#include <avr/pgmspace.h>  // for accessing data in program memory
+
 
 // month numbers
 #define TIME_JAN 1
@@ -59,17 +61,17 @@
 
 typedef struct {
     uint8_t status;  // status flags
-    uint8_t year;    // years past 2000
-    uint8_t month;   // month (1 is jan)
-    uint8_t day;     // day of month
-    uint8_t hour;    // hours past midnight
-    uint8_t minute;  // minutes past hour
-    uint8_t second;  // seconds past minute
+    uint8_t year;    // years past 2000 (0 during year 2000)
+    uint8_t month;   // month (1 during january)
+    uint8_t day;     // day of month (1 on the first)
+    uint8_t hour;    // hours past midnight (0 at midnight)
+    uint8_t minute;  // minutes past hour   (0 at midnight)
+    uint8_t second;  // seconds past minute (0 at midnight)
 
-    int16_t drift_adjust; // current drift adjustment:
-    // the number of seconds before time should be adjusted by 1/128 seconds;
-    // positive values indicate the clock is slow; negative values indicate the
-    // clock is fast; 0 indicates no adjustment
+    int16_t drift_adjust; // current drift adjustment; abs(drift_adjust) is
+    // the number of seconds that pass before time should be adjusted by 1/128
+    // seconds; positive values indicate the clock is fast; negative values,
+    // slow; 0 indicates no adjustment need be made
 
     uint16_t drift_adjust_timer; // incremented every second; when
     // drift_adjust_timer equals abs(drift_adjust), time is adjusted by
@@ -79,12 +81,12 @@ typedef struct {
     // the old and new time accumulates here; drift_delta_seconds is reset
     // to zero when drift_total_seconds is reset
 
-    uint32_t drift_total_seconds;  // total number of seconds between clock sets
-    // e.g. if no drift adjustment is currently being made, drift would be
+    uint32_t drift_total_seconds;  // total number of seconds between clock
+    // sets, so if no drift adjustment is currently being made, drift would be
     // [drift (ppm)] = 1000000 * [drift_delta_seconds] / [drift_delta_timer]
 
     uint16_t drift_delay_timer;  // seconds until system computes a new
-    // drift adjustment uisng drift_delta_seconds and drift_total_seconds
+    // drift adjustment using drift_delta_seconds and drift_total_seconds
 } time_t;
 
 

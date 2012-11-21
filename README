@@ -1,29 +1,38 @@
-Improvements over original firmware
+This firmware has several improvements over the original:
 
-(1) adjustable buzzer volume
-(2) progressive alarm buzzer
-(3) DST support (USA, EU, or manual)
-(4) automatic drift correction
-(5) alarm sounds during power outage
-(6) no reset during power outage
-(7) autodimmer with pull-up and photoresistor
+    (1) adjustable buzzer volume,
+    (2) progressive alarm buzzer,
+    (3) DST support (USA, EU, or manual),
+    (4) automatic drift correction,
+    (5) alarm sounds during power outage,
+    (6) no reset during power outage, and
+    (7) autodimmer with pull-up and photoresistor
 
 
 For Ice-Tube-Hackers, this firmware has
 
-(1) compatibility with atmega328p
-(2) pseudo object-oriented design
-(3) fairly good commenting
-(4) menus implemented as a finite state machine
+    (1) compatibility with atmega328p,
+    (2) pseudo object-oriented design,
+    (3) reasonably good commenting, and
+    (4) clock modes via finite state machine
 
 
 Wish list:
 
-(1) different time and date formats
-    - toggle am/pm:		"a/pm cir" "a/pm txt"
-    - toggle seconds		"sec show" "sec hide"
-    - toggle 24-hour mode	"hours 24" "hours 12"
-    - toggle showdst            "dst show" "dst hide"
-    - toggle w-day              "wday sho" "wday hid"
-    - date format		"date dmy" "date mdy" "date yymd"
-(2) gps time support
+(1) macro should explicitly enable brightness control
+
+(2) set date by "yyyy.mm.dd"
+
+(3) different time and date formats:
+    "set tfmt"
+        - toggle am/pm:		"a/pm cir"  "a/pm txt"
+        - toggle seconds	"sec show"  "sec hide"
+        - toggle 24-hour mode	"hours 24"  "hours 12"
+        - toggle showdst        "dst show"  "dst hide"
+        - toggle divider	"dots  on"  "dots off"
+
+    "set dfmt"
+        - toggle w-day          "wday  on"  "wday off"
+        - date format		"date dmy"  "date mdy"  "date txt"  "date iso"
+
+(4) time-from-gps support

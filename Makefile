@@ -11,7 +11,7 @@
 PROJECT ?= icetube
 
 # object files
-OBJECTS ?= icetube.o time.o alarm.o button.o display.o power.o mode.o usart.o
+OBJECTS ?= icetube.o system.o time.o alarm.o display.o buttons.o mode.o usart.o
 
 # avr microcontroller processing unit
 #AVRMCU ?= atmega168
@@ -41,11 +41,11 @@ AVROBJCOPYOPT ?=
 
 # fuse options for avrdude as implied by $(AVRMCU)
 ifeq ($(AVRMCU),atmega168)
-    FUSEOPT ?= -u -U lfuse:w:0x62:m -u -U hfuse:w:0xD6:m
+    FUSEOPT ?= -u -U lfuse:w:0xE2:m -u -U hfuse:w:0xD6:m
 endif
 
 ifeq ($(AVRMCU),atmega168p)
-    FUSEOPT ?= -u -U lfuse:w:0x62:m -u -U hfuse:w:0xD6:m
+    FUSEOPT ?= -u -U lfuse:w:0xE2:m -u -U hfuse:w:0xD6:m
 endif
 
 ifeq ($(AVRMCU),atmega328p)
@@ -61,12 +61,12 @@ all: $(PROJECT).elf $(PROJECT)_flash.hex $(PROJECT)_eeprom.hex
 	-@echo
 	-@$(AVRSIZE) $(AVRSIZEOPT) $<
 
-# make time defaults header for setting default time
-timedef.h: timedef.pl ALWAYS
-	./$< > $@
-
-# time.c includes timedef.h
-time.o: timedef.h
+# time.o must always be remade since time always changes
+time.o: time.c timedef.pl ALWAYS
+	./timedef.pl | xargs -J TIMEDEF \
+	    $(AVRCPP) -c $(AVRCPPFLAGS) TIMEDEF -o $@ $<
+	./timedef.pl | xargs -J TIMEDEF \
+	    $(AVRCPP) -MM $(AVRCPPFLAGS) TIMEDEF $< > $*.d
 
 # make program binary by linking object files
 $(PROJECT).elf: $(OBJECTS)

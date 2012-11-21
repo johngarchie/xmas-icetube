@@ -1,14 +1,21 @@
-#include <avr/io.h>      // for using register names
+// time.c  --  maintains current date and time
+//
+//    timer/counter2    clock timer
+//
+
+
 #include <avr/eeprom.h>  // for storing data in eeprom memory
 #include <avr/power.h>   // for enabling/disabling chip features
 #include <util/atomic.h> // for non-interruptable blocks
 
+
 #include "time.h"
-#include "timedef.h"
+#include "usart.h"  // for debugging output
 
 
 // extern'ed time and date data
 volatile time_t time;
+
 
 // places to store the current time in EEMEM
 #if TIME_DEFAULT_DST == 0

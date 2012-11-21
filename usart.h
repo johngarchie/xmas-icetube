@@ -1,21 +1,27 @@
 #ifndef USART_H
 #define USART_H
 
+
 #include <stdint.h>        // for using standard integer types
 #include <avr/pgmspace.h>  // for using program memory
 
+
 #define USART_BAUDRATE 9600
 
-#ifdef DEBUG
 
+#ifdef DEBUG
 // when debugging, dump macros should print to usart
-#define DUMPVAR(VAR) usart_dumpvar(PSTR(#VAR), VAR)
+
+// transmit integer name and value for debugging
+#define DUMPINT(VAR) usart_dumpvar(PSTR(#VAR), VAR)
+
+// transmit string for debugging
 #define DUMPSTR(STR) usart_dumpstr(PSTR(STR))
 
 #else
 
-// otherwise, dump macros should expand to nothing
-#define DUMPVAR(VAR)
+// if not debugging, debugging macros expand to nothing
+#define DUMPINT(VAR)
 #define DUMPSTR(STR)
 
 #endif

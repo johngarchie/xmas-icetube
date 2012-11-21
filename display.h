@@ -1,10 +1,13 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include <stdint.h>       // for using standard integer types
-#include <avr/pgmspace.h> // for accessing data in program memory
+
+#include <stdint.h>        // for using standard integer types
+#include <avr/pgmspace.h>  // for accessing data in program memory
+
 
 #define DISPLAY_SIZE 9
+
 
 typedef struct {
     uint8_t  buffer[DISPLAY_SIZE];  // display contents
@@ -13,13 +16,15 @@ typedef struct {
     uint16_t photo_avg;   // average photoresistor value
 } display_t;
 
+
 volatile extern display_t display;
+
 
 void display_init(void);
 void display_wake(void);
 void display_sleep(void);
 
-void display_tick(void);
+inline void display_tick(void) {};
 void display_semitick(void);
 
 void display_loadbright(void);

@@ -1,12 +1,14 @@
 #ifndef MODE_H
 #define MODE_H
 
-#include <stdint.h>
-
-// default timeout for menus in semiticks (~milliseconds)
-#define MODE_TIMEOUT 10000
+#include <stdint.h>  // for using standard integer types
 
 
+// default menu timeout; on timeout, mode changes to time display
+#define MODE_TIMEOUT 10000  // semiticks (~milliseconds)
+
+
+// various clock modes; current mode given by mode.state
 enum {
     MODE_TIME_DISPLAY,
         MODE_DAYOFWEEK_DISPLAY,
@@ -29,18 +31,17 @@ enum {
         MODE_SETDATE_YEAR,
         MODE_SETDATE_MONTH,
         MODE_SETDATE_DAY,
-    MODE_MENU_SETPREFERENCES,
-	MODE_MENU_SETBRIGHT,
-	    MODE_SETBRIGHT_LEVEL,
-	    MODE_SETBRIGHT_MIN,
-	    MODE_SETBRIGHT_MAX,
-	MODE_MENU_SETVOLUME,
-	    MODE_SETVOLUME_LEVEL,
-	    MODE_SETVOLUME_MIN,
-	    MODE_SETVOLUME_MAX,
-	    MODE_SETVOLUME_TIME,
-	MODE_MENU_SETSNOOZE,
-	    MODE_SETSNOOZE_TIME,
+    MODE_MENU_SETBRIGHT,
+	MODE_SETBRIGHT_LEVEL,
+	MODE_SETBRIGHT_MIN,
+	MODE_SETBRIGHT_MAX,
+    MODE_MENU_SETVOLUME,
+	MODE_SETVOLUME_LEVEL,
+	MODE_SETVOLUME_MIN,
+	MODE_SETVOLUME_MAX,
+	MODE_SETVOLUME_TIME,
+    MODE_MENU_SETSNOOZE,
+	MODE_SETSNOOZE_TIME,
     MODE_MENU_SETFORMAT,
         MODE_SETTIME_FORMAT,
         MODE_SETDATE_FORMAT,
@@ -70,14 +71,16 @@ typedef struct {
     uint8_t  tmp[3]; // place to store temporary data
 } mode_t;
 
+
 extern volatile mode_t mode;
+
 
 void mode_init(void);
 
 void mode_tick(void);
 void mode_semitick(void);
 
-inline void mode_wake(void) {};
+void mode_wake(void);
 inline void mode_sleep(void) {};
 
 void mode_alarmset(void);

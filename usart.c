@@ -1,5 +1,14 @@
+// usart.c  --  manage serial communication (debugging)
+//
+//    RXD (PD0)    RS232 data input
+//    TXD (PD1)    RS232 data output
+//    usart0       usart module
+//
+
+
 #include <avr/io.h>     // for using register names
 #include <avr/power.h>  // for enabling and disabling usart
+
 
 #include "usart.h"
 
