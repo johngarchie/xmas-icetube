@@ -1,4 +1,20 @@
-This firmware has several improvements over the original:
+#################
+## Description ##
+#################
+
+My father gave me an Ice Tube Clock kit from Adafruit as a Christmas gift.
+In an effort to learn AVR programming, I started playing with firmware.  The
+result was a complete reimplementation of the original Adafruit firmware.
+
+  John Archie
+  November 21, 2012
+
+
+##############
+## Features ##
+##############
+
+This firmware boasts many features including,
 
     (1) adjustable buzzer volume,
     (2) progressive alarm buzzer,
@@ -6,33 +22,39 @@ This firmware has several improvements over the original:
     (4) automatic drift correction,
     (5) alarm sounds during power outage,
     (6) no reset during power outage, and
-    (7) autodimmer with pull-up and photoresistor
+    (7) autodimmer (requires photoresistor)
 
+BUT, this firmware currently lacks GPS support, and
+the drift correction is not well tested.  So use it
+at your own risk.
 
-For Ice-Tube-Hackers, this firmware has
+For Ice Tube hackers, this firmware has
 
-    (1) compatibility with atmega328p,
-    (2) pseudo object-oriented design,
+    (1) compatibility with the atmega328p,
+    (2) a pseudo object-oriented design,
     (3) reasonably good commenting, and
-    (4) clock modes via finite state machine
+    (4) display modes via finite state machine.
 
 
-Wish list:
+###############
+## Wish List ##
+###############
 
 (1) macro should explicitly enable brightness control
 
-(2) set date by "yyyy.mm.dd"
+(2) set date by iso format "yyyy.mm.dd"
 
-(3) different time and date formats:
+(3) GPS support
+
+I am also thinking about different time and date formats, but am not sure if I
+will actually do it.  The current display suits me quite well.
+
     "set tfmt"
-        - toggle am/pm:		"a/pm cir"  "a/pm txt"
-        - toggle seconds	"sec show"  "sec hide"
         - toggle 24-hour mode	"hours 24"  "hours 12"
-        - toggle showdst        "dst show"  "dst hide"
-        - toggle divider	"dots  on"  "dots off"
+        - toggle am/pm:		"a/pm cir"  "a/pm dot"  "a/pm txt"  "a/pm off"
+        - toggle seconds	"sec show"  "sec hide"
+        - toggle showdst        "dst  cir"  "dst  dot"  "dst hide"
 
     "set dfmt"
-        - toggle w-day          "wday  on"  "wday off"
+        - toggle weekday        "wday  on"  "wday off"
         - date format		"date dmy"  "date mdy"  "date txt"  "date iso"
-
-(4) time-from-gps support

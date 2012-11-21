@@ -41,32 +41,26 @@ AVROBJCOPYOPT ?=
 
 # fuse options for avrdude as implied by $(AVRMCU)
 ifeq ($(AVRMCU),atmega168)
-    FUSEOPT ?= -u -U lfuse:w:0xE2:m -u -U hfuse:w:0xD6:m
-endif
-
-ifeq ($(AVRMCU),atmega168p)
-    FUSEOPT ?= -u -U lfuse:w:0xE2:m -u -U hfuse:w:0xD6:m
+    FUSEOPT ?= -u -U lfuse:w:0xE2:m -u -U hfuse:w:0xD6:m -u -U efuse:w:0xF9:m
 endif
 
 ifeq ($(AVRMCU),atmega328p)
-    FUSEOPT ?= -u -U lfuse:w:0x62:m -u -U hfuse:w:0xD1:m -u -U efuse:w:0x06:m
+    FUSEOPT ?= -u -U lfuse:w:0x62:m -u -U hfuse:w:0xD1:m -u -U efuse:w:0xFE:m
 endif
 
 ifndef FUSEOPT
     $(error must provide fuse options in $$(FUSEOPT) for avrdude)
 endif
 
-# builds project and print memory usage
+# build project and print memory usage
 all: $(PROJECT).elf $(PROJECT)_flash.hex $(PROJECT)_eeprom.hex
 	-@echo
 	-@$(AVRSIZE) $(AVRSIZEOPT) $<
 
 # time.o must always be remade since time always changes
 time.o: time.c timedef.pl ALWAYS
-	./timedef.pl | xargs -J TIMEDEF \
-	    $(AVRCPP) -c $(AVRCPPFLAGS) TIMEDEF -o $@ $<
-	./timedef.pl | xargs -J TIMEDEF \
-	    $(AVRCPP) -MM $(AVRCPPFLAGS) TIMEDEF $< > $*.d
+	./timedef.pl | xargs $(AVRCPP) -c $(AVRCPPFLAGS) -o $@ $<
+	./timedef.pl | xargs $(AVRCPP) -MM $(AVRCPPFLAGS) $< > $*.d
 
 # make program binary by linking object files
 $(PROJECT).elf: $(OBJECTS)

@@ -1,0 +1,10 @@
+# compiled project
+icetube.elf
+icetube_eeprom.hex
+icetube_flash.hex
+
+# object files
+*.o
+
+# dependency files
+*.d

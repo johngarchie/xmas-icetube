@@ -1,1 +1,0 @@
-../fonttable.h
