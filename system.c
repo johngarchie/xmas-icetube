@@ -31,7 +31,7 @@ volatile system_t system;
 void system_init(void) {
     system.initial_mcusr = MCUSR;  // save MCUSR
     MCUSR = 0;  // clear any watchdog timer flags
-    wdt_enable(WDTO_4S);  // enable four-second watchdog timer
+    wdt_enable(WDTO_8S);  // enable eight-second watchdog timer
 
     system.status &= ~SYSTEM_SLEEP;
 

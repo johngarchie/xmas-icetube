@@ -63,11 +63,9 @@ void time_init(void) {
     time.status  = eeprom_read_byte(&ee_time_status);
     time.status |= TIME_UNSET;
 
-    // entering power save mode with timer2 disabled seems to cause
-    // sporadic system lockups, so timer2 should always enabled in PRR
-    power_timer2_enable();
+    power_timer2_enable(); // enable timer2
 
-    // setup counter2 for timekeeping with clock crystal
+    // setup timer2 for timekeeping with clock crystal
     ASSR   |= _BV(AS2); // clock counter with crystal oscillator
     TCCR2A  = _BV(WGM21);  // clear counter on compare match
     TCCR2B  = _BV(CS22) | _BV(CS21); // divide clock by 256

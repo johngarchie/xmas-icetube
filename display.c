@@ -121,6 +121,9 @@ const uint8_t vfd_segment_pins[] PROGMEM = {
 
 // initialize display after system reset
 void display_init(void) {
+    // enable Timer/Counter0:
+    power_timer0_enable();
+
     // disable boost and vfd
     DDRD  |= _BV(PD6) | _BV(PD3); // enable boost fet and vfd transistor
     PORTD &= ~_BV(PD6); // boost fet off (pull low)
@@ -169,9 +172,7 @@ void display_wake(void) {
     // configure spi sck and mosi pins as outputs
     DDRB |= _BV(PB5) | _BV(PB3);
 
-    // enable and configure Timer/Counter0:
-    power_timer0_enable();
-
+    // configure Timer/Counter0:
     // COM0A1:0 = 10: clear OC0A on compare match; set at BOTTOM
     // WGM02:0 = 011: clear timer on compare match; TOP = 0xFF
     TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
@@ -188,7 +189,8 @@ void display_wake(void) {
 
 // disable display for low-power mode
 void display_sleep(void) {
-    power_timer0_disable(); // disable counter0
+    // disable Timer/Counter0
+    TCCR0A = TCCR0B = 0;
 
     PORTD &= ~_BV(PD6); // boost fet off (pull low)
     PORTD |=  _BV(PD3); // MAX6921 power off (pull high)

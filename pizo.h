@@ -38,8 +38,8 @@ typedef struct {
     uint8_t  cm_factor;
     uint8_t  pos;
     uint16_t timer;
-    unsigned PGM_P notes;
-    unsigned PGM_P times;
+    const uint8_t *notes;
+    const uint8_t *times;
 } pizo_t;
 
 
