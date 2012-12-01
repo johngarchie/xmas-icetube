@@ -11,7 +11,8 @@
 PROJECT ?= icetube
 
 # object files
-OBJECTS ?= icetube.o system.o time.o alarm.o display.o buttons.o mode.o usart.o
+OBJECTS ?= icetube.o system.o time.o alarm.o pizo.o \
+	   display.o buttons.o mode.o usart.o
 
 # avr microcontroller processing unit
 #AVRMCU ?= atmega168
@@ -22,9 +23,6 @@ AVRCLOCK ?= 8000000
 
 # avr in-system programmer
 AVRISP ?= usbtiny
-
-# explicitly specify a bourne-compatable shell
-SHELL=/bin/sh
 
 # avr programming utilities
 AVRCPP     ?= avr-gcc
@@ -41,16 +39,19 @@ AVROBJCOPYOPT ?=
 
 # fuse options for avrdude as implied by $(AVRMCU)
 ifeq ($(AVRMCU),atmega168)
-    FUSEOPT ?= -u -U lfuse:w:0xE2:m -u -U hfuse:w:0xD6:m -u -U efuse:w:0xF9:m
+    FUSEOPT ?= -u -U lfuse:w:0xE2:m -u -U hfuse:w:0xD6:m -u -U efuse:w:0x01:m
 endif
 
 ifeq ($(AVRMCU),atmega328p)
-    FUSEOPT ?= -u -U lfuse:w:0x62:m -u -U hfuse:w:0xD1:m -u -U efuse:w:0xFE:m
+    FUSEOPT ?= -u -U lfuse:w:0x62:m -u -U hfuse:w:0xD1:m -u -U efuse:w:0x06:m
 endif
 
 ifndef FUSEOPT
     $(error must provide fuse options in $$(FUSEOPT) for avrdude)
 endif
+
+# explicitly specify a bourne-compatable shell
+SHELL ?= /bin/sh
 
 # build project and print memory usage
 all: $(PROJECT).elf $(PROJECT)_flash.hex $(PROJECT)_eeprom.hex
@@ -79,7 +80,7 @@ $(PROJECT)_flash.hex: $(PROJECT).elf
 $(PROJECT)_eeprom.hex: $(PROJECT).elf
 	$(AVROBJCOPY) $(AVROBJCOPYOPT) -j .eeprom -O ihex $< $@
 
-# install everything but fuse settings
+# install flash and eeprom
 install: install-flash install-eeprom
 
 # install executable code to avr chip

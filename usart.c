@@ -15,13 +15,14 @@
 
 // initialize usart after system reset
 void usart_init(void) {
-    // enable pull-up resistors to ensure a defined
-    // value on PD0 and PD1 (rxd, txd)
-    PORTD |=  _BV(PD1) | _BV(PD0);
+    // configure PD0 and PD1 (rxd, txd);
+    // settings are overridden when usart is active
+    DDRD  |=  _BV(PD1) |  _BV(PD0);  // configure as output
+    PORTD &= ~_BV(PD1) & ~_BV(PD0);  // clamp to ground
 }
 
 
-// enable usart for 
+// enable usart while awake
 void usart_wake(void) {
     power_usart0_enable();  // enable usart
 
@@ -36,10 +37,9 @@ void usart_wake(void) {
 }
 
 
-// disable usart place pins PD0 and PD1 in low-power mode
+// disable usart during sleep
 void usart_sleep(void) {
-    // diable usart:  rxd and txd become inputs
-    // pull-up resistors enabled
+    // diable usart: rxd and txd are clamped to ground
     power_usart0_disable();
 }
 

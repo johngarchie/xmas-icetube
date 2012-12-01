@@ -173,7 +173,7 @@ void display_wake(void) {
     power_timer0_enable();
 
     // COM0A1:0 = 10: clear OC0A on compare match; set at BOTTOM
-    // WGM02:0 = 011: clear timer on compare match; TOP = OCR0A
+    // WGM02:0 = 011: clear timer on compare match; TOP = 0xFF
     TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
     TCCR0B = _BV(CS00);   // clock counter0 with system clock
     TIMSK0 = _BV(TOIE0);  // enable counter0 overflow interrupt

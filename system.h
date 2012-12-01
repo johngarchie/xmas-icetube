@@ -13,8 +13,8 @@ enum {
 
 
 // flags for system.status
-#define SYSTEM_SLEEP   0x01
-#define SYSTEM_ALARMON 0x02
+#define SYSTEM_SLEEP          0x01
+#define SYSTEM_ALARM_SOUNDING 0x02
 
 
 typedef struct {

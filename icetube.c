@@ -24,6 +24,7 @@
 #include "system.h"
 #include "time.h"
 #include "alarm.h"
+#include "pizo.h"
 #include "buttons.h"
 #include "display.h"
 #include "mode.h"
@@ -31,7 +32,7 @@
 
 
 // set to 1 every ~1 millisecond or so
-uint8_t semitick_successful = 0;
+uint8_t semitick_successful = 1;
 
 
 // start everything for the first time
@@ -45,10 +46,11 @@ int main(void) {
     time_init();
     buttons_init();
     alarm_init();
+    pizo_init();
     display_init();
     mode_init();
 
-    // if the system is on low power, sleep until power restored
+    // if the system is on battery power, sleep until power restored
     if(system_power() == SYSTEM_BATTERY) {
 	system_sleep_loop();
     }
@@ -63,11 +65,13 @@ int main(void) {
     time_wake();
     buttons_wake();
     alarm_wake();
+    pizo_wake();
     display_wake();
     mode_wake();
-
+    
     // half-second beep on system reset
-    alarm.volume = 3; alarm_beep(500);
+    pizo_setvolume(3, 0);
+    pizo_beep(500);
 
     // clock function is entirelly interrupt-driven after
     // this point, so let the system idle indefinetly
@@ -84,11 +88,13 @@ ISR(TIMER2_COMPA_vect) {
     if(system.status & SYSTEM_SLEEP) {
 	time_tick();
 	alarm_tick();
+	pizo_tick();
 	wdt_reset();
     } else {
 	time_tick();
 	buttons_tick();
 	alarm_tick();
+	pizo_tick();
 	mode_tick();
 	display_tick();
 	if(semitick_successful) wdt_reset();
@@ -113,6 +119,7 @@ ISR(TIMER0_OVF_vect) {
     time_semitick();
     buttons_semitick();
     alarm_semitick();
+    pizo_semitick();
     mode_semitick();
     display_semitick();
 
@@ -138,6 +145,7 @@ ISR(ANALOG_COMP_vect) {
     buttons_sleep();  // disable button pull-up resistors
     time_sleep();     // save current time
     mode_sleep();     // does nothing
+    pizo_sleep();     // adjust buzzer for slower clock
 
     // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
     // An 8 or 4 MHz clock is unstable at 1.7v, but a 2 MHz clock is okay:
@@ -151,6 +159,7 @@ ISR(ANALOG_COMP_vect) {
 
     sei();  // allow interrupts
 
+    pizo_wake();     // adjust buzzer for faster clock
     mode_wake();     // display time after waking
     buttons_wake();  // enable button pull-ups
     alarm_wake();    // enable alarm switch pull-up

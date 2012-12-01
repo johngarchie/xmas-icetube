@@ -75,14 +75,22 @@ void system_sleep_loop(void) {
 	do {
 	    // if the alarm buzzer is going, remain in idle mode
 	    // to keep buzzer active for the next second
-	    if(system.status & SYSTEM_ALARMON) {
+	    if(system.status & SYSTEM_ALARM_SOUNDING) {
 		set_sleep_mode(SLEEP_MODE_IDLE);
 	    } else {
 		set_sleep_mode(SLEEP_MODE_PWR_SAVE);
 	    }
 
 	    sei();
+
+	    // wait until asynchronous updates are complete
+	    // or system might fail to wake from sleep
+	    while(ASSR & (  _BV(TCN2UB) 
+			  | _BV(OCR2AUB) | _BV(OCR2BUB)
+			  | _BV(TCR2AUB) | _BV(TCR2BUB) ));
+
 	    sleep_cpu();
+
 	    cli();
 	} while(system_power() == SYSTEM_BATTERY);
 	// debounce power-restored signal; delay is actually 100 ms

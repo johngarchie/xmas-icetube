@@ -11,7 +11,7 @@
 
 
 #include "buttons.h"
-#include "alarm.h"  // for alarm_click() function
+#include "pizo.h"   // for clicking on button presses
 #include "usart.h"  // for debugging output
 
 
@@ -110,7 +110,7 @@ uint8_t buttons_process(void) {
     buttons.state |= BUTTONS_PROCESSED;
 
     // make a nice, satisfying click with processed button press
-    alarm_click();
+    pizo_click();
 
     // return the pressed buttons
     return buttons.pressed;

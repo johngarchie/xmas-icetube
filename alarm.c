@@ -1,9 +1,6 @@
 // alarm.c  --  alarm functionality
 //
-//    PB2               first  buzzer pin
-//    PB1               second buzzer pin
 //    PD2               alarm switch
-//    counter/timer1    buzzer frequency and volume
 //
 
 
@@ -15,6 +12,7 @@
 
 
 #include "alarm.h"
+#include "pizo.h"   // for sounding the alarm
 #include "time.h"   // alarm must sound at appropriate time
 #include "system.h" // alarm behavior depends on power source
 #include "mode.h"   // mode updated on alarm state changes
@@ -28,17 +26,10 @@ volatile alarm_t alarm;
 // default alarm time, volume range, and snooze timeout
 uint8_t ee_alarm_hour        EEMEM = ALARM_DEFAULT_HOUR;
 uint8_t ee_alarm_minute      EEMEM = ALARM_DEFAULT_MINUTE;
+uint8_t ee_alarm_snooze_time EEMEM = ALARM_DEFAULT_SNOOZE_TIME;
 uint8_t ee_alarm_volume_min  EEMEM = ALARM_DEFAULT_VOLUME_MIN;
 uint8_t ee_alarm_volume_max  EEMEM = ALARM_DEFAULT_VOLUME_MAX;
-uint8_t ee_alarm_snooze_time EEMEM = ALARM_DEFAULT_SNOOZE_TIME;
 uint8_t ee_alarm_ramp_time   EEMEM = ALARM_DEFAULT_RAMP_TIME;
-
-
-// The table below is used to convert alarm volume (0 to 10) into timer
-// settings.  The values were derived by ear.  With the exception of the first
-// two (1 and 7), perceived volume seems roughly proportional to the log of the
-// values below.  (cm = compare match)
-const uint8_t alarm_vol2cm[] PROGMEM = {1,7,11,15,21,28,38,51,69,93,125};
 
 
 // initialize alarm after system reset
@@ -47,31 +38,53 @@ void alarm_init(void) {
     alarm.hour         = eeprom_read_byte(&ee_alarm_hour)        % 24;
     alarm.minute       = eeprom_read_byte(&ee_alarm_minute)      % 60;
     alarm.snooze_time  = eeprom_read_byte(&ee_alarm_snooze_time) % 31;
-    alarm.ramp_time    = eeprom_read_byte(&ee_alarm_ramp_time)   % 61;
+    alarm.ramp_time    = eeprom_read_byte(&ee_alarm_ramp_time )  % 61;
     alarm.volume_max   = eeprom_read_byte(&ee_alarm_volume_max)  % 10;
     alarm.volume_min   = eeprom_read_byte(&ee_alarm_volume_min);
+
+    // convert snooze time from minutes to seconds
+    alarm.snooze_time *= 60;
 
     if(alarm.volume_min > alarm.volume_max) {
 	alarm.volume_min = alarm.volume_min;
     }
 
+    pizo_setvolume((alarm.volume_min + alarm.volume_max) >> 1, 0);
+
     // prevents divide-by-zero error later on
     if(!alarm.ramp_time) alarm.ramp_time = 1;
-
-    // initial volume should be minimum volume
-    alarm.volume = alarm.volume_min;
-
-    // convert snooze time from minutes to seconds
-    alarm.snooze_time *= 60;
 
     // calculate time.ramp_int
     alarm_newramp();
 
-    // set buzzer pins to output now, so the spi subsystem doesn't
-    // hijack PB2 (aka Slave Select) when SPCR gets set
-    DDRB |= _BV(PB2) | _BV(PB1);
+    // configure pins for low-power mode
+    alarm_sleep();
+}
 
-    alarm_sleep(); // configure pins for low-power mode
+
+// initialize alarm after sleep
+void alarm_wake(void) {
+    // configure alarm switch pin
+    DDRD  &= ~_BV(PD2); // set as input pin
+    PORTD |=  _BV(PD2); // enable pull-up resistor
+
+    // give system time to update PIND
+    _delay_loop_1(2);
+
+    // set initial alarm status from alarm switch
+    if(PIND & _BV(PD2)) {
+	alarm.status |= ALARM_SET;
+    } else {
+	if(alarm.status & ALARM_SOUNDING) pizo_alarm_stop();
+	alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING & ~ALARM_SNOOZE;
+    }
+
+    if(alarm.status & ALARM_SOUNDING) {
+	// lower volume which may be raised above
+	// volume_max during sleep mode
+	alarm.volume = alarm.volume_max;
+	pizo_setvolume(alarm.volume, 0);
+    }
 }
 
 
@@ -81,44 +94,23 @@ void alarm_sleep(void) {
     PORTD &= ~_BV(PD2); // disable pull-up resistor
     DDRD  |=  _BV(PD2); // set as ouput, clamped to ground
 
-    // disable buzzer, unless the power management code can
-    // handle it properly while sleeping
-    if(!(system.status & SYSTEM_ALARMON)) {
-	alarm_buzzeroff();
-    }
-    
-    // pull both buzzer pins low
-    PORTB &= ~_BV(PB2) & ~_BV(PB1);
-}
+    if(alarm.status & ALARM_SOUNDING) {
+	// disable progressive alarm to save power
+	alarm.volume = alarm.volume_max;
 
+	// compensate for reduced volume from lower-voltage battery
+	if(alarm.volume < 10) ++alarm.volume;
 
-// initialize alarm after sleep
-void alarm_wake(void) {
-    // configure the alarm switch pin
-    DDRD  &= ~_BV(PD2); // set as input pin
-    PORTD |=  _BV(PD2); // enable pull-up resistor
-
-    // give the system time to set PIND
-    _delay_loop_1(2);
-
-    // set initial alarm status from alarm switch
-    if(PIND & _BV(PD2)) {
-	alarm.status |= ALARM_SET;
-    } else {
-	alarm.status = 0;
+	// finally set the volume
+	pizo_setvolume(alarm.volume, 0);
     }
 }
 
 
-// sound alarm at the correct time if alarm is set;
-// control pizo buzzer
+// sound alarm at the correct time if alarm is set
 void alarm_tick(void) {
-    // sound alarm at correct time if alarm is set
-    if((system.status & SYSTEM_SLEEP || alarm.status & ALARM_SET)
-	    && time.hour   == alarm.hour
-	    && time.minute == alarm.minute
-	    && time.second == 0) {
-
+    // sound alarm at at alarm time
+    if(time.hour == alarm.hour && time.minute == alarm.minute && !time.second) {
 	if(system.status & SYSTEM_SLEEP) {
 	    // briefly waking the alarm will update
 	    // alarm.status from the alarm switch
@@ -126,91 +118,79 @@ void alarm_tick(void) {
 	    alarm_sleep();
 	}
 
+	// sound alarm if alarm is set
 	if(alarm.status & ALARM_SET) {
-	    alarm.alarm_timer  = 0;
-	    alarm.buzzer_timer = 0;
-	    alarm.volume = alarm.volume_min;
+	    alarm.alarm_timer = 0;
 	    alarm.status |= ALARM_SOUNDING;
+
+	    if(system.status & SYSTEM_SLEEP) {
+		// wake user immediately to reduce alarm time,
+		// save power, and extend coin battery life
+		alarm.volume = alarm.volume_max;
+	    } else {
+		// set initial volume for progressive alarm
+		alarm.volume = alarm.volume_min;
+	    }
+
+	    pizo_setvolume(alarm.volume, 0);
+	    pizo_alarm_start();
 	}
+    } else if(alarm.status & ALARM_SOUNDING && system.status & SYSTEM_SLEEP) {
+	// if alarm sounding and system sleeping, query alarm switch
+	// (briefly waking updates alarm.status from the alarm switch)
+	alarm_wake();
+	alarm_sleep();
     }
-    
-    // sound alarm if snooze times out
+
+    // manage sounding alarm
+    if(alarm.status & ALARM_SOUNDING) {
+	if(alarm.volume < alarm.volume_max) {
+	    // gradually increase volume (progressive alarm)
+	    if(alarm.alarm_timer > alarm.ramp_int) {
+		++alarm.volume;
+		alarm.alarm_timer = 0;
+	    }
+
+	    pizo_setvolume(alarm.volume,
+		    	   ((uint32_t)alarm.alarm_timer << 8) / alarm.ramp_int);
+	} else if(alarm.alarm_timer > ALARM_SOUNDING_TIMEOUT) {
+	    // silence alarm on alarm timeout
+	    alarm.status &= ~ALARM_SOUNDING;
+	    pizo_alarm_stop();
+	}
+
+	++alarm.alarm_timer;
+    }
+
+    // sound alarm on snooze timeout
     if(alarm.status & ALARM_SNOOZE) {
 	if(++alarm.alarm_timer == alarm.snooze_time) {
 	    alarm.alarm_timer  = 0;
-	    alarm.buzzer_timer = 0;
-	    alarm.volume       = alarm.volume_min;
-	    alarm.status      &= ~ALARM_SNOOZE;
-	    alarm.status      |=  ALARM_SOUNDING;
-	}
-    }
+	    alarm.status &= ~ALARM_SNOOZE;
+	    alarm.status |=  ALARM_SOUNDING;
 
-    // toggle buzzer if alarm sounding
-    if(alarm.status & ALARM_SOUNDING) {
-	if(system.status & SYSTEM_SLEEP) {
-	    // briefly waking the alarm will update
-	    // alarm.status from the alarm switch
-	    alarm_wake();
-	    alarm_sleep();
-	}
-
-	if(alarm.status & ALARM_SOUNDING) {
-	    if(time.second % 2) {
-		system.status &= ~SYSTEM_ALARMON;
-		alarm_buzzeroff();
+	    if(system.status & SYSTEM_SLEEP) {
+		// wake user immediately to reduce alarm time,
+		// save power, and extend coin battery life
+		alarm.volume = alarm.volume_max;
 	    } else {
-		system.status |= SYSTEM_ALARMON;
-		alarm_buzzeron();
+		// set initial volume for progressive alarm
+		alarm.volume = alarm.volume_min;
 	    }
 
-	    ++alarm.alarm_timer;
+	    pizo_setvolume(alarm.volume, 0);
 
-	    if(alarm.alarm_timer >= ALARM_SOUNDING_TIMEOUT) {
-		alarm.status &= ~ALARM_SOUNDING;
-	    }
-
-	    if(alarm.alarm_timer >= alarm.ramp_int
-		    && alarm.volume < alarm.volume_max ) {
-		++alarm.volume;
-	        alarm.alarm_timer = 0;
-	    }
-	} else {
-	    system.status &= ~SYSTEM_ALARMON;
-	    alarm_buzzeroff();
+	    pizo_alarm_start();
 	}
-    } else {
-	system.status &= ~SYSTEM_ALARMON;
     }
 }
 
 
-// control snooze, alarm_beep and alarm_click duration,
-// and reads alarm switch
+// queries alarm switch and updates alarm status
 void alarm_semitick(void) {
-    if(alarm.status & ALARM_BEEP) {
-	// stop buzzer if beep has timed out
-	if(--alarm.buzzer_timer == 0) {
-	    alarm_buzzeroff();
-	    alarm.status &= ~ALARM_BEEP;
-	}
-    } else if(alarm.status & ALARM_CLICK) {
-	// continue making clicking noise
-	--alarm.buzzer_timer;
-	
-	if(alarm.buzzer_timer == ALARM_CLICKTIME / 2) {
-	    // flip from +5v to -5v on pizo
-	    PORTB |=  _BV(PB2);
-	    PORTB &= ~_BV(PB1);
-	}
-
-	if(alarm.buzzer_timer == 0) {
-	    PORTB &= ~_BV(PB2) & ~_BV(PB1);
-	    alarm.status &= ~ALARM_CLICK;
-	}
-    }
-
     // update alarm status if alarm switch has changed
     static uint8_t alarm_debounce = 0;
+
     if(PIND & _BV(PD2)) {
 	if(alarm.status & ALARM_SET) {
 	    alarm_debounce = 0;
@@ -223,8 +203,8 @@ void alarm_semitick(void) {
     } else {
 	if(alarm.status & ALARM_SET) {
 	    if(++alarm_debounce >= ALARM_DEBOUNCE_TIME) {
+		if(alarm.status & ALARM_SOUNDING) pizo_alarm_stop();
 		alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING & ~ALARM_SNOOZE;
-		alarm_buzzeroff();
 		mode_alarmoff();
 	    }
 	} else {
@@ -243,22 +223,23 @@ void alarm_settime(uint8_t hour, uint8_t minute) {
 }
 
 
-// compute new ramp interval from ramp time
-void alarm_newramp(void) {
-    alarm.ramp_int = alarm.ramp_time * 60
-			 / (alarm.volume_max - alarm.volume_min + 1);
-}
-
-
 // save alarm volume to eeprom
 void alarm_savevolume(void) {
     eeprom_write_byte(&ee_alarm_volume_min, alarm.volume_min);
     eeprom_write_byte(&ee_alarm_volume_max, alarm.volume_max);
 }
 
+
 // save ramp interval to eeprom
 void alarm_saveramp(void) {
     eeprom_write_byte(&ee_alarm_ramp_time, alarm.ramp_time);
+}
+
+
+// compute new ramp interval from ramp time
+void alarm_newramp(void) {
+    alarm.ramp_int = alarm.ramp_time * 60
+			 / (alarm.volume_max - alarm.volume_min + 1);
 }
 
 
@@ -269,22 +250,6 @@ void alarm_savesnooze(void) {
 }
 
 
-// make a clicking sound
-void alarm_click(void) {
-    // never click while beeping, it's dangerous
-    if(alarm.status & ALARM_BEEP) return;
-
-    // +5v to buzzer
-    PORTB |=  _BV(PB1);
-    PORTB &= ~_BV(PB2);
-
-    // set timer and flag, so click routine can be
-    // completed in subsequent calls to alarm_semitick()
-    alarm.buzzer_timer =  ALARM_CLICKTIME;
-    alarm.status |= ALARM_CLICK;
-}
-
-
 // called on button press; returns true if press should be
 // processed as enabling snooze, false otherwise
 uint8_t alarm_onbutton(void) {
@@ -292,7 +257,7 @@ uint8_t alarm_onbutton(void) {
 	alarm.status &= ~ALARM_SOUNDING;
 	alarm.status |=  ALARM_SNOOZE;
 	alarm.alarm_timer = 0;
-	alarm_buzzeroff();
+	pizo_alarm_stop();
 	mode_snoozing();
 	return TRUE;
     }
@@ -303,79 +268,4 @@ uint8_t alarm_onbutton(void) {
     }
 
     return FALSE;
-}
-
-
-// beep for the specified duration (semiseconds)
-void alarm_beep(uint16_t duration) {
-    // let a beep override a click
-    if(alarm.status & ALARM_CLICK) {
-	PORTB &= ~_BV(PB2) & ~_BV(PB1); // pull both speaker pins low
-	alarm.status &= ~ALARM_CLICK;
-    }
-
-    // set timer and flag, so click routine can be
-    // completed in subsequent calls to alarm_semitick()
-    alarm_buzzeron();
-    alarm.buzzer_timer = duration;
-    alarm.status |= ALARM_BEEP;
-}
-
-
-// enable the pizo buzzer
-void alarm_buzzeron(void) {
-    power_timer1_enable();  // enable counter1 (buzzer timer)
-
-    // configure Timer/Counter1 to generate buzzer sound:
-    // COM1A1 = 10, clear OC1A on Compare Match, set OC1A at BOTTOM
-    // COM1B1 = 11, set OC1B on Compare Match, clear OC1B at BOTTOM
-    TCCR1A = _BV(COM1A1) | _BV(COM1B1) | _BV(COM1B0) | _BV(WGM11);
-
-    if(system.status & SYSTEM_SLEEP) {
-	// WGM1 = 1110, fast PWM with TOP is ICR1
-	// CS1  = 010,  Timer/Counter1 increments at
-	//              system clock / 1 (2 MHz)
-	TCCR1B = _BV(WGM13) | _BV(WGM12) | _BV(CS10);
-
-	// set buzzer frequency to 2 MHz / 500 = 4.00 kHz
-	ICR1 = 500;
-
-	// determine desired volume
-	uint16_t sleep_volume = alarm.volume;
-
-	if(system_power() == SYSTEM_BATTERY) {
-	    // progressive alarm uses too much power
-	    if(alarm.status & ALARM_SOUNDING) sleep_volume = alarm.volume_max;
-
-	    // if possible, compensate for lost volume from battery voltage
-	    if(sleep_volume < 10) ++sleep_volume;
-	}
-
-	// set compare match registers for desired volume
-	uint16_t compare_match = pgm_read_byte(alarm_vol2cm + sleep_volume);
-	compare_match *= 2;
-	OCR1A = compare_match;
-	OCR1B = 500 - compare_match;
-    } else {
-	// WGM1 = 1110, fast PWM with TOP is ICR1
-	// CS1  = 010,  Timer/Counter1 increments at
-	//              system clock / 8 (8 MHz / 8 = 1 MHz)
-	TCCR1B = _BV(WGM13 ) | _BV(WGM12 ) | _BV(CS11);
-
-	// set buzzer frequency to 1 MHz / 250 = 4.00 kHz
-	ICR1 = 250;
-
-	// set compare match registers for desired volume
-	uint16_t compare_match = pgm_read_byte(alarm_vol2cm + alarm.volume);
-	OCR1A = compare_match;
-	OCR1B = 250 - compare_match;
-    }
-}
-
-
-// disable the pizo buzzer
-void alarm_buzzeroff(void) {
-    TCCR1A = 0; TCCR1B = 0;
-    power_timer1_disable(); // disable timer/counter1 (buzzer timer)
-    PORTB &= ~_BV(PB2) & ~_BV(PB1);  // pull both speaker pins low
 }

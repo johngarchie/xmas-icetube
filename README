@@ -1,13 +1,14 @@
-#################
-## Description ##
-#################
+##################
+## xmas-icetube ##
+##################
 
-My father gave me an Ice Tube Clock kit from Adafruit as a Christmas gift.
-In an effort to learn AVR programming, I started playing with firmware.  The
-result was a complete reimplementation of the original Adafruit firmware.
+My father gave me an Ice Tube Clock kit from Adafruit as a Christmas gift last
+year.  As an excuse to learn AVR programming, I started playing with the
+software.  Eventually, none of the origional code remained and the project
+became a feature-rich reimplementation of the original Adafruit firmware.
 
   John Archie
-  November 21, 2012
+  December 1, 2012
 
 
 ##############
@@ -16,24 +17,25 @@ result was a complete reimplementation of the original Adafruit firmware.
 
 This firmware boasts many features including,
 
-    (1) adjustable buzzer volume,
-    (2) progressive alarm buzzer,
-    (3) DST support (USA, EU, or manual),
-    (4) automatic drift correction,
-    (5) alarm sounds during power outage,
-    (6) no reset during power outage, and
-    (7) autodimmer (requires photoresistor)
+    (1) adjustable alarm volume,
+    (3) progressive alarming,
+    (2) musical alarm ("Merry Christmas"),
+    (4) DST support (USA, EU, or manual),
+    (5) automatic drift correction,
+    (6) alarm sounds during power outage,
+    (7) no reset during power failure, and
+    (8) autodimmer (requires photoresistor)
 
 BUT, this firmware currently lacks GPS support, and
 the drift correction is not well tested.  So use it
 at your own risk.
 
-For Ice Tube hackers, this firmware has
+For Ice Tube Clock hackers, this firmware has
 
     (1) compatibility with the atmega328p,
     (2) a pseudo object-oriented design,
     (3) reasonably good commenting, and
-    (4) display modes via finite state machine.
+    (4) time/menus by finite state machine.
 
 
 ###############
@@ -42,12 +44,13 @@ For Ice Tube hackers, this firmware has
 
 (1) macro should explicitly enable brightness control
 
-(2) set date by iso format "yyyy.mm.dd"
+(2) set date by iso format "yyyy.mm.dd", not regional format
 
 (3) GPS support
 
 I am also thinking about different time and date formats, but am not sure if I
-will actually do it.  The current display suits me quite well.
+will actually do it.  The current display suits me quite well.  Currently, the
+user may only select between 12 and 24 hour time display.
 
     "set tfmt"
         - toggle 24-hour mode	"hours 24"  "hours 12"

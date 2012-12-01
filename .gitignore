@@ -8,3 +8,6 @@ icetube_flash.hex
 
 # dependency files
 *.d
+
+# personal project notes
+notes/*
