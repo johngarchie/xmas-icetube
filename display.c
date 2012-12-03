@@ -18,7 +18,6 @@
 #include <avr/pgmspace.h> // for accessing data in program memory
 #include <avr/eeprom.h>   // for accessing data in eeprom memory
 #include <avr/power.h>    // for enabling/disabling chip features
-#include <util/atomic.h>  // for enabling and disabling interrupts
 
 
 #include "display.h"
@@ -121,7 +120,8 @@ const uint8_t vfd_segment_pins[] PROGMEM = {
 
 // initialize display after system reset
 void display_init(void) {
-    // enable Timer/Counter0:
+    // if any timer is disabled during sleep, the system locks up sporadically
+    // and nondeterministically, so enabled timer0 in PRR and leave it alone!
     power_timer0_enable();
 
     // disable boost and vfd
@@ -172,7 +172,7 @@ void display_wake(void) {
     // configure spi sck and mosi pins as outputs
     DDRB |= _BV(PB5) | _BV(PB3);
 
-    // configure Timer/Counter0:
+    // configure and start Timer/Counter0
     // COM0A1:0 = 10: clear OC0A on compare match; set at BOTTOM
     // WGM02:0 = 011: clear timer on compare match; TOP = 0xFF
     TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
@@ -228,39 +228,40 @@ void display_semitick(void) {
 	}
     }
 
+
     // send bits to the MAX6921 (vfd driver chip)
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {  // disable interrupts
-	// Note that one system clock cycle is 1 / 8 MHz seconds or 125 ns.
-	// According to the MAX6921 datasheet, the minimum pulse-width on the
-	// MAX6921 CLK and LOAD pins need only be 90 ns and 55 ns,
-	// respectively.  The minimum period for CLK must be at least 200 ns.
-	// Therefore, no delays should be necessary in the code below.
 
-	// Also, the bits could be sent by SPI (they are in the origional
-	// Adafruit firmware), but I have found that doing so sometimes
-	// results in display flicker.
+    // Note that one system clock cycle is 1 / 8 MHz seconds or 125 ns.
+    // According to the MAX6921 datasheet, the minimum pulse-width on the
+    // MAX6921 CLK and LOAD pins need only be 90 ns and 55 ns,
+    // respectively.  The minimum period for CLK must be at least 200 ns.
+    // Therefore, no delays should be necessary in the code below.
 
-	for(uint8_t i = 0; i < 20; ++i, bits <<= 1) {
-	    if(bits & 0x00080000) {  // if 20th bit set
-		// output high on MAX6921 DIN pin
-		PORTB |= _BV(PB3);
-	    } else {
-		// output low on MAX6921 DIN pin
-		PORTB &= ~_BV(PB3);
-	    }
+    // Also, the bits could be sent by SPI (they are in the origional
+    // Adafruit firmware), but I have found that doing so sometimes
+    // results in display flicker.
 
-	    // pulse MAX6921 CLK pin:  shifts DIN input into
-	    // the 20-bit shift register on rising edge
-	    PORTB |=  _BV(PB5);
-	    PORTB &= ~_BV(PB5);
+    for(uint8_t i = 0; i < 20; ++i, bits <<= 1) {
+	if(bits & 0x00080000) {  // if 20th bit set
+	    // output high on MAX6921 DIN pin
+	    PORTB |= _BV(PB3);
+	} else {
+	    // output low on MAX6921 DIN pin
+	    PORTB &= ~_BV(PB3);
 	}
 
-	// pulse MAX6921 LOAD pin:  transfers shift
-	// register to latch when high; latches when low
-	PORTC |=  _BV(PC0);
-	PORTC &= ~_BV(PC0);
+	// pulse MAX6921 CLK pin:  shifts DIN input into
+	// the 20-bit shift register on rising edge
+	PORTB |=  _BV(PB5);
+	PORTB &= ~_BV(PB5);
     }
 
+    // pulse MAX6921 LOAD pin:  transfers shift
+    // register to latch when high; latches when low
+    PORTC |=  _BV(PC0);
+    PORTC &= ~_BV(PC0);
+
+    // next semitick, update next digit
     ++digit_idx;
 
 

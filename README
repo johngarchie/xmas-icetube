@@ -7,8 +7,8 @@ year.  As an excuse to learn AVR programming, I started playing with the
 software.  Eventually, none of the origional code remained and the project
 became a feature-rich reimplementation of the original Adafruit firmware.
 
-  John Archie
-  December 1, 2012
+  John Archie <www.jarchie.com>
+  December 2, 2012
 
 
 ##############
@@ -35,18 +35,69 @@ For Ice Tube Clock hackers, this firmware has
     (1) compatibility with the atmega328p,
     (2) a pseudo object-oriented design,
     (3) reasonably good commenting, and
-    (4) time/menus by finite state machine.
+    (4) display/menus by finite state machine.
+
+
+##################
+## Installation ##
+##################
+
+Installation requires GNU Make, avr-libc, avr-gcc, and avrdude;
+the instructions below presume proficiency with these tools.
+
+In regard to hardware, the Makefile is setup to build and install the
+firmware for the Adafruit Ice Tube Clock with an ATmega328P, not the
+ATmega168V which is included in the kit.  To program the clock,
+everything works with the Adafruit USBtinyISP.  In theory, this
+firmware should work with the ATmega168V or other avrdude-compatible
+programmers by changing Makefile configuration variables.
+
+In regard to software, compilation and installation seems to work under
+
+    (a) Ubuntu Linux 12.04 with the avr-gcc and avrdude packages,
+    (b) Mac OS 10.6 with MacPorts' avr-gcc and avrdude packages, and
+    (c) Windows 7 with WinAVR and Cygwin's perl and bash packages.
+
+To compile and install this firmware, edit and use the provided Makefile:
+
+(1) Edit Configuration Variables
+
+    Review the Makefile to ensure that configuration variables are
+    reasonable given your hardware.  In particular, AVRMCU, AVRISP,
+    and AVRDUDEOPT seem most likely to require attention.
+
+(2) Compile the Firmware
+
+    Build icetube_flash.hex and icetube_eeprom.hex, which contain
+    the firmware and initial EEPROM contents:
+
+	% make
+
+(3) Install the Firmware
+
+    Write the new fuse bits, which *do* differ from those in the original
+    Adafruit firmware:
+
+	% make install-fuse
+
+    Finally, upload the compiled firmware and initial EEPROM contents:
+
+	% make install
 
 
 ###############
 ## Wish List ##
 ###############
 
-(1) macro should explicitly enable brightness control
+I am likely to implement the following features eventually...
 
-(2) set date by iso format "yyyy.mm.dd", not regional format
+(1) Hardware-dependent autodim support should be enabled by a C macro.
 
-(3) GPS support
+(2) Set date by ISO format "YYYY.MM.DD", not regional format.
+
+(3) Time from GPS support (to be optionally enabled by C macro)
+
+(4) A countdown timer
 
 I am also thinking about different time and date formats, but am not sure if I
 will actually do it.  The current display suits me quite well.  Currently, the

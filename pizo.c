@@ -133,8 +133,8 @@ void pizo_init(void) {
     DDRB  |=  _BV(PB2) |  _BV(PB1);  // set as outputs
     PORTB &= ~_BV(PB2) & ~_BV(PB1);  // clamp to ground
 
-    // if timer1 is disabled during sleep, the system locks up sporadically and
-    // nondeterministically, so timer1 is enabled and never disabled in PRR
+    // if any timer is disabled during sleep, the system locks up sporadically
+    // and nondeterministically, so enabled timer1 in PRR and leave it alone!
     power_timer1_enable();
 
     pizo_loadsound();
@@ -527,4 +527,5 @@ void pizo_stop(void) {
     pizo_buzzeroff();
     pizo.status &= ~PIZO_STATE_MASK;
     pizo.status |=  PIZO_INACTIVE;
+    system.status &= ~SYSTEM_ALARM_SOUNDING;
 }

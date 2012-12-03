@@ -13,9 +13,9 @@ typedef struct {
     uint8_t  buffer[DISPLAY_SIZE];  // display contents
     uint8_t  bright_min;  // minimum display brightness
     uint8_t  bright_max;  // maximum display brightness
-    uint16_t photo_avg;   // average photoresistor value
+    uint16_t photo_avg;   // photoresistor adc result
+    			  // (times 2^6, running average)
 } display_t;
-
 
 volatile extern display_t display;
 
