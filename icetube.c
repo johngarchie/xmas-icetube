@@ -109,21 +109,25 @@ ISR(TIMER2_COMPA_vect) {
 ISR(TIMER0_OVF_vect) {
     sei();  // allow nested interrupts
 
+    static uint8_t varcounter = 1, semicounter = 1;
+
+    if(! --varcounter) varcounter = display_vartick();
+
     // interupt just returns 31 out of 32 times
-    static uint8_t skip_count = 0;
-    if(++skip_count < 32) return;
-    skip_count = 0;
+    if(! --semicounter) {
+	semicounter = 32;
 
-    // code below runs every "semisecond" or
-    // every 0.99 microseconds (1.01 khz)
-    time_semitick();
-    buttons_semitick();
-    alarm_semitick();
-    pizo_semitick();
-    mode_semitick();
-    display_semitick();
+	// code below runs every "semisecond" or
+	// every 0.99 microseconds (1.01 khz)
+	time_semitick();
+	buttons_semitick();
+	alarm_semitick();
+	pizo_semitick();
+	mode_semitick();
+	display_semitick();
 
-    semitick_successful = 1;
+	semitick_successful = 1;
+    }
 }
 
 

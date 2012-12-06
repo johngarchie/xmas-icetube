@@ -134,7 +134,7 @@ void pizo_init(void) {
     PORTB &= ~_BV(PB2) & ~_BV(PB1);  // clamp to ground
 
     // if any timer is disabled during sleep, the system locks up sporadically
-    // and nondeterministically, so enabled timer1 in PRR and leave it alone!
+    // and nondeterministically, so enable timer1 in PRR and leave it alone!
     power_timer1_enable();
 
     pizo_loadsound();

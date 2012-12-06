@@ -31,6 +31,7 @@ volatile display_t display;
 // permanent place to store display brightness
 uint8_t ee_display_bright_min EEMEM = 1;
 uint8_t ee_display_bright_max EEMEM = 1;
+uint8_t ee_display_digit_times[] EEMEM = {15, 15, 15, 15, 15, 15, 15, 15, 15};
 
 
 // display of letters and numbers is coded by 
@@ -121,7 +122,7 @@ const uint8_t vfd_segment_pins[] PROGMEM = {
 // initialize display after system reset
 void display_init(void) {
     // if any timer is disabled during sleep, the system locks up sporadically
-    // and nondeterministically, so enabled timer0 in PRR and leave it alone!
+    // and nondeterministically, so enable timer0 in PRR and leave it alone!
     power_timer0_enable();
 
     // disable boost and vfd
@@ -147,6 +148,9 @@ void display_init(void) {
 
     // set initial photo_avg to maximum ambient light
     display.photo_avg = UINT16_MAX;
+
+    // load the digit display times
+    display_loaddigittimes();
 }
 
 
@@ -213,21 +217,23 @@ void display_sleep(void) {
 }
 
 
-// called every semisecond; controls the MAX6921/VFD
-void display_semitick(void) {
+// called periodically to update digits
+// returns time (in 32us units) to display current digit
+uint8_t display_vartick(void) {
     static uint8_t digit_idx = 0;  
-    digit_idx %= DISPLAY_SIZE;
+
+    // update next digit
+    digit_idx = (digit_idx + 1) % DISPLAY_SIZE;
 
     // select the digit position to display
-    uint32_t bits = (uint32_t)1 << pgm_read_byte(vfd_digit_pins + digit_idx);
+    uint32_t bits = (uint32_t)1 << pgm_read_byte(&(vfd_digit_pins[digit_idx]));
 
     // select the segments to display
     for(uint8_t segment = 0; segment < 8; ++segment) {
 	if(display.buffer[digit_idx] & _BV(segment)) {
-	    bits |= (uint32_t)1 << pgm_read_byte(vfd_segment_pins + segment);
+	    bits |= (uint32_t)1 << pgm_read_byte(&(vfd_segment_pins[segment]));
 	}
     }
-
 
     // send bits to the MAX6921 (vfd driver chip)
 
@@ -261,10 +267,13 @@ void display_semitick(void) {
     PORTC |=  _BV(PC0);
     PORTC &= ~_BV(PC0);
 
-    // next semitick, update next digit
-    ++digit_idx;
+    // amount of time to display current digit
+    return display.digit_times[digit_idx];
+}
 
 
+// called every semisecond; controls the MAX6921/VFD
+void display_semitick(void) {
     // get ambient lighting from photosensor every 50 semiseconds,
     // and update running average of photosensor values; note that
     // the running average has a range of [0, 0xFFFF]
@@ -301,10 +310,10 @@ void display_pstr(PGM_P pstr) {
     display_clear(idx);
 
     // display the string
-    char c = pgm_read_byte(pstr + idx++);
+    char c = pgm_read_byte( &(pstr[idx++]) );
     while(c && idx < DISPLAY_SIZE) {
 	display_char(idx, c);
-        c = pgm_read_byte(pstr + idx++);
+        c = pgm_read_byte( &(pstr[idx++]) );
     }
 
     // clear any remaining positions
@@ -329,14 +338,29 @@ void display_savebright(void) {
 }
 
 
+// loads the times (32 us units) to display each digit
+void display_loaddigittimes(void) {
+    for(uint8_t i = 0; i < DISPLAY_SIZE; ++i) {
+	display.digit_times[i] = eeprom_read_byte(&(ee_display_digit_times[i]));
+    }
+}
+
+
+// saves the times (32 us units) to display each digit
+void display_savedigittimes(void) {
+    for(uint8_t i = 0; i < DISPLAY_SIZE; ++i) {
+	eeprom_write_byte(&(ee_display_digit_times[i]), display.digit_times[i]);
+    }
+}
+
+
 // set display brightness from display.bright_min,
 // display.bright_max, and display.photo_avg
 void display_autodim(void) {
     // convert photoresistor value to 20-90 for OCR0A
     uint8_t new_OCR0A = 20 + 7 * display.bright_max
-			    - (display.photo_avg >> 8) * 7
-                               * (display.bright_max - display.bright_min)
-			           / 256;
+			    - ((display.photo_avg >> 8) * 7
+                               * (display.bright_max - display.bright_min)>>8);
 
     // ensure display will not be too dim or too bright:
     // if too dim, low voltage may not light digit segments;
@@ -351,18 +375,18 @@ void display_autodim(void) {
 
 // display digit (n) on display position (idx)
 void display_digit(uint8_t idx, uint8_t n) {
-    display.buffer[idx] = pgm_read_byte(number_segments + (n % 10));
+    display.buffer[idx] = pgm_read_byte( &(number_segments[(n % 10)]) );
 }
 
 
 // display character (c) at display position (idx)
 void display_char(uint8_t idx, char c) {
-    if(c >= 'a' && c <= 'z') {
-	display.buffer[idx] = pgm_read_byte(letter_segments + c - 'a');
-    } else if(c >= 'A' && c <= 'Z') {
-	display.buffer[idx] = pgm_read_byte(letter_segments + c - 'A');
-    } else if(c >= '0' && c <= '9') {
-	display.buffer[idx] = pgm_read_byte(number_segments + c - '0');
+    if('a' <= c && c <= 'z') {
+	display.buffer[idx] = pgm_read_byte( &(letter_segments[c - 'a']) );
+    } else if('A' <= c && c <= 'Z') {
+	display.buffer[idx] = pgm_read_byte( &(letter_segments[c - 'A']) );
+    } else if('0' <= c && c <= '9') {
+	display.buffer[idx] = pgm_read_byte( &(number_segments[c - '0']) );
     } else {
 	switch(c) {
 	    case ' ':

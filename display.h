@@ -11,10 +11,14 @@
 
 typedef struct {
     uint8_t  buffer[DISPLAY_SIZE];  // display contents
-    uint8_t  bright_min;  // minimum display brightness
-    uint8_t  bright_max;  // maximum display brightness
-    uint16_t photo_avg;   // photoresistor adc result
-    			  // (times 2^6, running average)
+    uint8_t  bright_min;            // minimum display brightness
+    uint8_t  bright_max;            // maximum display brightness
+
+    // photoresistor adc result (times 2^6, running average)
+    uint16_t photo_avg;
+
+    // length of time to display each digit (32 microsecond units)
+    uint8_t  digit_times[DISPLAY_SIZE];
 } display_t;
 
 volatile extern display_t display;
@@ -25,10 +29,14 @@ void display_wake(void);
 void display_sleep(void);
 
 inline void display_tick(void) {};
+uint8_t display_vartick(void);
 void display_semitick(void);
 
 void display_loadbright(void);
 void display_savebright(void);
+
+void display_loaddigittimes(void);
+void display_savedigittimes(void);
 
 void display_autodim(void);
 

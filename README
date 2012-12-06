@@ -8,7 +8,7 @@ software.  Eventually, none of the origional code remained and the project
 became a feature-rich reimplementation of the original Adafruit firmware.
 
   John Archie <www.jarchie.com>
-  December 2, 2012
+  December 7, 2012
 
 
 ##############
@@ -17,18 +17,18 @@ became a feature-rich reimplementation of the original Adafruit firmware.
 
 This firmware boasts many features including,
 
-    (1) adjustable alarm volume,
+    (1) adjustable alarm volume (11 levels),
     (3) progressive alarming,
     (2) musical alarm ("Merry Christmas"),
     (4) DST support (USA, EU, or manual),
     (5) automatic drift correction,
     (6) alarm sounds during power outage,
-    (7) no reset during power failure, and
+    (7) no reset during power failure,
+    (9) per-digit brightness control, and
     (8) autodimmer (requires photoresistor)
 
-BUT, this firmware currently lacks GPS support, and
-the drift correction is not well tested.  So use it
-at your own risk.
+BUT, this firmware currently lacks GPS support.  The drift
+correction is not well tested, but seems to work.
 
 For Ice Tube Clock hackers, this firmware has
 

@@ -91,9 +91,9 @@ void time_wake(void) {
 // save current time to eeprom
 void time_sleep(void) {
     // saving time to eeprom doesn't hurt. if the backup battery is dead, power
-    // stored in capacitor should be sufficient to save current time.
-    // if the power outage is brief, time will be restored from eeprom and
-    // the clock will still have a semi-reasonable time.
+    // stored in capacitor should be sufficient to save current time.  if the
+    // power outage is brief, time will be restored from eeprom and the clock
+    // will still have a semi-reasonable time.
     time_savetime();
 }
 
@@ -128,7 +128,11 @@ void time_savestatus(void) {
 void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
     // stage time change for later drift correction
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
-	if(!(time.status & TIME_UNSET)) {
+	if(time.status & TIME_UNSET) {
+	    // reset drift monitor variables
+	    time.drift_total_seconds = 0;
+	    time.drift_delta_seconds = 0;
+	} else {
 	    int8_t delta_hour, delta_minute, delta_second;
 
 	    // compute the time difference between old and new times
@@ -155,19 +159,9 @@ void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
 		time.drift_delta_seconds += (int32_t)24 * 60 * 60;
 	    }
 
-	    // defer setting drift adjustment to allow correction of
-	    // an incorrectly entered time; only set drift after clock
-	    // changed by at least TIME_MIN_DRIFT_TIME
-	    if(-TIME_MIN_DRIFT_TIME < time.drift_delta_seconds
-		    && time.drift_delta_seconds < TIME_MIN_DRIFT_TIME) {
-		time.drift_delay_timer = 0;
-	    } else {
-		time.drift_delay_timer = TIME_DRIFT_SAVE_DELAY;
-	    }
-	} else {
-	    // reset drift timer
-	    time.drift_total_seconds = 0;
-	    time.drift_delta_seconds = 0;
+	    // defer setting drift adjustment to allow
+	    // correction of an incorrectly set time
+	    time.drift_delay_timer = TIME_DRIFT_SAVE_DELAY;
 	}
 
 	// set the new time
@@ -265,7 +259,7 @@ uint8_t time_dayofweek(uint8_t year, uint8_t month, uint8_t day) {
     if(year > 0) ++total_days;
 
     // leap days from prior years
-    total_days += (year - 1) / 4;
+    total_days += (year - 1) >> 2;
 
     // days in prior months this year
     for(uint8_t i = TIME_JAN; i < month; ++i) {
@@ -574,34 +568,46 @@ void time_autodrift(void) {
 void time_newdrift(void) {
     int32_t new_adj;  // new drift adjustment value
 
-    // do not record if time change too large or small
-    if(   ( time.drift_delta_seconds < -TIME_MAX_DRIFT_TIME
-		|| time.drift_delta_seconds > TIME_MAX_DRIFT_TIME )
-       || ( -TIME_MIN_DRIFT_TIME < time.drift_delta_seconds
-		&& time.drift_delta_seconds < TIME_MIN_DRIFT_TIME ) ) {
+    // disregard monitored drift data if time change too large
+    // (maybe user mixed up timezones, mixed up am and pm, etc.)
+    if(time.drift_delta_seconds < -TIME_MAX_DRIFT_TIME
+	    || time.drift_delta_seconds > TIME_MAX_DRIFT_TIME) {
+	// reset drift monitor variables
+	time.drift_total_seconds = 0;
+	time.drift_delta_seconds = 0;
+	return;
+    }
+    
+    // defer calculation of new adjustment if time change too small
+    // (maybe user accidently entered set time mode, hit "set" three times,
+    //  and only changed current time by a small amount; also, recording only
+    //  larger adjustments gives more accurate results)
+    if(-TIME_MIN_DRIFT_TIME < time.drift_delta_seconds
+	    && time.drift_delta_seconds < TIME_MIN_DRIFT_TIME) {
 	return;
     }
 
     // subtract effect of current drift adjustment, if any
     if(time.drift_adjust) {
-	time.drift_total_seconds -= (int32_t)time.drift_total_seconds
-						   / time.drift_adjust / 128;
+	int32_t adj_sec = (time.drift_total_seconds / time.drift_adjust) >> 7;
+	time.drift_total_seconds -= adj_sec;
+	time.drift_delta_seconds += adj_sec;
     }
 
     // calculate new drift adjustment
-    new_adj = (int32_t)(time.drift_total_seconds)
-			      / time.drift_delta_seconds / 128;
+    new_adj = (time.drift_total_seconds / time.drift_delta_seconds) >> 7;
 
     // ultimately drift correction is stored as an int16,
     // so constrain new_adj to those bounds
     if(new_adj > INT16_MAX) new_adj = INT16_MAX;
-    if(new_adj < INT16_MIN) new_adj = INT16_MAX;
+    if(new_adj < INT16_MIN) new_adj = INT16_MIN;
 
+    // reset drift monitor variables
     time.drift_total_seconds = 0;
     time.drift_delta_seconds = 0;
 
-    // do not record if abs(new_adj) is too small; the smaller the adjustment
-    // value, faster or slower.
+    // do not record if abs(new_adj) is too small; too small a value means
+    // the clock is running very fast or very slow...probably a mistake...
     if(-TIME_MIN_DRIFT_ADJUST < new_adj && new_adj < TIME_MIN_DRIFT_ADJUST) {
 	return;
     }
@@ -624,10 +630,10 @@ void time_loaddriftmedian(void) {
     int16_t processed, min_val, cur_val;
 
     min_idx = 0;
-    min_val = 0;  // default median if no data
+    min_val = 0;  // default median if no data (0 means no drift correction)
     processed = 0;
     table_size = eeprom_read_byte(&ee_time_drift_count);
-    half_table = table_size / 2;
+    half_table = table_size >> 1;
     if(table_size) ++half_table;
 
     // find the median value in the drift table,
@@ -637,8 +643,10 @@ void time_loaddriftmedian(void) {
 	for(uint8_t j = 0; j < table_size; ++j) {
 	    if( !(processed & _BV(j)) ) {
 		cur_val=eeprom_read_word((uint16_t*)&(ee_time_drift_table[j]));
-		// values need be ranked in reciprocal space
-		// (e.g., ordered like -70, -90, -100, 100, 90)
+		// Drift (ppm) is inversely proportional to the drift
+		// adjustments compared here, so values need be ranked in
+		// reciprocal space (e.g., ordered like -70, -90, -100, 100,
+		// 90). And avr-gcc doea not handle floats efficiently:
 		if( ((cur_val < 0) == (min_val < 0) ?
 			    cur_val > min_val : cur_val < min_val) ) {
 		    min_idx = j;

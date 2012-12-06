@@ -1,9 +1,7 @@
 #ifndef TIME_H
 #define TIME_H
 
-
-#include <stdint.h>        // for using standard integer types
-#include <avr/pgmspace.h>  // for accessing data in program memory
+#include <stdint.h>  // for using standard integer types
 
 
 // month numbers
@@ -38,10 +36,10 @@
 #endif
 
 // drift correction table size
-#define TIME_DRIFT_TABLE_SIZE 7    // keep previous 7 adjustments
-#define TIME_MIN_DRIFT_ADJUST 39   // (~200 ppm)
+#define TIME_DRIFT_TABLE_SIZE 7    // number of estimated drift corrections
+#define TIME_MIN_DRIFT_ADJUST 39   // drift less than ~200 ppm
 #define TIME_MAX_DRIFT_TIME   1200 // seconds (10 min)
-#define TIME_MIN_DRIFT_TIME   30   //  seconds
+#define TIME_MIN_DRIFT_TIME   1    // seconds
 #define TIME_DRIFT_SAVE_DELAY 600  // seconds (10 min)
 
 // flags for time.status
@@ -81,7 +79,7 @@ typedef struct {
     // the old and new time accumulates here; drift_delta_seconds is reset
     // to zero when drift_total_seconds is reset
 
-    uint32_t drift_total_seconds;  // total number of seconds between clock
+    int32_t drift_total_seconds;  // total number of seconds between clock
     // sets, so if no drift adjustment is currently being made, drift would be
     // [drift (ppm)] = 1000000 * [drift_delta_seconds] / [drift_delta_timer]
 

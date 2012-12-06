@@ -441,7 +441,7 @@ void mode_semitick(void) {
 	case MODE_MENU_SETBRIGHT:
 	    switch(btn) {
 		case BUTTONS_MENU:
-		    mode_update(MODE_MENU_SETSNOOZE);
+		    mode_update(MODE_MENU_SETDIGITBRIGHT);
 		    break;
 		case BUTTONS_SET:
 		    mode.tmp[MODE_TMP_MIN] = display.bright_min;
@@ -546,13 +546,57 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
+	case MODE_MENU_SETDIGITBRIGHT:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_MENU_SETSNOOZE);
+		    break;
+		case BUTTONS_SET:
+		    *mode.tmp = 0;
+		    mode_update(MODE_SETDIGITBRIGHT);
+		    break;
+		case BUTTONS_PLUS:
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_SETDIGITBRIGHT:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    display_loaddigittimes();
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_SET:
+		    if(++(*mode.tmp) < DISPLAY_SIZE) {
+			mode_update(MODE_SETDIGITBRIGHT);
+		    } else {
+			display_savedigittimes();
+			mode_update(MODE_TIME_DISPLAY);
+		    }
+		    break;
+		case BUTTONS_PLUS:
+		    if(display.digit_times[*mode.tmp] < 2 * UINT8_MAX / 3 ) {
+			display.digit_times[*mode.tmp] +=
+					display.digit_times[*mode.tmp] >> 1;
+		    } else {
+			display.digit_times[*mode.tmp] = 15;
+		    }
+
+		    mode_update(MODE_SETDIGITBRIGHT);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
 	case MODE_MENU_SETSOUND:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    mode_update(MODE_MENU_SETBRIGHT);
 		    break;
 		case BUTTONS_SET:
-		    pizo_setvolume((alarm.volume_min + alarm.volume_max) >> 1, 0);
+		    pizo_setvolume((alarm.volume_min+alarm.volume_max)>>1, 0);
 		    pizo_tryalarm_start();
 		    mode_update(MODE_SETSOUND_TYPE);
 		    break;
@@ -1017,6 +1061,24 @@ void mode_update(uint8_t new_state) {
 	    display.bright_min = display.bright_max = *mode.tmp;
 	    display_autodim();
 	    mode_textnum_display(PSTR("b max"), *mode.tmp);
+	    break;
+	case MODE_MENU_SETDIGITBRIGHT:
+	    display_pstr(PSTR("set digt"));
+	    break;
+	case MODE_SETDIGITBRIGHT:
+	    display_dot(0, TRUE);
+
+	    for(uint8_t i = 1; i < DISPLAY_SIZE; ++i) {
+		display_digit(i, 8);
+	    }
+
+	    if(*mode.tmp) {
+		display_dot(*mode.tmp, TRUE);
+		display_dash(0, FALSE);
+	    } else {
+		display_dash(*mode.tmp, TRUE);
+	    }
+
 	    break;
 	case MODE_MENU_SETSOUND:
 	    display_pstr(PSTR("set alrt"));
