@@ -219,7 +219,7 @@ void display_sleep(void) {
 
 // called periodically to update digits
 // returns time (in 32us units) to display current digit
-uint8_t display_vartick(void) {
+uint8_t display_varsemitick(void) {
     static uint8_t digit_idx = 0;  
 
     // update next digit
@@ -268,7 +268,7 @@ uint8_t display_vartick(void) {
     PORTC &= ~_BV(PC0);
 
     // amount of time to display current digit
-    return display.digit_times[digit_idx];
+    return display.digit_times[digit_idx] >> display.digit_time_shift;
 }
 
 
@@ -343,6 +343,8 @@ void display_loaddigittimes(void) {
     for(uint8_t i = 0; i < DISPLAY_SIZE; ++i) {
 	display.digit_times[i] = eeprom_read_byte(&(ee_display_digit_times[i]));
     }
+
+    display_noflicker();
 }
 
 
@@ -354,13 +356,29 @@ void display_savedigittimes(void) {
 }
 
 
+// calculates new digit time shift to prevent flicker
+void display_noflicker(void) {
+    uint16_t total_digit_time = 0;
+
+    for(uint8_t i = 0; i < DISPLAY_SIZE; ++i) {
+	total_digit_time += display.digit_times[i];
+    }
+
+    display.digit_time_shift = 0;
+
+    while( (total_digit_time >> display.digit_time_shift) > 512 ) {
+	++display.digit_time_shift;
+    }
+}
+
+
 // set display brightness from display.bright_min,
 // display.bright_max, and display.photo_avg
 void display_autodim(void) {
     // convert photoresistor value to 20-90 for OCR0A
-    uint8_t new_OCR0A = 20 + 7 * display.bright_max
-			    - ((display.photo_avg >> 8) * 7
-                               * (display.bright_max - display.bright_min)>>8);
+    int16_t new_OCR0A = 20 + 7 * display.bright_max
+			 - ( (display.photo_avg >> 8) * 7
+                             * (display.bright_max - display.bright_min) >> 8);
 
     // ensure display will not be too dim or too bright:
     // if too dim, low voltage may not light digit segments;

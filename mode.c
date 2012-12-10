@@ -28,7 +28,7 @@ void mode_update(uint8_t new_state);
 void mode_time_display(uint8_t hour, uint8_t minute, uint8_t second);
 void mode_alarm_display(uint8_t hour, uint8_t minute);
 void mode_date_display(void);
-void mode_textnum_display(PGM_P pstr, uint8_t num);
+void mode_textnum_display(PGM_P pstr, int8_t num);
 void mode_dayofweek_display(void);
 void mode_monthday_display(void);
 
@@ -503,15 +503,18 @@ void mode_semitick(void) {
 		    if(mode.tmp[MODE_TMP_MAX] > *mode.tmp) {
 			*mode.tmp = mode.tmp[MODE_TMP_MAX];
 		    } else {
-			++(*mode.tmp);
+		        if(*mode.tmp < 1) {
+			    *mode.tmp = 1;
+			} else {
+			    ++(*mode.tmp);
+			}
 		    }
 
 		    // set brightness maximum
 		    mode_update(MODE_SETBRIGHT_MAX);
 		    break;
 		case BUTTONS_PLUS:
-		    ++(*mode.tmp);
-		    *mode.tmp %= 10;
+		    if(++(*mode.tmp) > 9) *mode.tmp = -5;
 		    mode_update(MODE_SETBRIGHT_MIN);
 		    break;
 		default:
@@ -535,8 +538,14 @@ void mode_semitick(void) {
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_PLUS:
-		    ++(*mode.tmp);
-		    if(*mode.tmp > 10) *mode.tmp = mode.tmp[MODE_TMP_MIN] + 1;
+		    if(++(*mode.tmp) > 20) {
+		        if(mode.tmp[MODE_TMP_MIN] < 1) {
+			    *mode.tmp = 1;
+			} else {
+			    *mode.tmp = mode.tmp[MODE_TMP_MIN] + 1;
+			}
+		    }
+
 		    mode_update(MODE_SETBRIGHT_MAX);
 		    break;
 		default:
@@ -583,6 +592,8 @@ void mode_semitick(void) {
 		    } else {
 			display.digit_times[*mode.tmp] = 15;
 		    }
+
+		    display_noflicker();
 
 		    mode_update(MODE_SETDIGITBRIGHT);
 		    break;
@@ -1053,8 +1064,13 @@ void mode_update(uint8_t new_state) {
 	    }
 	    break;
 	case MODE_SETBRIGHT_MIN:
-	    display.bright_min = display.bright_max = *mode.tmp;
-	    display_autodim();
+	    if(*mode.tmp < 0) {
+		// user might not be able to see lowest brightness
+		display_loadbright();
+	    } else {
+		display.bright_min = display.bright_max = *mode.tmp;
+		display_autodim();
+	    }
 	    mode_textnum_display(PSTR("b min"), *mode.tmp);
 	    break;
 	case MODE_SETBRIGHT_MAX:
@@ -1104,10 +1120,10 @@ void mode_update(uint8_t new_state) {
 	    }
 	    break;
 	case MODE_SETSOUND_VOL_MIN:
-	    mode_textnum_display(PSTR("v lo"), mode.tmp[MODE_TMP_MIN]);
+	    mode_textnum_display(PSTR("v min"), mode.tmp[MODE_TMP_MIN]);
 	    break;
 	case MODE_SETSOUND_VOL_MAX:
-	    mode_textnum_display(PSTR("v hi"), mode.tmp[MODE_TMP_MAX]);
+	    mode_textnum_display(PSTR("v max"), mode.tmp[MODE_TMP_MAX]);
 	    break;
 	case MODE_SETSOUND_TIME:
 	    mode_textnum_display(PSTR("time"), *mode.tmp);
@@ -1240,11 +1256,20 @@ void mode_date_display(void) {
 }
 
 
-// displays text with two-digit number, with number selected
-void mode_textnum_display(PGM_P pstr, uint8_t num) {
+// displays text with two-digit positive number or one-digit
+// negative number, with number selected
+void mode_textnum_display(PGM_P pstr, int8_t num) {
     display_pstr(pstr);
-    display_digit(7, num / 10);
+
+    if(num < 0) {
+	display_char(7, '-');
+	num *= -1;
+    } else {
+	display_digit(7, num / 10);
+    }
+
     display_digit(8, num % 10);
+
     display_dotselect(7, 8);
 }
 

@@ -111,7 +111,7 @@ ISR(TIMER0_OVF_vect) {
 
     static uint8_t varcounter = 1, semicounter = 1;
 
-    if(! --varcounter) varcounter = display_vartick();
+    if(! --varcounter) varcounter = display_varsemitick();
 
     // interupt just returns 31 out of 32 times
     if(! --semicounter) {

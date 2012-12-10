@@ -24,8 +24,8 @@ This firmware boasts many features including,
     (5) automatic drift correction,
     (6) alarm sounds during power outage,
     (7) no reset during power failure,
-    (9) per-digit brightness control, and
-    (8) autodimmer (requires photoresistor)
+    (8) per-digit brightness control, and
+    (9) autodimmer (requires photoresistor)
 
 BUT, this firmware currently lacks GPS support.  The drift
 correction is not well tested, but seems to work.

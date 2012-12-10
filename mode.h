@@ -71,7 +71,7 @@ enum {
 typedef struct {
     uint8_t  state;  // name of current state
     uint16_t timer;  // time in current state (semiseconds)
-    uint8_t  tmp[3]; // place to store temporary data
+    int8_t  tmp[3];  // place to store temporary data
 } mode_t;
 
 

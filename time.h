@@ -39,7 +39,7 @@
 #define TIME_DRIFT_TABLE_SIZE 7    // number of estimated drift corrections
 #define TIME_MIN_DRIFT_ADJUST 39   // drift less than ~200 ppm
 #define TIME_MAX_DRIFT_TIME   1200 // seconds (10 min)
-#define TIME_MIN_DRIFT_TIME   1    // seconds
+#define TIME_MIN_DRIFT_TIME   0    // seconds
 #define TIME_DRIFT_SAVE_DELAY 600  // seconds (10 min)
 
 // flags for time.status
