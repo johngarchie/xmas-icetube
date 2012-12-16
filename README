@@ -18,17 +18,22 @@ became a feature-rich reimplementation of the original Adafruit firmware.
 This firmware boasts many features including,
 
     (1) adjustable alarm volume (11 levels),
-    (3) progressive alarming,
-    (2) musical alarm ("Merry Christmas"),
+    (3) progressive alarm option (low to high volume),
+    (2) musical alarm option ("Merry Christmas"),
     (4) DST support (USA, EU, or manual),
     (5) automatic drift correction,
-    (6) alarm sounds during power outage,
-    (7) no reset during power failure,
-    (8) per-digit brightness control, and
-    (9) autodimmer (requires photoresistor)
+    (6) Time-from-GPS support,
+    (7) alarm sounds during power outage,*
+    (8) no reset during power failure,
+    (9) per-digit brightness control, and
+   (10) autodimmer (requires photoresistor)
 
-BUT, this firmware currently lacks GPS support.  The drift
-correction is not well tested, but seems to work.
+* The snooze feature, musical alarm, and progressive alarm, are automatically
+  disabled during a power failure.  While on battery power, the buzzer alarm
+  sounds at a menu-settable maximum volume and the alarm can only be enabled
+  or disabled via the alarm on/off switch.  All other inputs are ignored until
+  power is restored.
+
 
 For Ice Tube Clock hackers, this firmware has
 
@@ -91,17 +96,15 @@ To compile and install this firmware, edit and use the provided Makefile:
 
 I am likely to implement the following features eventually...
 
-(1) Hardware-dependent autodim support should be enabled by a C macro.
+(1) Autodim support should be explicitly enabled/disabled by a macro.
 
-(2) Set date by ISO format "YYYY.MM.DD", not regional format.
+(2) Time-from-GPS support should be explicitly enabled/disabled by macro.
 
-(3) Time from GPS support (to be optionally enabled by C macro)
+(3) I am thinking about adding a countdown timer and/or stopwatch.
 
-(4) A countdown timer
-
-I am also thinking about different time and date formats, but am not sure if I
-will actually do it.  The current display suits me quite well.  Currently, the
-user may only select between 12 and 24 hour time display.
+(4) I am also thinking about different time and date formats, but am not sure
+    if I will actually do it.  The current display suits me quite well.
+    Currently, the user may only select between 12 and 24 hour time display.
 
     "set tfmt"
         - toggle 24-hour mode	"hours 24"  "hours 12"

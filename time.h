@@ -1,7 +1,8 @@
 #ifndef TIME_H
 #define TIME_H
 
-#include <stdint.h>  // for using standard integer types
+#include <stdint.h>       // for using standard integer types
+#include <avr/pgmspace.h> // for PGM_P (pointer to program memory)
 
 
 // month numbers
@@ -39,13 +40,12 @@
 #define TIME_DRIFT_TABLE_SIZE 7    // number of estimated drift corrections
 #define TIME_MIN_DRIFT_ADJUST 39   // drift less than ~200 ppm
 #define TIME_MAX_DRIFT_TIME   1200 // seconds (10 min)
-#define TIME_MIN_DRIFT_TIME   0    // seconds
+#define TIME_MIN_DRIFT_TIME   1    // seconds
 #define TIME_DRIFT_SAVE_DELAY 600  // seconds (10 min)
 
 // flags for time.status
 #define TIME_UNSET       0x01
 #define TIME_DST         0x02
-#define TIME_MMDDYY      0x04
 #define TIME_12HOUR      0x08
 
 // top nibble indicates DST
@@ -108,6 +108,7 @@ void time_setdate(uint8_t year, uint8_t month, uint8_t day);
 
 uint8_t time_dayofweek(uint8_t year, uint8_t month, uint8_t day);
 uint8_t time_daysinmonth(uint8_t year, uint8_t month);
+PGM_P time_month2pstr(uint8_t month);
 
 void time_autodst(uint8_t);
 void time_dston(uint8_t adj_time);

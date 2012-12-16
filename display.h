@@ -1,7 +1,6 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-
 #include <stdint.h>        // for using standard integer types
 #include <avr/pgmspace.h>  // for accessing data in program memory
 
@@ -44,7 +43,7 @@ void display_noflicker(void);
 
 void display_autodim(void);
 
-void display_pstr(PGM_P pstr);
+void display_pstr(const uint8_t idx, PGM_P pstr);
 void display_digit(uint8_t idx, uint8_t n);
 void display_char(uint8_t idx, char c);
 void display_clear(uint8_t idx);

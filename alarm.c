@@ -269,3 +269,22 @@ uint8_t alarm_onbutton(void) {
 
     return FALSE;
 }
+
+
+// returns true if current time is within two seconds of alarm time
+uint8_t alarm_nearalarm(void) {
+    int32_t time_diff = alarm.hour - time.hour;
+    time_diff *= 60;  // hours to minutes
+    time_diff += alarm.minute - time.minute;
+    time_diff *= 60;  // minutes to seconds
+    time_diff += 0 - time.second;
+
+    if(time_diff > (int32_t)12 * 60 * 60) {
+	time_diff -= (int32_t)24 * 60 * 60;
+    } else if(time_diff < (int32_t)-12 * 60 * 60) {
+	time_diff += (int32_t)24 * 60 * 60;
+    }
+
+    return -ALARM_NEAR_THRESHOLD <= time_diff
+		&& time_diff <= ALARM_NEAR_THRESHOLD;
+}

@@ -29,6 +29,7 @@
 #include "display.h"
 #include "mode.h"
 #include "usart.h"
+#include "gps.h"
 
 
 // set to 1 every ~1 millisecond or so
@@ -49,6 +50,7 @@ int main(void) {
     pizo_init();
     display_init();
     mode_init();
+    gps_init();
 
     // if the system is on battery power, sleep until power restored
     if(system_power() == SYSTEM_BATTERY) {
@@ -68,6 +70,7 @@ int main(void) {
     pizo_wake();
     display_wake();
     mode_wake();
+    gps_wake();
     
     // half-second beep on system reset
     pizo_setvolume(3, 0);
@@ -97,6 +100,7 @@ ISR(TIMER2_COMPA_vect) {
 	pizo_tick();
 	mode_tick();
 	display_tick();
+	gps_tick();
 	if(semitick_successful) wdt_reset();
 	semitick_successful = 0;
     }
@@ -107,11 +111,13 @@ ISR(TIMER2_COMPA_vect) {
 // triggered every 32 microseconds (32.25 khz);
 // pwm output from timer0 controls boost power
 ISR(TIMER0_OVF_vect) {
-    sei();  // allow nested interrupts
+    cli();  // deferring interrupts prevents display flicker
 
     static uint8_t varcounter = 1, semicounter = 1;
 
     if(! --varcounter) varcounter = display_varsemitick();
+
+    sei();  // allow nested interrupts
 
     // interupt just returns 31 out of 32 times
     if(! --semicounter) {
@@ -125,6 +131,7 @@ ISR(TIMER0_OVF_vect) {
 	pizo_semitick();
 	mode_semitick();
 	display_semitick();
+	gps_semitick();
 
 	semitick_successful = 1;
     }
@@ -144,11 +151,12 @@ ISR(ANALOG_COMP_vect) {
     if(system_power() == SYSTEM_ADAPTOR) return;
 
     display_sleep();  // stop boost timer and disable display
-    usart_sleep();    // disable usart
     alarm_sleep();    // disable alarm-switch pull-up resistor
     buttons_sleep();  // disable button pull-up resistors
     time_sleep();     // save current time
     mode_sleep();     // does nothing
+    gps_sleep();      // disable usart rx interrupt
+    usart_sleep();    // disable usart
     pizo_sleep();     // adjust buzzer for slower clock
 
     // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
@@ -167,6 +175,7 @@ ISR(ANALOG_COMP_vect) {
     mode_wake();     // display time after waking
     buttons_wake();  // enable button pull-ups
     alarm_wake();    // enable alarm switch pull-up
-    usart_sleep();   // enable and configure usart
+    usart_wake();    // enable and configure usart
+    gps_wake();      // enable usart rx interrupt
     display_wake();  // start boost timer and enable display
 }

@@ -24,6 +24,9 @@ enum {
         MODE_SETTIME_HOUR,
         MODE_SETTIME_MINUTE,
         MODE_SETTIME_SECOND,
+    MODE_MENU_SETZONE,
+	MODE_SETZONE_HOUR,
+	MODE_SETZONE_MINUTE,
     MODE_MENU_SETDATE,
         MODE_SETDATE_YEAR,
         MODE_SETDATE_MONTH,
@@ -45,9 +48,8 @@ enum {
 	MODE_SETDIGITBRIGHT,
     MODE_MENU_SETSNOOZE,
 	MODE_SETSNOOZE_TIME,
-    MODE_MENU_SETFORMAT,
-        MODE_SETTIME_FORMAT,
-        MODE_SETDATE_FORMAT,
+    MODE_MENU_SETTIMEFORMAT,
+        MODE_SETTIMEFORMAT_12HOUR,
 };
 
 
@@ -90,4 +92,4 @@ void mode_alarmset(void);
 void mode_alarmoff(void);
 void mode_snoozing(void);
 
-#endif
+#endif  // MODE_H

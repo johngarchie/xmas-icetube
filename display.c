@@ -217,7 +217,7 @@ void display_sleep(void) {
 }
 
 
-// called periodically to update digits
+// called periodically to to control the VFD via the MAX6921
 // returns time (in 32us units) to display current digit
 uint8_t display_varsemitick(void) {
     static uint8_t digit_idx = 0;  
@@ -272,7 +272,7 @@ uint8_t display_varsemitick(void) {
 }
 
 
-// called every semisecond; controls the MAX6921/VFD
+// called every semisecond; updates ambient brightness running average
 void display_semitick(void) {
     // get ambient lighting from photosensor every 50 semiseconds,
     // and update running average of photosensor values; note that
@@ -302,23 +302,26 @@ void display_clear(uint8_t idx) {
 }
 
 
-// display the given string from program memory
-void display_pstr(PGM_P pstr) {
-    uint8_t idx = 0;
+// display the given program memory string at the given display index
+void display_pstr(const uint8_t idx, PGM_P pstr) {
+    uint8_t pstr_idx = 0;
+    uint8_t disp_idx = idx;
 
-    // clear first display position
-    display_clear(idx);
+    // clear first display position if idx is zero
+    if(disp_idx == 0) display_clear(disp_idx++);
 
     // display the string
-    char c = pgm_read_byte( &(pstr[idx++]) );
-    while(c && idx < DISPLAY_SIZE) {
-	display_char(idx, c);
-        c = pgm_read_byte( &(pstr[idx++]) );
+    char c = pgm_read_byte( &(pstr[pstr_idx++]) );
+    while(c && disp_idx < DISPLAY_SIZE) {
+	display_char(disp_idx++, c);
+        c = pgm_read_byte( &(pstr[pstr_idx++]) );
     }
 
-    // clear any remaining positions
-    for(; idx < DISPLAY_SIZE; ++idx) {
-	display_clear(idx);
+    // clear any remaining positions if idx is zero
+    if(!idx) {
+	for(; disp_idx < DISPLAY_SIZE; ++disp_idx) {
+	    display_clear(disp_idx);
+	}
     }
 }
 

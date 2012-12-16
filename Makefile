@@ -12,7 +12,7 @@ PROJECT ?= icetube
 
 # object files
 OBJECTS ?= icetube.o system.o time.o alarm.o pizo.o \
-	   display.o buttons.o mode.o usart.o
+	   display.o buttons.o mode.o usart.o gps.o
 
 # avr microcontroller processing unit
 #AVRMCU ?= atmega168
@@ -32,6 +32,7 @@ AVROBJCOPY ?= avr-objcopy
 
 # options for avr programming utilities
 AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK)
+#AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK) -DDEBUG=1
 #AVRSIZEOPT    ?= -C --mcu=$(AVRMCU)
 AVRSIZEOPT    ?= -A
 AVRDUDEOPT    ?= -p $(AVRMCU) -c $(AVRISP)
@@ -74,7 +75,7 @@ $(PROJECT).elf: $(OBJECTS)
 
 # convert executable code to intel hex format
 $(PROJECT)_flash.hex: $(PROJECT).elf
-	$(AVROBJCOPY) $(AVROBJCOPYOPT) -R .eeprom -O ihex $< $@
+	$(AVROBJCOPY) $(AVROBJCOPYOPT) -R.eeprom -R.fuse -R.lock -O ihex $< $@
 
 # convert eeprom data to intel hex format
 $(PROJECT)_eeprom.hex: $(PROJECT).elf

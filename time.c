@@ -4,9 +4,10 @@
 //
 
 
-#include <avr/eeprom.h>  // for storing data in eeprom memory
-#include <avr/power.h>   // for enabling/disabling chip features
-#include <util/atomic.h> // for non-interruptable blocks
+#include <avr/eeprom.h>   // for storing data in eeprom memory
+#include <avr/pgmspace.h> // for accessing data in program memory
+#include <avr/power.h>    // for enabling/disabling chip features
+#include <util/atomic.h>  // for non-interruptable blocks
 
 
 #include "time.h"
@@ -127,7 +128,7 @@ void time_savestatus(void) {
 // set current time
 void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
     // stage time change for later drift correction
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 	if(time.status & TIME_UNSET) {
 	    // reset drift monitor variables
 	    time.drift_total_seconds = 0;
@@ -273,6 +274,53 @@ uint8_t time_dayofweek(uint8_t year, uint8_t month, uint8_t day) {
     // dec 31, 1999 was 5 (fri); so day of week is
     return (5 + total_days) % 7;
 }
+
+
+// returns given month as program memory string
+PGM_P time_month2pstr(uint8_t month) {
+    switch(month) {
+	case TIME_JAN:
+	    return PSTR("jan");
+	    break;
+	case TIME_FEB:
+	    return PSTR("feb");
+	    break;
+	case TIME_MAR:
+	    return PSTR("mar");
+	    break;
+	case TIME_APR:
+	    return PSTR("apr");
+	    break;
+	case TIME_MAY:
+	    return PSTR("may");
+	    break;
+	case TIME_JUN:
+	    return PSTR("jun");
+	    break;
+	case TIME_JUL:
+	    return PSTR("jul");
+	    break;
+	case TIME_AUG:
+	    return PSTR("aug");
+	    break;
+	case TIME_SEP:
+	    return PSTR("sep");
+	    break;
+	case TIME_OCT:
+	    return PSTR("oct");
+	    break;
+	case TIME_NOV:
+	    return PSTR("nov");
+	    break;
+	case TIME_DEC:
+	    return PSTR("dec");
+	    break;
+	default:
+	    return NULL;
+	    break;
+    }
+}
+
 
 
 // if autodst is enabled, set dst accordingly; if adj_time is

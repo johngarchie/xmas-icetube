@@ -25,6 +25,9 @@
 // debounce time for alarm switch
 #define ALARM_DEBOUNCE_TIME 40  // semiseconds
 
+// maximum allowed time difference for alarm_nearalarm()
+#define ALARM_NEAR_THRESHOLD 2  // seconds
+
 
 // flags for alarm.status
 #define ALARM_SET      0x01
@@ -66,5 +69,7 @@ void alarm_newramp(void);
 void alarm_savesnooze(void);
 
 uint8_t alarm_onbutton(void);
+
+uint8_t alarm_nearalarm(void);
 
 #endif
