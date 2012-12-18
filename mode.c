@@ -69,8 +69,8 @@ void mode_tick(void) {
 void mode_semitick(void) {
     uint8_t btn = buttons_process();
 
-    // enable or extend snooze on button press
-    if(btn) if(alarm_onbutton()) btn = 0;
+    // enable snooze and ensure visible display on button press
+    if(btn) if(display_onbutton() || alarm_onbutton()) btn = 0;
 
     switch(mode.state) {
 	case MODE_TIME_DISPLAY:
@@ -102,7 +102,7 @@ void mode_semitick(void) {
 	case MODE_MENU_SETALARM:
 	    switch(btn) {
 		case BUTTONS_MENU:
-		    if(gps.data_timer) {
+		    if(gps.data_timer && gps.warn_timer) {
 			mode_update(MODE_MENU_SETZONE);
 		    } else {
 			mode_update(MODE_MENU_SETTIME);
@@ -502,7 +502,7 @@ void mode_semitick(void) {
 	case MODE_MENU_SETBRIGHT:
 	    switch(btn) {
 		case BUTTONS_MENU:
-		    mode_update(MODE_MENU_SETDIGITBRIGHT);
+		    mode_update(MODE_MENU_SETSNOOZE);
 		    break;
 		case BUTTONS_SET:
 		    mode.tmp[MODE_TMP_MIN] = display.bright_min;
@@ -534,8 +534,8 @@ void mode_semitick(void) {
 			*mode.tmp = mode.tmp[MODE_TMP_MIN];
 			mode_update(MODE_SETBRIGHT_MIN);
 		    } else {
-			display_savebright();
-			mode_update(MODE_TIME_DISPLAY);
+			*mode.tmp = 0;
+			mode_update(MODE_SETBRIGHT_DIGIT);
 		    }
 		    break;
 		case BUTTONS_PLUS:
@@ -594,9 +594,8 @@ void mode_semitick(void) {
 		case BUTTONS_SET:
 		    display.bright_min = mode.tmp[MODE_TMP_MIN];
 		    display.bright_max = *mode.tmp;
-		    display_autodim();
-		    display_savebright();
-		    mode_update(MODE_TIME_DISPLAY);
+		    *mode.tmp = 0;
+		    mode_update(MODE_SETBRIGHT_DIGIT);
 		    break;
 		case BUTTONS_PLUS:
 		    if(++(*mode.tmp) > 20) {
@@ -616,34 +615,46 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_MENU_SETDIGITBRIGHT:
+	case MODE_SETBRIGHT_OFF:
 	    switch(btn) {
 		case BUTTONS_MENU:
-		    mode_update(MODE_MENU_SETSNOOZE);
-		    break;
-		case BUTTONS_SET:
-		    *mode.tmp = 0;
-		    mode_update(MODE_SETDIGITBRIGHT);
-		    break;
-		case BUTTONS_PLUS:
+		    display_loadbright();
+		    display_loaddigittimes();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
+		case BUTTONS_SET:
+		    display_savebright();
+		    display_savedigittimes();
+		    display.off_threshold = UINT8_MAX - *mode.tmp;
+		    display_saveoff();
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_PLUS:
+		    ++(*mode.tmp);
+		    *mode.tmp %= 51;
+		    mode_update(MODE_SETBRIGHT_OFF);
+		    break;
 		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			display_loadbright();
+			display_loaddigittimes();
+		    }
 		    break;
 	    }
 	    break;
-	case MODE_SETDIGITBRIGHT:
+	case MODE_SETBRIGHT_DIGIT:
 	    switch(btn) {
 		case BUTTONS_MENU:
+		    display_loadbright();
 		    display_loaddigittimes();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_SET:
 		    if(++(*mode.tmp) < DISPLAY_SIZE) {
-			mode_update(MODE_SETDIGITBRIGHT);
+			mode_update(MODE_SETBRIGHT_DIGIT);
 		    } else {
-			display_savedigittimes();
-			mode_update(MODE_TIME_DISPLAY);
+			*mode.tmp = UINT8_MAX - display.off_threshold;
+			mode_update(MODE_SETBRIGHT_OFF);
 		    }
 		    break;
 		case BUTTONS_PLUS:
@@ -656,9 +667,13 @@ void mode_semitick(void) {
 
 		    display_noflicker();
 
-		    mode_update(MODE_SETDIGITBRIGHT);
+		    mode_update(MODE_SETBRIGHT_DIGIT);
 		    break;
 		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			display_loadbright();
+			display_loaddigittimes();
+		    }
 		    break;
 	    }
 	    break;
@@ -877,12 +892,13 @@ void mode_semitick(void) {
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_SET:
-		    time.status ^= TIME_12HOUR;
+		    time.status &= ~TIME_12HOUR;
+		    time.status |=  *mode.tmp;
 		    time_savestatus();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_PLUS:
-		    *mode.tmp = !*mode.tmp;
+		    *mode.tmp ^= TIME_12HOUR;
 		    mode_update(MODE_SETTIMEFORMAT_12HOUR);
 		    break;
 		default:
@@ -1117,10 +1133,15 @@ void mode_update(uint8_t new_state) {
 	    display_autodim();
 	    mode_textnum_display(PSTR("b max"), *mode.tmp);
 	    break;
-	case MODE_MENU_SETDIGITBRIGHT:
-	    display_pstr(0, PSTR("set digt"));
+	case MODE_SETBRIGHT_OFF:
+	    if(*mode.tmp) {
+		mode_textnum_display(PSTR("off"), *mode.tmp);
+	    } else {
+		display_pstr(0, PSTR("off nevr"));
+		display_dotselect(5, 8);
+	    }
 	    break;
-	case MODE_SETDIGITBRIGHT:
+	case MODE_SETBRIGHT_DIGIT:
 	    display_dot(0, TRUE);
 
 	    for(uint8_t i = 1; i < DISPLAY_SIZE; ++i) {
@@ -1179,7 +1200,8 @@ void mode_update(uint8_t new_state) {
 	    }
 	    break;
 	case MODE_MENU_SETTIMEFORMAT:
-	    display_pstr(0, PSTR("set tfmt"));
+	    display_pstr(0, PSTR("set 1224"));
+	    display_dot(6, TRUE);
 	    break;
 	case MODE_SETTIMEFORMAT_12HOUR:
 	    if(*mode.tmp) {

@@ -6,12 +6,18 @@
 
 
 #define DISPLAY_SIZE 9
+#define DISPLAY_OFF_TIMEOUT 30
 
 
 typedef struct {
-    uint8_t  buffer[DISPLAY_SIZE];  // display contents
-    int8_t  bright_min;             // minimum display brightness
-    int8_t  bright_max;             // maximum display brightness
+    uint8_t buffer[DISPLAY_SIZE];  // display contents
+    int8_t  bright_min;            // minimum display brightness
+    int8_t  bright_max;            // maximum display brightness
+
+    // display turns off during wake mode when photosensor is below
+    // 256 * threshold and the display-off timer is expired
+    uint8_t off_threshold;         // display-off threshold
+    uint8_t off_timer;             // display-off timer
 
     // photoresistor adc result (times 2^6, running average)
     uint16_t photo_avg;
@@ -29,7 +35,7 @@ void display_init(void);
 void display_wake(void);
 void display_sleep(void);
 
-inline void display_tick(void) {};
+void display_tick(void);
 uint8_t display_varsemitick(void);
 void display_semitick(void);
 
@@ -40,6 +46,11 @@ void display_loaddigittimes(void);
 void display_savedigittimes(void);
 
 void display_noflicker(void);
+
+void display_loadoff(void);
+void display_saveoff(void);
+
+uint8_t display_onbutton(void);
 
 void display_autodim(void);
 

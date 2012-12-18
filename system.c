@@ -1,6 +1,5 @@
 // system.c  --  system functions (idle, sleep, interrupts)
 //
-//    PB4 (MOSI)           unused pin
 //    PC2                  unused pin
 //    PC1                  unused pin
 //    AIN1 (PD7)           divided system voltage
@@ -37,7 +36,6 @@ void system_init(void) {
 
     // enable pull-up resistors on unused pins to ensure a defined value
     PORTC |= _BV(PC2) | _BV(PC1);
-    PORTB |= _BV(PB4); // msoi
 
     // use internal bandgap as reference for analog comparator
     // and enable analog comparator interrupt on falling edge

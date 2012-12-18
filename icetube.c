@@ -5,11 +5,13 @@
 //
 //    system.c     system management (idle and sleep loops)
 //    time.c       date and time keeping
-//    alarm.c      alarm and buzzer
+//    alarm.c      alarm functionality
+//    pizo.c       pizo element control (music, beeps, clicks)
 //    buttons.c    button inputs (menu, set, and plus)
 //    display.c    boost, MAX6921, and VFD
 //    mode.c       clock mode (displayed time, menus, etc.)
 //    usart.c      serial communication
+//    gps.c        time-from-GPS functionality
 //
 
 

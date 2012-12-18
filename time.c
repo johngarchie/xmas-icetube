@@ -256,11 +256,13 @@ uint8_t time_dayofweek(uint8_t year, uint8_t month, uint8_t day) {
     // days from prior years, minus leap days
     total_days += 365 * year;
 
-    // leap day from year 2000, if prior year
-    if(year > 0) ++total_days;
+    if(year > 0) {
+	// leap day from year 2000
+	++total_days;
 
-    // leap days from prior years
-    total_days += (year - 1) >> 2;
+	// leap days from other years since 2000
+	total_days += (year - 1) >> 2;
+    }
 
     // days in prior months this year
     for(uint8_t i = TIME_JAN; i < month; ++i) {

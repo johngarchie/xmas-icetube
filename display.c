@@ -31,8 +31,8 @@ volatile display_t display;
 // permanent place to store display brightness
 uint8_t ee_display_bright_min EEMEM = 1;
 uint8_t ee_display_bright_max EEMEM = 1;
+uint8_t ee_display_bright_off_threshold EEMEM = UINT8_MAX;
 uint8_t ee_display_digit_times[] EEMEM = {15, 15, 15, 15, 15, 15, 15, 15, 15};
-
 
 // display of letters and numbers is coded by 
 // the appropriate segment flags:
@@ -151,6 +151,17 @@ void display_init(void) {
 
     // load the digit display times
     display_loaddigittimes();
+
+    // load the display-off threshold
+    display_loadoff();
+}
+
+
+// returns true if display is off during wake mode
+uint8_t display_onbutton(void) {
+    uint8_t old_off_timer = display.off_timer;
+    display.off_timer = DISPLAY_OFF_TIMEOUT;
+    return (display.photo_avg >> 8) > display.off_threshold && !old_off_timer;
 }
 
 
@@ -217,23 +228,34 @@ void display_sleep(void) {
 }
 
 
+// decrements display-off timer
+void display_tick(void) {
+    if(display.off_timer) --display.off_timer;
+}
+
+
 // called periodically to to control the VFD via the MAX6921
 // returns time (in 32us units) to display current digit
 uint8_t display_varsemitick(void) {
-    static uint8_t digit_idx = 0;  
+    static uint8_t digit_idx = 0;
+    uint32_t bits = 0;  // bits to send MAX6921 (vfd driver chip)
 
     // update next digit
     digit_idx = (digit_idx + 1) % DISPLAY_SIZE;
 
-    // select the digit position to display
-    uint32_t bits = (uint32_t)1 << pgm_read_byte(&(vfd_digit_pins[digit_idx]));
+    if(display.off_timer || (display.photo_avg >> 8) <= display.off_threshold) {
+	// select the digit position to display
+	bits = (uint32_t)1 << pgm_read_byte(&(vfd_digit_pins[digit_idx]));
 
-    // select the segments to display
-    for(uint8_t segment = 0; segment < 8; ++segment) {
-	if(display.buffer[digit_idx] & _BV(segment)) {
-	    bits |= (uint32_t)1 << pgm_read_byte(&(vfd_segment_pins[segment]));
+	// select the segments to display
+	for(uint8_t segment = 0; segment < 8; ++segment) {
+	    if(display.buffer[digit_idx] & _BV(segment)) {
+		bits |= (uint32_t)1
+		    	<< pgm_read_byte(&(vfd_segment_pins[segment]));
+	    }
 	}
     }
+	
 
     // send bits to the MAX6921 (vfd driver chip)
 
@@ -372,6 +394,18 @@ void display_noflicker(void) {
     while( (total_digit_time >> display.digit_time_shift) > 512 ) {
 	++display.digit_time_shift;
     }
+}
+
+
+// load the display-off threshold
+void display_loadoff(void) {
+    display.off_threshold = eeprom_read_byte(&ee_display_bright_off_threshold);
+}
+
+
+// save the display-off threshold
+void display_saveoff(void) {
+    eeprom_write_byte(&ee_display_bright_off_threshold, display.off_threshold);
 }
 
 

@@ -19,20 +19,23 @@ This firmware boasts many features including,
 
     (1) adjustable alarm volume (11 levels),
     (3) progressive alarm option (low to high volume),
-    (2) musical alarm option ("Merry Christmas"),
+    (2) musical alarm option ("Merry Christmas" or buzzer),
     (4) DST support (USA, EU, or manual),
     (5) automatic drift correction,
-    (6) Time-from-GPS support,
+    (6) time-from-GPS support,
     (7) alarm sounds during power outage,*
-    (8) no reset during power failure,
-    (9) per-digit brightness control, and
-   (10) autodimmer (requires photoresistor)
+    (8) no reset or time loss during power failure,
+    (9) per-digit brightness control,
+   (10) optionally set brightness by ambient light,** and
+   (11) optionally disable display at night (when dark)**
 
-* The snooze feature, musical alarm, and progressive alarm, are automatically
-  disabled during a power failure.  While on battery power, the buzzer alarm
-  sounds at a menu-settable maximum volume and the alarm can only be enabled
-  or disabled via the alarm on/off switch.  All other inputs are ignored until
-  power is restored.
+*  The snooze feature, musical alarm, and progressive alarm, are automatically
+   disabled during a power failure.  While on battery power, the buzzer alarm
+   sounds at a menu-settable maximum volume and the alarm can only be enabled
+   or disabled via the alarm on/off switch.  All other inputs are ignored until
+   power is restored.
+
+** Both features require a CdS photoresistor with 10-20k pull-up resistor.
 
 
 For Ice Tube Clock hackers, this firmware has
