@@ -40,15 +40,18 @@ volatile pizo_t pizo;
 
 // macro for placing each note in an octave: a note
 // is stored in the lower nibble; an octave, the upper
-#define N(note, octave) ((octave << 4) | note)
-#define NOTE_MASK   0x0F
-#define OCTAVE_MASK 0xF0
+#define N(note, octave, timing) ((octave << 12) | (note << 8) | timing)
+#define NOTE_MASK   0x0F00
+#define OCTAVE_MASK 0xF000
+#define TIMING_MASK 0x00FF
 
 // other possible "sounds"
 // (since a note must have an octave of at least three,
 // any value, less than 48 (3 * 2^8) is not a valid note)
-#define PAUSE  0  // silence instead of note
-#define BEEP   1  // arbitrary beep sound
+#define PAUSE(timing) (timing)  // silence instead of note
+#define PAUSE_MASK  0xFF00      // mask to determine pauses
+#define PAUSE_VALUE 0           // mask to determine pauses
+#define BEEP        1           // arbitrary beep sound
 
 
 // The table below is used to convert alarm volume (0 to 10) into timer
@@ -77,51 +80,38 @@ const uint16_t third_octave[] PROGMEM = {
 };
 
 
-// the notes of "merry christmas"
-const uint8_t merry_xmas_notes[] PROGMEM = {
-    N(Dn,6),
-    N(Gn,6), N(Gn,6), N(An,6), N(Gn,6), N(Fs,6),
-    N(En,6), N(En,6), N(En,6),
-    N(An,6), N(An,6), N(Bn,6), N(An,6), N(Gn,6),
-    N(Fs,6), N(Dn,6), N(Dn,6),
-    N(Bn,6), N(Bn,6), N(Cn,7), N(Bn,6), N(An,6),
-    N(Gn,6), N(En,6), N(En,6), N(En,6),
-    N(En,6), N(An,6), N(Fs,6),
-    N(Gn,6),
+// the notes and timing of "merry christmas"
+const uint16_t merry_xmas[] PROGMEM = {
+    N(Dn,6,2),
+    N(Gn,6,2), N(Gn,6,1), N(An,6,1), N(Gn,6,1), N(Fs,6,1),
+    N(En,6,2), N(En,6,2), N(En,6,2),
+    N(An,6,2), N(An,6,1), N(Bn,6,1), N(An,6,1), N(Gn,6,1),
+    N(Fs,6,2), N(Dn,6,2), N(Dn,6,2),
+    N(Bn,6,2), N(Bn,6,1), N(Cn,7,1), N(Bn,6,1), N(An,6,1),
+    N(Gn,6,2), N(En,6,2), N(En,6,1), N(En,6,1),
+    N(En,6,2), N(An,6,2), N(Fs,6,2),
+    N(Gn,6,4),
 
-    N(Dn,6),
-    N(Gn,6), N(Gn,6), N(Gn,6),
-    N(Fs,6), N(Fs,6),
-    N(Gn,6), N(Fs,6), N(En,6),
-    N(Dn,6), N(Bn,6),
-    N(Cn,7), N(Bn,6), N(An,6),
-    N(Dn,7), N(Dn,6), N(Dn,6), N(Dn,6),
-    N(Dn,6), N(An,6), N(Fs,6),
-    N(Gn,6), PAUSE,
+    N(Dn,6,2),
+    N(Gn,6,2), N(Gn,6,2), N(Gn,6,2),
+    N(Fs,6,4), N(Fs,6,2),
+    N(Gn,6,2), N(Fs,6,2), N(En,6,2),
+    N(Dn,6,4), N(Bn,6,2),
+    N(Cn,7,2), N(Bn,6,2), N(An,6,2),
+    N(Dn,7,2), N(Dn,6,2), N(Dn,6,1), N(Dn,6,1),
+    N(En,6,2), N(An,6,2), N(Fs,6,2),
+    N(Gn,6,4), PAUSE(2),
 0};
 
 
-// the timing of "merry christmas"
-const uint8_t merry_xmas_times[] PROGMEM = {
-    2,
-    2, 1, 1, 1, 1,
-    2, 2, 2,
-    2, 1, 1, 1, 1,
-    2, 2, 2,
-    2, 1, 1, 1, 1,
-    2, 2, 1, 1,
-    2, 2, 2,
-    4,
-
-    2,
-    2, 2, 2,
-    4, 2,
-    2, 2, 2,
-    4, 2,
-    2, 2, 2,
-    2, 2, 1, 1,
-    2, 2, 2,
-    4, 2,
+// big ben chime
+const uint16_t big_ben[] PROGMEM = {
+    N(Bn,5,4), N(Gn,5,4), N(An,5,4), N(Dn,5,4),
+    N(Gn,5,4), N(An,5,4), N(Bn,5,4), N(Gn,5,4),
+    N(Bn,5,4), N(An,5,4), N(Gn,5,4), N(Dn,5,4),
+    N(Dn,5,4), N(An,5,4), N(Bn,5,4), N(Gn,5,4),
+    N(Gn,5,4), N(Gn,5,4), N(Gn,5,4), N(Gn,5,4),
+    PAUSE(4),
 0};
 
 
@@ -159,14 +149,15 @@ void pizo_savesound(void) {
 void pizo_configsound(void) {
     switch(pizo.status & PIZO_SOUND_MASK) {
 	case PIZO_SOUND_MERRY_XMAS:
-	    pizo.notes = merry_xmas_notes;
-	    pizo.times = merry_xmas_times;
+	    pizo.music = merry_xmas;
+	    break;
+	case PIZO_SOUND_BIG_BEN:
+	    pizo.music = big_ben;
 	    break;
 	default:
 	    pizo.status &= ~PIZO_SOUND_MASK;
 	    pizo.status |=  PIZO_SOUND_BEEPS;
-	    pizo.notes  = merry_xmas_notes;
-	    pizo.times  = merry_xmas_times;
+	    pizo.music  = merry_xmas;
 	    break;
     }
 }
@@ -180,6 +171,10 @@ void pizo_nextsound(void) {
 	    pizo.status |=  PIZO_SOUND_MERRY_XMAS;
 	    break;
 	case PIZO_SOUND_MERRY_XMAS:
+	    pizo.status &= ~PIZO_SOUND_MASK;
+	    pizo.status |=  PIZO_SOUND_BIG_BEN;
+	    break;
+	case PIZO_SOUND_BIG_BEN:
 	    pizo.status &= ~PIZO_SOUND_MASK;
 	    pizo.status |=  PIZO_SOUND_BEEPS;
 	    break;
@@ -317,23 +312,25 @@ void pizo_semitick(void) {
 	case PIZO_ALARM_MUSIC:
 	    // when timer expires, play next note or pause
 	    if(!pizo.timer) {
-		pizo.timer = pgm_read_byte(&(pizo.times[pizo.pos]));
+		uint16_t note = pgm_read_word(&(pizo.music[pizo.pos]));
+		pizo.timer = note & TIMING_MASK;
 
 		if(!pizo.timer) {  // zero indicates end-of-tune,
 		    pizo.pos = 0;  // so repeat from beginning
-		    pizo.timer = pgm_read_byte(&(pizo.times[pizo.pos]));
+		    note = pgm_read_word(&(pizo.music[pizo.pos]));
+		    pizo.timer = note & TIMING_MASK;
 		}
 
 		pizo.timer <<= 8;  // 256 semiticks per time unit
 
 		// play required note
-		pizo_buzzeron(pgm_read_byte(&(pizo.notes[pizo.pos])));
+		pizo_buzzeron(note);
 
 		++pizo.pos; // increment note index
 	    }
 
 	    // brief pause to make notes distinct
-	    if(pizo.timer == 32) pizo_buzzeroff();
+	    if(pizo.timer == 64) pizo_buzzeroff();
 
 	    --pizo.timer;
 
@@ -346,23 +343,23 @@ void pizo_semitick(void) {
 
 
 // enables buzzer with given sound: PAUSE, BEEP, or N(a,b)
-void pizo_buzzeron(uint8_t sound) {
+void pizo_buzzeron(uint16_t sound) {
     uint16_t top_value; uint8_t top_shift;
 
-    if(sound == PAUSE) {
-	pizo_buzzeroff();
-	return;
-    } else if(sound == BEEP) {
+    if(sound == BEEP) {
 	top_value = 2048;
 	top_shift = 0;
+    } else if((sound & PAUSE_MASK) == PAUSE_VALUE) {
+	pizo_buzzeroff();
+	return;
     } else {
 	// calculate the number of octaves above the third
 	// (the upper nibble of a note specifies the octave)
-	top_shift = ((sound & OCTAVE_MASK) >> 4) - 3;
+	top_shift = ((sound & OCTAVE_MASK) >> 12) - 3;
 
 	// find TOP for desired note in the third octave
 	// (the lower nibble of a note specifies the index)
-	top_value = pgm_read_word(&(third_octave[sound & NOTE_MASK]));
+	top_value = pgm_read_word(&(third_octave[(sound & NOTE_MASK) >> 8]));
     }
 
     // shift counter top from third octave to desired octave

@@ -29,6 +29,7 @@
 // pizo.status alarm type (higher nibble)
 #define PIZO_SOUND_BEEPS      0x00
 #define PIZO_SOUND_MERRY_XMAS 0x10
+#define PIZO_SOUND_BIG_BEN    0x20
 
 #define PIZO_DEFAULT_SOUND PIZO_SOUND_BEEPS
 
@@ -38,8 +39,7 @@ typedef struct {
     uint8_t  cm_factor;
     uint8_t  pos;
     uint16_t timer;
-    const uint8_t *notes;
-    const uint8_t *times;
+    const uint16_t *music;
 } pizo_t;
 
 
@@ -60,7 +60,7 @@ void pizo_sleep(void);
 void pizo_tick(void);
 void pizo_semitick(void);
 
-void pizo_buzzeron(uint8_t sound);
+void pizo_buzzeron(uint16_t sound);
 void pizo_buzzeroff(void);
 
 void pizo_click(void);

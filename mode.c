@@ -70,7 +70,11 @@ void mode_semitick(void) {
     uint8_t btn = buttons_process();
 
     // enable snooze and ensure visible display on button press
-    if(btn) if(display_onbutton() || alarm_onbutton()) btn = 0;
+    if(btn) {
+	uint8_t a = display_onbutton();
+	uint8_t b = alarm_onbutton();
+	if(a || b) btn = 0;
+    }
 
     switch(mode.state) {
 	case MODE_TIME_DISPLAY:
@@ -923,7 +927,7 @@ void mode_wake(void) {
 
 // called when the alarm switch is turned on
 void mode_alarmset(void) {
-    if(mode.state == MODE_TIME_DISPLAY) {
+    if(mode.state <= MODE_SNOOZEON_DISPLAY) {
 	mode_update(MODE_ALARMSET_DISPLAY);
     }
 }
@@ -931,7 +935,7 @@ void mode_alarmset(void) {
 
 // called when the alarm switch is turned off
 void mode_alarmoff(void) {
-    if(mode.state == MODE_TIME_DISPLAY) {
+    if(mode.state <= MODE_SNOOZEON_DISPLAY) {
 	mode_update(MODE_ALARMOFF_DISPLAY);
     }
 }
@@ -939,7 +943,7 @@ void mode_alarmoff(void) {
 
 // called when the snooze mode is activated
 void mode_snoozing(void) {
-    if(mode.state == MODE_TIME_DISPLAY) {
+    if(mode.state <= MODE_SNOOZEON_DISPLAY) {
 	mode_update(MODE_SNOOZEON_DISPLAY);
     }
 }
@@ -1165,9 +1169,13 @@ void mode_update(uint8_t new_state) {
 		    display_pstr(0, PSTR("mery chr"));
 		    display_dotselect(1, 8);
 		    break;
+		case PIZO_SOUND_BIG_BEN:
+		    display_pstr(0, PSTR("big ben"));
+		    display_dotselect(1, 7);
+		    break;
 		default:
-		    display_pstr(0, PSTR(" buzzer"));
-		    display_dotselect(2, 7);
+		    display_pstr(0, PSTR(" beeps"));
+		    display_dotselect(2, 6);
 		    break;
 	    }
 	    break;

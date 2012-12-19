@@ -12,11 +12,12 @@
 
 
 #include "alarm.h"
-#include "pizo.h"   // for sounding the alarm
-#include "time.h"   // alarm must sound at appropriate time
-#include "system.h" // alarm behavior depends on power source
-#include "mode.h"   // mode updated on alarm state changes
-#include "usart.h"  // for debugging output
+#include "pizo.h"    // for sounding the alarm
+#include "time.h"    // alarm must sound at appropriate time
+#include "system.h"  // alarm behavior depends on power source
+#include "mode.h"    // mode updated on alarm state changes
+#include "usart.h"   // for debugging output
+#include "display.h" // for ensuring display is enabled
 
 
 // extern'ed alarm data
@@ -134,6 +135,9 @@ void alarm_tick(void) {
 
 	    pizo_setvolume(alarm.volume, 0);
 	    pizo_alarm_start();
+
+	    // ensure display is enabled if power present
+	    display_onbutton();
 	}
     } else if(alarm.status & ALARM_SOUNDING && system.status & SYSTEM_SLEEP) {
 	// if alarm sounding and system sleeping, query alarm switch
@@ -198,6 +202,7 @@ void alarm_semitick(void) {
 	    if(++alarm_debounce >= ALARM_DEBOUNCE_TIME) {
 		alarm.status |= ALARM_SET;
 		mode_alarmset();
+		display_onbutton();
 	    }
 	}
     } else {
@@ -206,6 +211,7 @@ void alarm_semitick(void) {
 		if(alarm.status & ALARM_SOUNDING) pizo_alarm_stop();
 		alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING & ~ALARM_SNOOZE;
 		mode_alarmoff();
+		display_onbutton();
 	    }
 	} else {
 	    alarm_debounce = 0;
