@@ -20,13 +20,20 @@
 #define TIME_DEC 12
 
 // day-of-week numbers
-#define TIME_SUN 0
-#define TIME_MON 1
-#define TIME_TUE 2
-#define TIME_WED 3
-#define TIME_THU 4
-#define TIME_FRI 5
-#define TIME_SAT 6
+#define TIME_SUN   0
+#define TIME_MON   1
+#define TIME_TUE   2
+#define TIME_WED   3
+#define TIME_THU   4
+#define TIME_FRI   5
+#define TIME_SAT   6
+#define TIME_NODAY 7
+
+#define TIME_ALLDAYS   _BV(TIME_SUN) | _BV(TIME_MON) | _BV(TIME_TUE) | _BV(TIME_WED) | _BV(TIME_THU) | _BV(TIME_FRI) | _BV(TIME_SAT)
+
+#define TIME_WEEKDAYS   _BV(TIME_MON) | _BV(TIME_TUE) | _BV(TIME_WED) | _BV(TIME_THU) | _BV(TIME_FRI)
+
+#define TIME_WEEKENDS _BV(TIME_SAT) | _BV(TIME_SUN)
 
 // return states for time_isdst_usa()
 #ifndef TRUE

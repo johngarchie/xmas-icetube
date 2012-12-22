@@ -491,8 +491,8 @@ void pizo_tryalarm_start(void) {
 
 	    // set state
 	    pizo.status &= ~PIZO_STATE_MASK;
-	    pizo.status |= ((pizo.status & PIZO_SOUND_MASK) == PIZO_SOUND_BEEPS ?
-			     PIZO_TRYALARM_BEEPS : PIZO_TRYALARM_MUSIC);
+	    pizo.status |= ((pizo.status & PIZO_SOUND_MASK) == PIZO_SOUND_BEEPS
+		            ? PIZO_TRYALARM_BEEPS : PIZO_TRYALARM_MUSIC);
 
 	    // reset music poisition and timer
 	    pizo.pos   = 0;

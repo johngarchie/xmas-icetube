@@ -32,6 +32,7 @@ void mode_alarm_display(uint8_t hour, uint8_t minute);
 void mode_textnum_display(PGM_P pstr, int8_t num);
 void mode_dayofweek_display(void);
 void mode_monthday_display(void);
+void mode_daysofweek_display(uint8_t days);
 
 
 // set default startup mode after system reset
@@ -95,10 +96,37 @@ void mode_semitick(void) {
 	    if(btn || ++mode.timer > 1000) mode_update(MODE_MONTHDAY_DISPLAY);
 	    return;  // time ourselves; skip code below
 	case MODE_ALARMSET_DISPLAY:
-	    if(btn || ++mode.timer > 1000) mode_update(MODE_ALARMTIME_DISPLAY);
+	    if(btn || ++mode.timer > 1000) {
+		*mode.tmp = 0;
+		mode_update(MODE_ALARMIDX_DISPLAY);
+	    }
+	    return;  // time ourselves; skip code below
+	case MODE_ALARMIDX_DISPLAY:
+	    if(btn || ++mode.timer > 1000) {
+		mode_update(MODE_ALARMTIME_DISPLAY);
+	    }
+	    return;  // time ourselves; skip code below
+	case MODE_ALARMTIME_DISPLAY:
+	    if(btn || ++mode.timer > 1000) {
+		if(alarm.days[*mode.tmp]) {
+		    mode_update(MODE_ALARMDAYS_DISPLAY);
+		} else if(++(*mode.tmp) < ALARM_COUNT) {
+		    mode_update(MODE_ALARMIDX_DISPLAY);
+		} else {
+		    mode_update(MODE_TIME_DISPLAY);
+		}
+	    }
+	    return;  // time ourselves; skip code below
+	case MODE_ALARMDAYS_DISPLAY:
+	    if(btn || ++mode.timer > 1000) {
+		if(++(*mode.tmp) < ALARM_COUNT) {
+		    mode_update(MODE_ALARMIDX_DISPLAY);
+		} else {
+		    mode_update(MODE_TIME_DISPLAY);
+		}
+	    }
 	    return;  // time ourselves; skip code below
 	case MODE_MONTHDAY_DISPLAY:
-	case MODE_ALARMTIME_DISPLAY:
 	case MODE_ALARMOFF_DISPLAY:
 	case MODE_SNOOZEON_DISPLAY:
 	    if(btn || ++mode.timer > 1000) mode_update(MODE_TIME_DISPLAY);
@@ -113,12 +141,54 @@ void mode_semitick(void) {
 		    }
 		    break;
 		case BUTTONS_SET:
-		    mode.tmp[MODE_TMP_HOUR]   = alarm.hour;
-		    mode.tmp[MODE_TMP_MINUTE] = alarm.minute;
-		    mode_update(MODE_SETALARM_HOUR);
+		    *mode.tmp = 0;
+		    mode_update(MODE_SETALARM_IDX);
 		    break;
 		case BUTTONS_PLUS:
 		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_SETALARM_IDX:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_SET:
+		    mode.tmp[MODE_TMP_DAYS] = alarm.days[*mode.tmp];
+		    mode_update(MODE_SETALARM_ENABLE);
+		    break;
+		case BUTTONS_PLUS:
+		    ++(*mode.tmp);
+		    *mode.tmp %= ALARM_COUNT;
+		    mode_update(MODE_SETALARM_IDX);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_SETALARM_ENABLE:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_SET:
+		    if(mode.tmp[MODE_TMP_DAYS]) {
+			if(!alarm.days[*mode.tmp]) {
+			    alarm.days[*mode.tmp] = TIME_ALLDAYS;
+			}
+			mode_update(MODE_SETALARM_HOUR);
+		    } else {
+			alarm.days[*mode.tmp] = 0;
+			alarm_savealarm(*mode.tmp);
+			mode_update(MODE_TIME_DISPLAY);
+		    }
+		    break;
+		case BUTTONS_PLUS:
+		    mode.tmp[MODE_TMP_DAYS] = !mode.tmp[MODE_TMP_DAYS];
+		    mode_update(MODE_SETALARM_ENABLE);
 		    break;
 		default:
 		    break;
@@ -127,36 +197,121 @@ void mode_semitick(void) {
 	case MODE_SETALARM_HOUR:
 	    switch(btn) {
 		case BUTTONS_MENU:
+		    alarm_loadalarm(*mode.tmp);
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_SET:
 		    mode_update(MODE_SETALARM_MINUTE);
 		    break;
 		case BUTTONS_PLUS:
-		    ++mode.tmp[MODE_TMP_HOUR];
-		    mode.tmp[MODE_TMP_HOUR] %= 24;
+		    ++alarm.hours[*mode.tmp];
+		    alarm.hours[*mode.tmp] %= 24;
 		    mode_update(MODE_SETALARM_HOUR);
 		    break;
 		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			alarm_loadalarm(*mode.tmp);
+		    }
 		    break;
 	    }
 	    break;
 	case MODE_SETALARM_MINUTE:
 	    switch(btn) {
 		case BUTTONS_MENU:
+		    alarm_loadalarm(*mode.tmp);
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_SET:
-		    alarm_settime(mode.tmp[MODE_TMP_HOUR],
-			          mode.tmp[MODE_TMP_MINUTE]);
-		    mode_update(MODE_TIME_DISPLAY);
+		    mode.tmp[MODE_TMP_DAYS] = alarm.days[*mode.tmp];
+		    mode_update(MODE_SETALARM_DAYS_OPTIONS);
 		    break;
 		case BUTTONS_PLUS:
-		    ++mode.tmp[MODE_TMP_MINUTE];
-		    mode.tmp[MODE_TMP_MINUTE] %= 60;
+		    ++alarm.minutes[*mode.tmp];
+		    alarm.minutes[*mode.tmp] %= 60;
 		    mode_update(MODE_SETALARM_MINUTE);
 		    break;
 		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			alarm_loadalarm(*mode.tmp);
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_SETALARM_DAYS_OPTIONS:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    alarm_loadalarm(*mode.tmp);
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_SET:
+		    switch(mode.tmp[MODE_TMP_DAYS]) {
+			case TIME_ALLDAYS:
+			case TIME_WEEKDAYS:
+			case TIME_WEEKENDS:
+			    alarm.days[*mode.tmp] = mode.tmp[MODE_TMP_DAYS];
+			    alarm_savealarm(*mode.tmp);
+			    mode_update(MODE_TIME_DISPLAY);
+			    break;
+			default:
+		            if(mode.tmp[MODE_TMP_DAYS] == _BV(TIME_NODAY)
+				    || !mode.tmp[MODE_TMP_DAYS]) {
+				mode.tmp[MODE_TMP_DAYS] = TIME_ALLDAYS;
+			    } else {
+				mode.tmp[MODE_TMP_DAYS] = alarm.days[*mode.tmp];
+			    }
+			    mode.tmp[MODE_TMP_IDX] = 0;
+			    mode_update(MODE_SETALARM_DAYS_CUSTOM);
+			    break;
+		    }
+		    break;
+		case BUTTONS_PLUS:
+		    switch(mode.tmp[MODE_TMP_DAYS]) {
+			case TIME_ALLDAYS:
+		            mode.tmp[MODE_TMP_DAYS] = TIME_WEEKDAYS;
+			    break;
+			case TIME_WEEKDAYS:
+		            mode.tmp[MODE_TMP_DAYS] = TIME_WEEKENDS;
+			    break;
+			case TIME_WEEKENDS:
+		            mode.tmp[MODE_TMP_DAYS] = _BV(TIME_NODAY);
+			    break;
+			default:
+		            mode.tmp[MODE_TMP_DAYS] = TIME_ALLDAYS;
+			    break;
+		    }
+		    mode_update(MODE_SETALARM_DAYS_OPTIONS);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			alarm_loadalarm(*mode.tmp);
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_SETALARM_DAYS_CUSTOM:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    alarm_loadalarm(*mode.tmp);
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_SET:
+		    if(mode.tmp[MODE_TMP_IDX] < TIME_SAT) {
+			++mode.tmp[MODE_TMP_IDX];
+			mode_update(MODE_SETALARM_DAYS_CUSTOM);
+		    } else {
+			alarm.days[*mode.tmp] = mode.tmp[MODE_TMP_DAYS];
+			alarm_savealarm(*mode.tmp);
+			mode_update(MODE_TIME_DISPLAY);
+		    }
+		    break;
+		case BUTTONS_PLUS:
+		    mode.tmp[MODE_TMP_DAYS] ^= _BV(mode.tmp[MODE_TMP_IDX]);
+		    mode_update(MODE_SETALARM_DAYS_CUSTOM);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			alarm_loadalarm(*mode.tmp);
+		    }
 		    break;
 	    }
 	    break;
@@ -983,8 +1138,33 @@ void mode_update(uint8_t new_state) {
 	case MODE_ALARMSET_DISPLAY:
 	    display_pstr(0, PSTR("alar set"));
 	    break;
+	case MODE_ALARMIDX_DISPLAY:
+	    display_pstr(0, PSTR("alarm 0"));
+	    display_digit(8, *mode.tmp + 1);
+	    break;
 	case MODE_ALARMTIME_DISPLAY:
-	    mode_alarm_display(alarm.hour, alarm.minute);
+	    if(alarm.days[*mode.tmp]) {
+		mode_alarm_display(alarm.hours[*mode.tmp],
+				   alarm.minutes[*mode.tmp]);
+	    } else {
+		display_pstr(0, PSTR("disabled"));
+	    }
+	    break;
+	case MODE_ALARMDAYS_DISPLAY:
+	    switch(alarm.days[*mode.tmp]) {
+		case TIME_ALLDAYS:
+		    display_pstr(0, PSTR("all days"));
+		    break;
+		case TIME_WEEKDAYS:
+		    display_pstr(0, PSTR("weekdays"));
+		    break;
+		case TIME_WEEKENDS:
+		    display_pstr(0, PSTR("weekends"));
+		    break;
+		default:
+		    mode_daysofweek_display(alarm.days[*mode.tmp]);
+		    break;
+	    }
 	    break;
 	case MODE_ALARMOFF_DISPLAY:
 	    display_pstr(0, PSTR("alar off"));
@@ -995,9 +1175,22 @@ void mode_update(uint8_t new_state) {
 	case MODE_MENU_SETALARM:
 	    display_pstr(0, PSTR("set alar"));
 	    break;
+	case MODE_SETALARM_IDX:
+	    mode_textnum_display(PSTR("alarm"), *mode.tmp + 1);
+	    break;
+	case MODE_SETALARM_ENABLE:
+	    display_pstr(0, PSTR("alrm"));
+	    if(mode.tmp[MODE_TMP_DAYS]) {
+		display_pstr(7, PSTR("on"));
+		display_dotselect(7, 8);
+	    } else {
+		display_pstr(6, PSTR("off"));
+		display_dotselect(6, 8);
+	    }
+	    break;
 	case MODE_SETALARM_HOUR:
-	    mode_alarm_display(mode.tmp[MODE_TMP_HOUR],
-			       mode.tmp[MODE_TMP_MINUTE]);
+	    mode_alarm_display(alarm.hours[*mode.tmp],
+			       alarm.minutes[*mode.tmp]);
 	    if(time.status & TIME_12HOUR) {
 		display_dotselect(1, 2);
 	    } else {
@@ -1005,13 +1198,37 @@ void mode_update(uint8_t new_state) {
 	    }
 	    break;
 	case MODE_SETALARM_MINUTE:
-	    mode_alarm_display(mode.tmp[MODE_TMP_HOUR],
-			       mode.tmp[MODE_TMP_MINUTE]);
+	    mode_alarm_display(alarm.hours[*mode.tmp],
+			       alarm.minutes[*mode.tmp]);
 	    if(time.status & TIME_12HOUR) {
 		display_dotselect(4, 5);
 	    } else {
 		display_dotselect(5, 6);
 	    }
+	    break;
+	case MODE_SETALARM_DAYS_OPTIONS:
+	    switch(mode.tmp[MODE_TMP_DAYS]) {
+		case TIME_ALLDAYS:
+		    display_pstr(0, PSTR("all days"));
+		    display_dotselect(1, 8);
+		    break;
+		case TIME_WEEKDAYS:
+		    display_pstr(0, PSTR("weekdays"));
+		    display_dotselect(1, 8);
+		    break;
+		case TIME_WEEKENDS:
+		    display_pstr(0, PSTR("weekends"));
+		    display_dotselect(1, 8);
+		    break;
+		default:
+		    display_pstr(0, PSTR(" custom "));
+		    display_dotselect(2, 7);
+		    break;
+	    }
+	    break;
+	case MODE_SETALARM_DAYS_CUSTOM:
+	    mode_daysofweek_display(mode.tmp[MODE_TMP_DAYS]);
+	    display_dot(1 + mode.tmp[MODE_TMP_IDX], TRUE);
 	    break;
 	case MODE_MENU_SETTIME:
 	    display_pstr(0, PSTR("set time"));
@@ -1161,7 +1378,7 @@ void mode_update(uint8_t new_state) {
 
 	    break;
 	case MODE_MENU_SETSOUND:
-	    display_pstr(0, PSTR("set alrt"));
+	    display_pstr(0, PSTR("cfg alrm"));
 	    break;
 	case MODE_SETSOUND_TYPE:
 	    switch(pizo.status & PIZO_SOUND_MASK) {
@@ -1365,4 +1582,15 @@ void mode_monthday_display(void) {
     display_clear(5);
     display_digit(6, time.day / 10);
     display_digit(7, time.day % 10);
+}
+
+
+// displays the days-of-week for an alarm
+void mode_daysofweek_display(uint8_t days) {
+    display_pstr(0, PSTR("smtwtfs"));
+    for(uint8_t i = 0; i < TIME_NODAY; ++i) {
+	if( !(days & _BV(i)) ) {
+	    display_clear(1 + i);
+	}
+    }
 }

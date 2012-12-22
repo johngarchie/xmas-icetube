@@ -24,9 +24,20 @@
 volatile alarm_t alarm;
 
 
-// default alarm time, volume range, and snooze timeout
-uint8_t ee_alarm_hour        EEMEM = ALARM_DEFAULT_HOUR;
-uint8_t ee_alarm_minute      EEMEM = ALARM_DEFAULT_MINUTE;
+// default alarm times
+uint8_t ee_alarm_hours[ALARM_COUNT] EEMEM = {
+    [0 ... ALARM_COUNT - 1] = ALARM_DEFAULT_HOUR
+};
+
+uint8_t ee_alarm_minutes[ALARM_COUNT] EEMEM = {
+    [0 ... ALARM_COUNT - 1] = ALARM_DEFAULT_MINUTE
+};
+
+uint8_t ee_alarm_days[ALARM_COUNT] EEMEM = {
+    [0 ... ALARM_COUNT - 1] = ALARM_DEFAULT_DAYS
+};
+
+// volume range, and snooze timeout
 uint8_t ee_alarm_snooze_time EEMEM = ALARM_DEFAULT_SNOOZE_TIME;
 uint8_t ee_alarm_volume_min  EEMEM = ALARM_DEFAULT_VOLUME_MIN;
 uint8_t ee_alarm_volume_max  EEMEM = ALARM_DEFAULT_VOLUME_MAX;
@@ -35,9 +46,10 @@ uint8_t ee_alarm_ramp_time   EEMEM = ALARM_DEFAULT_RAMP_TIME;
 
 // initialize alarm after system reset
 void alarm_init(void) {
+    // load alarms
+    for(uint8_t i = 0; i < ALARM_COUNT; ++i) alarm_loadalarm(i);
+
     // load alarm configuration and ensure reasonable values
-    alarm.hour         = eeprom_read_byte(&ee_alarm_hour)        % 24;
-    alarm.minute       = eeprom_read_byte(&ee_alarm_minute)      % 60;
     alarm.snooze_time  = eeprom_read_byte(&ee_alarm_snooze_time) % 31;
     alarm.ramp_time    = eeprom_read_byte(&ee_alarm_ramp_time )  % 61;
     alarm.volume_max   = eeprom_read_byte(&ee_alarm_volume_max)  % 10;
@@ -110,8 +122,21 @@ void alarm_sleep(void) {
 
 // sound alarm at the correct time if alarm is set
 void alarm_tick(void) {
-    // sound alarm at at alarm time
-    if(time.hour == alarm.hour && time.minute == alarm.minute && !time.second) {
+    // will be set to TRUE if alarm should be triggered
+    uint8_t is_alarm_trigger = FALSE;
+
+    // check if alarm should be triggered
+    for(uint8_t i = 0; i < ALARM_COUNT; ++i) {
+	if(time.hour == alarm.hours[i] && time.minute == alarm.minutes[i]
+		&& time.second == 0
+		&& (alarm.days[i]
+		    & _BV(time_dayofweek(time.year, time.month, time.day)))) {
+	    is_alarm_trigger = TRUE;
+	}
+    }
+
+    // sound alarm if alarm should be triggered
+    if(is_alarm_trigger) {
 	if(system.status & SYSTEM_SLEEP) {
 	    // briefly waking the alarm will update
 	    // alarm.status from the alarm switch
@@ -219,13 +244,17 @@ void alarm_semitick(void) {
     }
 }
 
+void alarm_loadalarm(uint8_t idx) {
+    alarm.hours[idx]   = eeprom_read_byte(&(ee_alarm_hours[idx]))   % 24;
+    alarm.minutes[idx] = eeprom_read_byte(&(ee_alarm_minutes[idx])) % 60;
+    alarm.days[idx]    = eeprom_read_byte(&(ee_alarm_days[idx]));
+}
 
 // set new time and save time to eeprom
-void alarm_settime(uint8_t hour, uint8_t minute) {
-    alarm.hour   = hour;
-    alarm.minute = minute;
-    eeprom_write_byte(&ee_alarm_hour,   alarm.hour  );
-    eeprom_write_byte(&ee_alarm_minute, alarm.minute);
+void alarm_savealarm(uint8_t idx) {
+    eeprom_write_byte(&(ee_alarm_hours[idx]), alarm.hours[idx]);
+    eeprom_write_byte(&(ee_alarm_minutes[idx]), alarm.minutes[idx]);
+    eeprom_write_byte(&(ee_alarm_days[idx]), alarm.days[idx]);
 }
 
 
@@ -279,18 +308,24 @@ uint8_t alarm_onbutton(void) {
 
 // returns true if current time is within two seconds of alarm time
 uint8_t alarm_nearalarm(void) {
-    int32_t time_diff = alarm.hour - time.hour;
-    time_diff *= 60;  // hours to minutes
-    time_diff += alarm.minute - time.minute;
-    time_diff *= 60;  // minutes to seconds
-    time_diff += 0 - time.second;
+    for(uint8_t i = 0; i < ALARM_COUNT; ++i) {
+	int32_t time_diff = alarm.hours[i] - time.hour;
+	time_diff *= 60;  // hours to minutes
+	time_diff += alarm.minutes[i] - time.minute;
+	time_diff *= 60;  // minutes to seconds
+	time_diff += 0 - time.second;
 
-    if(time_diff > (int32_t)12 * 60 * 60) {
-	time_diff -= (int32_t)24 * 60 * 60;
-    } else if(time_diff < (int32_t)-12 * 60 * 60) {
-	time_diff += (int32_t)24 * 60 * 60;
+	if(time_diff > (int32_t)12 * 60 * 60) {
+	    time_diff -= (int32_t)24 * 60 * 60;
+	} else if(time_diff < (int32_t)-12 * 60 * 60) {
+	    time_diff += (int32_t)24 * 60 * 60;
+	}
+
+	if(-ALARM_NEAR_THRESHOLD <= time_diff
+		&& time_diff <= ALARM_NEAR_THRESHOLD) {
+	    return TRUE;
+	}
     }
 
-    return -ALARM_NEAR_THRESHOLD <= time_diff
-		&& time_diff <= ALARM_NEAR_THRESHOLD;
+    return FALSE;
 }
