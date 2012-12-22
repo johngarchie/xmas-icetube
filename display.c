@@ -48,6 +48,7 @@ uint8_t ee_display_digit_times[] EEMEM = {15, 15, 15, 15, 15, 15, 15, 15, 15};
 #define DISPLAY_SPACE    0
 #define DISPLAY_DOT      SEG_H
 #define DISPLAY_DASH     SEG_G
+#define DISPLAY_SLASH    SEG_B | SEG_G | SEG_E
 #define DISPLAY_WILDCARD SEG_A | SEG_G | SEG_D
 
 // codes for vfd letter display
@@ -449,6 +450,9 @@ void display_char(uint8_t idx, char c) {
 		break;
 	    case '-':
 		display.buffer[idx] = DISPLAY_DASH;
+		break;
+	    case '/':
+		display.buffer[idx] = DISPLAY_SLASH;
 		break;
 	    default:
 		display.buffer[idx] = DISPLAY_WILDCARD;

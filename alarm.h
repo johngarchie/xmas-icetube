@@ -40,6 +40,9 @@
 #define ALARM_SOUNDING 0x02
 #define ALARM_SNOOZE   0x04
 
+// enabled flag for alarm.days[i]
+#define ALARM_ENABLED 0x80
+
 
 typedef struct {
     uint8_t  status;       // status flags

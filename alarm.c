@@ -127,10 +127,12 @@ void alarm_tick(void) {
 
     // check if alarm should be triggered
     for(uint8_t i = 0; i < ALARM_COUNT; ++i) {
-	if(time.hour == alarm.hours[i] && time.minute == alarm.minutes[i]
+	if((alarm.days[i] & ALARM_ENABLED)
+		&& time.hour == alarm.hours[i]
+		&& time.minute == alarm.minutes[i]
 		&& time.second == 0
-		&& (alarm.days[i]
-		    & _BV(time_dayofweek(time.year, time.month, time.day)))) {
+		&& (alarm.days[i] & _BV(time_dayofweek(time.year, time.month,
+			    			       time.day)))) {
 	    is_alarm_trigger = TRUE;
 	}
     }

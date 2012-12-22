@@ -101,9 +101,10 @@ To compile and install this firmware, edit and use the provided Makefile:
 
 I am likely to implement the following features eventually...
 
-(1) Autodim support should be explicitly enabled/disabled by a macro.
+(1) Firmware should detect absence of a photoresistor and
+    disable relevant menu options.
 
-(2) Time-from-GPS support should be explicitly enabled/disabled by macro.
+(2) Implement graphical display transitions like jgsf's firmware.
 
 (3) I am thinking about adding a countdown timer and/or stopwatch.
 
