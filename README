@@ -55,12 +55,11 @@ For Ice Tube Clock hackers, this firmware has
 Installation requires GNU Make, avr-libc, avr-gcc, and avrdude;
 the instructions below presume proficiency with these tools.
 
-In regard to hardware, the Makefile is setup to build and install the
-firmware for the Adafruit Ice Tube Clock with an ATmega328P, not the
-ATmega168V which is included in the kit.  To program the clock,
-everything works with the Adafruit USBtinyISP.  In theory, this
-firmware should work with the ATmega168V or other avrdude-compatible
-programmers by changing Makefile configuration variables.
+In regard to hardware, this Makefile is setup to build and install the firmware
+for the Adafruit Ice Tube Clock with an ATmega328P.  Unfortunately, this
+firmware is currently too large to work on the ATmega168V.  Programming has
+been tested with the Adafruit USBtinyISP, but other controllers should also
+work (in theory).
 
 In regard to software, compilation and installation seems to work under
 
@@ -104,7 +103,7 @@ I am likely to implement the following features eventually...
 (1) Firmware should detect absence of a photoresistor and
     disable relevant menu options.
 
-(2) Implement graphical display transitions like jgsf's firmware.
+(2) Implement graphical display transitions like the jgsf-icetube firmware.
 
 (3) I am thinking about adding a countdown timer and/or stopwatch.
 

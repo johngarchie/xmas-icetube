@@ -7,6 +7,7 @@
 
 #include <avr/pgmspace.h> // for defining program memory strings with PSTR()
 #include <util/atomic.h>  // for defining non-interruptable blocks
+#include <stdio.h>        // for using the NULL pointer macro
 
 
 #include "mode.h"
@@ -33,6 +34,8 @@ void mode_textnum_display(PGM_P pstr, int8_t num);
 void mode_dayofweek_display(void);
 void mode_monthday_display(void);
 void mode_daysofweek_display(uint8_t days);
+void mode_menu_process_button(uint8_t up, uint8_t next, uint8_t down,
+			      void (*init_func)(void), uint8_t btn);
 
 
 // set default startup mode after system reset
@@ -82,7 +85,7 @@ void mode_semitick(void) {
 	    // check for button presses
 	    switch(btn) {
 		case BUTTONS_MENU:
-		    mode_update(MODE_MENU_SETALARM);
+		    mode_update(MODE_SETALARM_MENU);
 		    break;
 		case BUTTONS_PLUS:
 		case BUTTONS_SET:
@@ -131,25 +134,15 @@ void mode_semitick(void) {
 	case MODE_SNOOZEON_DISPLAY:
 	    if(btn || ++mode.timer > 1000) mode_update(MODE_TIME_DISPLAY);
 	    return;  // time ourselves; skip code below
-	case MODE_MENU_SETALARM:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    if(gps.data_timer && gps.warn_timer) {
-			mode_update(MODE_MENU_SETZONE);
-		    } else {
-			mode_update(MODE_MENU_SETTIME);
-		    }
-		    break;
-		case BUTTONS_SET:
-		    *mode.tmp = 0;
-		    mode_update(MODE_SETALARM_IDX);
-		    break;
-		case BUTTONS_PLUS:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		default:
-		    break;
-	    }
+	case MODE_SETALARM_MENU: ;
+	    void menu_setalarm_init(void) { *mode.tmp = 0; }
+
+	    mode_menu_process_button(
+		MODE_TIME_DISPLAY, 
+		(gps.data_timer && gps.warn_timer ? MODE_CFGTIME_MENU
+		 				  : MODE_SETTIME_MENU),
+		MODE_SETALARM_IDX,
+	        menu_setalarm_init, btn);
 	    break;
 	case MODE_SETALARM_IDX:
 	    switch(btn) {
@@ -326,24 +319,19 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_MENU_SETTIME:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_MENU_SETDATE);
-		    break;
-		case BUTTONS_SET:
-		    mode.tmp[MODE_TMP_HOUR]   = time.hour;
-		    mode.tmp[MODE_TMP_MINUTE] = time.minute;
-		    mode.tmp[MODE_TMP_SECOND] = time.second;
-
-		    mode_update(MODE_SETTIME_HOUR);
-		    break;
-		case BUTTONS_PLUS:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		default:
-		    break;
+	case MODE_SETTIME_MENU: ;
+	    void menu_settime_init(void) {
+		mode.tmp[MODE_TMP_HOUR]   = time.hour;
+		mode.tmp[MODE_TMP_MINUTE] = time.minute;
+		mode.tmp[MODE_TMP_SECOND] = time.second;
 	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_SETDATE_MENU,
+		    MODE_SETTIME_HOUR,
+		    menu_settime_init,
+		    btn);
 	    break;
 	case MODE_SETTIME_HOUR:
 	    switch(btn) {
@@ -402,79 +390,52 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_MENU_SETZONE:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_MENU_SETDST);
-		    break;
-		case BUTTONS_SET:
-		    mode.tmp[MODE_TMP_HOUR]   = gps.rel_utc_hour;
-		    mode.tmp[MODE_TMP_MINUTE] = gps.rel_utc_minute;
-		    mode_update(MODE_SETZONE_HOUR);
-		    break;
-		case BUTTONS_PLUS:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		default:
-		    break;
+	case MODE_SETDATE_MENU: ;
+	    void menu_setdate_init(void) {
+		mode.tmp[MODE_TMP_YEAR]  = time.year;
+		mode.tmp[MODE_TMP_MONTH] = time.month;
+		mode.tmp[MODE_TMP_DAY]   = time.day;
 	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGALARM_MENU,
+		    MODE_SETDATE_YEAR,
+		    menu_setdate_init,
+		    btn);
 	    break;
-	case MODE_SETZONE_HOUR:
+	case MODE_SETDATE_YEAR:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_SET:
-		    mode_update(MODE_SETZONE_MINUTE);
+		    mode_update(MODE_SETDATE_MONTH);
 		    break;
 		case BUTTONS_PLUS:
-		    if(mode.tmp[MODE_TMP_HOUR] >= GPS_HOUR_OFFSET_MAX) {
-			mode.tmp[MODE_TMP_HOUR] = GPS_HOUR_OFFSET_MIN;
-		    } else {
-			++mode.tmp[MODE_TMP_HOUR];
+		    if(++mode.tmp[MODE_TMP_YEAR] > 50) {
+		        mode.tmp[MODE_TMP_YEAR] = 10;
 		    }
-		    mode_update(MODE_SETZONE_HOUR);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_SETZONE_MINUTE:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_SET:
-		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-			gps.rel_utc_hour   = mode.tmp[MODE_TMP_HOUR  ];
-			gps.rel_utc_minute = mode.tmp[MODE_TMP_MINUTE];
-			gps_saverelutc();
-		    }
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_PLUS:
-		    ++mode.tmp[MODE_TMP_MINUTE];
-		    mode.tmp[MODE_TMP_MINUTE] %= 60;
-		    mode_update(MODE_SETZONE_MINUTE);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_MENU_SETDATE:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_MENU_SETDST);
-		    break;
-		case BUTTONS_SET:
-		    // fetch the current date
-		    mode.tmp[MODE_TMP_YEAR]  = time.year;
-		    mode.tmp[MODE_TMP_MONTH] = time.month;
-		    mode.tmp[MODE_TMP_DAY]   = time.day;
 		    mode_update(MODE_SETDATE_YEAR);
 		    break;
-		case BUTTONS_PLUS:
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_SETDATE_MONTH:
+	    switch(btn) {
+		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_SET:
+		    mode_update(MODE_SETDATE_DAY);
+		    break;
+		case BUTTONS_PLUS:
+		    ++mode.tmp[MODE_TMP_MONTH];
+		    if(mode.tmp[MODE_TMP_MONTH] > 12) {
+			mode.tmp[MODE_TMP_MONTH] = 1;
+		    }
+		    mode_update(MODE_SETDATE_MONTH);
 		    break;
 		default:
 		    break;
@@ -507,60 +468,231 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_SETDATE_MONTH:
+	case MODE_CFGALARM_MENU:
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGTIME_MENU,
+		    MODE_CFGALARM_SETSOUND_MENU,
+		    NULL,
+		    btn);
+	    break;
+	case MODE_CFGALARM_SETSOUND_MENU: ;
+	    void menu_cfgalarm_setsound_init(void) {
+		pizo_setvolume((alarm.volume_min + alarm.volume_max) >> 1, 0);
+		pizo_tryalarm_start();
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGALARM_SETVOL_MENU,
+		    MODE_CFGALARM_SETSOUND,
+		    menu_cfgalarm_setsound_init,
+		    btn);
+	    break;
+	case MODE_CFGALARM_SETSOUND:
 	    switch(btn) {
 		case BUTTONS_MENU:
+		    pizo_tryalarm_stop();
+		    pizo_loadsound();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_SET:
-		    mode_update(MODE_SETDATE_DAY);
+		    pizo_savesound();
+		    pizo_tryalarm_stop();
+		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_PLUS:
-		    ++mode.tmp[MODE_TMP_MONTH];
-		    if(mode.tmp[MODE_TMP_MONTH] > 12) {
-			mode.tmp[MODE_TMP_MONTH] = 1;
+		    pizo_nextsound();
+		    pizo_tryalarm_start();
+		    mode_update(MODE_CFGALARM_SETSOUND);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			pizo_tryalarm_stop();
+			pizo_loadsound();
 		    }
-		    mode_update(MODE_SETDATE_MONTH);
-		    break;
-		default:
 		    break;
 	    }
 	    break;
-	case MODE_SETDATE_YEAR:
+	case MODE_CFGALARM_SETVOL_MENU: ;
+	    void menu_cfgalarm_setvol_init(void) {
+		if(alarm.volume_min != alarm.volume_max) {
+		    *mode.tmp = 11;
+		} else {
+		    *mode.tmp = alarm.volume_min;
+		    pizo_setvolume(alarm.volume_min, 0);
+		    pizo_tryalarm_start();
+		}
+		mode.tmp[MODE_TMP_MIN] = alarm.volume_min;
+		mode.tmp[MODE_TMP_MAX] = alarm.volume_max;
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGALARM_SETSNOOZE_MENU,
+		    MODE_CFGALARM_SETVOL,
+		    menu_cfgalarm_setvol_init,
+		    btn);
+	    break;
+	case MODE_CFGALARM_SETVOL:
 	    switch(btn) {
 		case BUTTONS_MENU:
+		    pizo_tryalarm_stop();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_SET:
-		    mode_update(MODE_SETDATE_MONTH);
-		    break;
-		case BUTTONS_PLUS:
-		    if(++mode.tmp[MODE_TMP_YEAR] > 50) {
-		        mode.tmp[MODE_TMP_YEAR] = 10;
+		    if(*mode.tmp < 11) {
+			pizo_tryalarm_stop();
+			pizo_setvolume(*mode.tmp, 0);
+			alarm.volume_min = *mode.tmp;
+			alarm.volume_max = *mode.tmp;
+			alarm_savevolume();
+			mode_update(MODE_TIME_DISPLAY);
+		    } else {
+			pizo_setvolume(mode.tmp[MODE_TMP_MIN], 0);
+			pizo_tryalarm_start();
+			mode_update(MODE_CFGALARM_SETVOL_MIN);
 		    }
-		    mode_update(MODE_SETDATE_YEAR);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_MENU_SETDST:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_MENU_SETSOUND);
-		    break;
-		case BUTTONS_SET:
-		    *mode.tmp = time.status;
-		    mode_update(MODE_SETDST_STATE);
 		    break;
 		case BUTTONS_PLUS:
+		    ++(*mode.tmp);
+		    *mode.tmp %= 12;
+
+		    if(*mode.tmp < 11) {
+			pizo_setvolume(*mode.tmp, 0);
+			pizo_tryalarm_start();
+		    } else {
+			pizo_tryalarm_stop();
+		    }
+
+		    mode_update(MODE_CFGALARM_SETVOL);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) pizo_tryalarm_stop();
+		    break;
+	    }
+	    break;
+	case MODE_CFGALARM_SETVOL_MIN:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    pizo_tryalarm_stop();
 		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_SET:
+		    pizo_setvolume(mode.tmp[MODE_TMP_MAX], 0);
+		    pizo_tryalarm_start();
+		    mode_update(MODE_CFGALARM_SETVOL_MAX);
+		    break;
+		case BUTTONS_PLUS:
+		    ++mode.tmp[MODE_TMP_MIN];
+		    mode.tmp[MODE_TMP_MIN] %= 10;
+		    pizo_setvolume(mode.tmp[MODE_TMP_MIN], 0);
+		    pizo_tryalarm_start();
+		    mode_update(MODE_CFGALARM_SETVOL_MIN);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) pizo_tryalarm_stop();
+		    break;
+	    }
+	    break;
+	case MODE_CFGALARM_SETVOL_MAX:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    pizo_tryalarm_stop();
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_SET:
+		    pizo_tryalarm_stop();
+		    alarm.volume_min = mode.tmp[MODE_TMP_MIN];
+		    alarm.volume_max = mode.tmp[MODE_TMP_MAX];
+		    alarm_savevolume();
+		    *mode.tmp = alarm.ramp_time;
+		    mode_update(MODE_CFGALARM_SETVOL_TIME);
+		    break;
+		case BUTTONS_PLUS:
+		    ++mode.tmp[MODE_TMP_MAX];
+		    if(mode.tmp[MODE_TMP_MAX] > 10) {
+			mode.tmp[MODE_TMP_MAX] = mode.tmp[MODE_TMP_MIN] + 1;
+		    }
+		    pizo_setvolume(mode.tmp[MODE_TMP_MAX], 0);
+		    pizo_tryalarm_start();
+		    mode_update(MODE_CFGALARM_SETVOL_MAX);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) pizo_tryalarm_stop();
+		    break;
+	    }
+	    break;
+	case MODE_CFGALARM_SETVOL_TIME:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_SET:
+		    alarm.ramp_time = *mode.tmp;
+		    alarm_newramp();  // calculate alarm.ramp_int
+		    alarm_saveramp(); // save alarm.ramp_time
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_PLUS:
+		    if(++(*mode.tmp) > 60) *mode.tmp = 1;
+		    mode_update(MODE_CFGALARM_SETVOL_TIME);
 		    break;
 		default:
 		    break;
 	    }
 	    break;
-	case MODE_SETDST_STATE:
+	case MODE_CFGALARM_SETSNOOZE_MENU: ;
+	    void menu_cfgalarm_setsnooze_init(void) {
+		*mode.tmp = alarm.snooze_time / 60;
+	    };
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGALARM_SETSOUND_MENU,
+		    MODE_CFGALARM_SETSNOOZE_TIME,
+		    menu_cfgalarm_setsnooze_init,
+		    btn);
+	    break;
+	case MODE_CFGALARM_SETSNOOZE_TIME:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_SET:
+		    alarm.snooze_time = *mode.tmp * 60;
+		    alarm_savesnooze();
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_PLUS:
+		    ++(*mode.tmp); *mode.tmp %= 31;
+		    mode_update(MODE_CFGALARM_SETSNOOZE_TIME);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_CFGTIME_MENU:
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGDISP_MENU,
+		    MODE_CFGTIME_SETDST_MENU,
+		    NULL,
+		    btn);
+	    break;
+	case MODE_CFGTIME_SETDST_MENU: ;
+	    void menu_cfgtime_setdst_init(void) {
+		*mode.tmp = time.status;
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGTIME_SETZONE_MENU,
+		    MODE_CFGTIME_SETDST_STATE,
+		    menu_cfgtime_setdst_init,
+		    btn);
+	    break;
+	case MODE_CFGTIME_SETDST_STATE:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
@@ -588,7 +720,7 @@ void mode_semitick(void) {
 				mode_update(MODE_TIME_DISPLAY);
 				break;
 			    default:  // GMT, CET, or EET
-				mode_update(MODE_SETDST_ZONE);
+				mode_update(MODE_CFGTIME_SETDST_ZONE);
 				break;
 			}
 		    }
@@ -629,13 +761,13 @@ void mode_semitick(void) {
 			    *mode.tmp |=  TIME_AUTODST_USA;
 			    break;
 		    }
-		    mode_update(MODE_SETDST_STATE);
+		    mode_update(MODE_CFGTIME_SETDST_STATE);
 		    break;
 		default:
 		    break;
 	    }
 	    break;
-	case MODE_SETDST_ZONE:
+	case MODE_CFGTIME_SETDST_ZONE:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY);
@@ -663,37 +795,125 @@ void mode_semitick(void) {
 			    *mode.tmp |=  TIME_AUTODST_EU_CET;
 			    break;
 		    }
-		    mode_update(MODE_SETDST_ZONE);
+		    mode_update(MODE_CFGTIME_SETDST_ZONE);
 		    break;
 		default:
 		    break;
 	    }
 	    break;
-	case MODE_MENU_SETBRIGHT:
+	case MODE_CFGTIME_SETZONE_MENU: ;
+	    void menu_cfgtime_setzone_init(void) {
+		mode.tmp[MODE_TMP_HOUR]   = gps.rel_utc_hour;
+		mode.tmp[MODE_TMP_MINUTE] = gps.rel_utc_minute;
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGTIME_SET12HOUR_MENU,
+		    MODE_CFGTIME_SETZONE_HOUR,
+		    menu_cfgtime_setzone_init,
+		    btn);
+	    break;
+	case MODE_CFGTIME_SETZONE_HOUR:
 	    switch(btn) {
 		case BUTTONS_MENU:
-		    mode_update(MODE_MENU_SETSNOOZE);
+		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_SET:
-		    mode.tmp[MODE_TMP_MIN] = display.bright_min;
-		    mode.tmp[MODE_TMP_MAX] = display.bright_max;
-
-		    if(display.bright_min == display.bright_max) {
-			*mode.tmp = display.bright_min;
-		    } else {
-			*mode.tmp = 11;
-		    }
-
-		    mode_update(MODE_SETBRIGHT_LEVEL);
+		    mode_update(MODE_CFGTIME_SETZONE_MINUTE);
 		    break;
 		case BUTTONS_PLUS:
-		    mode_update(MODE_TIME_DISPLAY);
+		    if(mode.tmp[MODE_TMP_HOUR] >= GPS_HOUR_OFFSET_MAX) {
+			mode.tmp[MODE_TMP_HOUR] = GPS_HOUR_OFFSET_MIN;
+		    } else {
+			++mode.tmp[MODE_TMP_HOUR];
+		    }
+		    mode_update(MODE_CFGTIME_SETZONE_HOUR);
 		    break;
 		default:
 		    break;
 	    }
 	    break;
-	case MODE_SETBRIGHT_LEVEL:
+	case MODE_CFGTIME_SETZONE_MINUTE:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_SET:
+		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+			gps.rel_utc_hour   = mode.tmp[MODE_TMP_HOUR  ];
+			gps.rel_utc_minute = mode.tmp[MODE_TMP_MINUTE];
+			gps_saverelutc();
+		    }
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_PLUS:
+		    ++mode.tmp[MODE_TMP_MINUTE];
+		    mode.tmp[MODE_TMP_MINUTE] %= 60;
+		    mode_update(MODE_CFGTIME_SETZONE_MINUTE);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_CFGTIME_SET12HOUR_MENU: ;
+	    void menu_cfgtime_set12hour_init(void) {
+		*mode.tmp = time.status;
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGTIME_SETDST_MENU,
+		    MODE_CFGTIME_SET12HOUR,
+		    menu_cfgtime_set12hour_init,
+		    btn);
+	    break;
+	case MODE_CFGTIME_SET12HOUR:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_SET:
+		    time.status = *mode.tmp;
+		    time_savestatus();
+		    mode_update(MODE_TIME_DISPLAY);
+		    break;
+		case BUTTONS_PLUS:
+		    *mode.tmp ^= TIME_12HOUR;
+		    mode_update(MODE_CFGTIME_SET12HOUR);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_CFGDISP_MENU:
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_SETALARM_MENU,
+		    MODE_CFGDISP_SETBRIGHT_MENU,
+		    NULL,
+		    btn);
+	    break;
+	case MODE_CFGDISP_SETBRIGHT_MENU: ;
+	    void menu_cfgdisp_setbright_init(void) {
+		mode.tmp[MODE_TMP_MIN] = display.bright_min;
+		mode.tmp[MODE_TMP_MAX] = display.bright_max;
+
+		if(display.bright_min == display.bright_max) {
+		    *mode.tmp = display.bright_min;
+		} else {
+		    *mode.tmp = 11;
+		}
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGDISP_SETDIGITBRIGHT_MENU,
+		    MODE_CFGDISP_SETBRIGHT_LEVEL,
+		    menu_cfgdisp_setbright_init,
+		    btn);
+	    break;
+	case MODE_CFGDISP_SETBRIGHT_LEVEL:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    display_loadbright();
@@ -702,16 +922,16 @@ void mode_semitick(void) {
 		case BUTTONS_SET:
 		    if(*mode.tmp == 11) {
 			*mode.tmp = mode.tmp[MODE_TMP_MIN];
-			mode_update(MODE_SETBRIGHT_MIN);
+			mode_update(MODE_CFGDISP_SETBRIGHT_MIN);
 		    } else {
-			*mode.tmp = 0;
-			mode_update(MODE_SETBRIGHT_DIGIT);
+			display_savebright();
+			mode_update(MODE_TIME_DISPLAY);
 		    }
 		    break;
 		case BUTTONS_PLUS:
 		    ++(*mode.tmp);
 		    *mode.tmp %= 12;
-		    mode_update(MODE_SETBRIGHT_LEVEL);
+		    mode_update(MODE_CFGDISP_SETBRIGHT_LEVEL);
 		    break;
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
@@ -720,7 +940,7 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_SETBRIGHT_MIN:
+	case MODE_CFGDISP_SETBRIGHT_MIN:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    display_loadbright();
@@ -742,11 +962,11 @@ void mode_semitick(void) {
 		    }
 
 		    // set brightness maximum
-		    mode_update(MODE_SETBRIGHT_MAX);
+		    mode_update(MODE_CFGDISP_SETBRIGHT_MAX);
 		    break;
 		case BUTTONS_PLUS:
 		    if(++(*mode.tmp) > 9) *mode.tmp = -5;
-		    mode_update(MODE_SETBRIGHT_MIN);
+		    mode_update(MODE_CFGDISP_SETBRIGHT_MIN);
 		    break;
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
@@ -755,7 +975,7 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_SETBRIGHT_MAX:
+	case MODE_CFGDISP_SETBRIGHT_MAX:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    display_loadbright();
@@ -764,8 +984,8 @@ void mode_semitick(void) {
 		case BUTTONS_SET:
 		    display.bright_min = mode.tmp[MODE_TMP_MIN];
 		    display.bright_max = *mode.tmp;
-		    *mode.tmp = 0;
-		    mode_update(MODE_SETBRIGHT_DIGIT);
+		    display_savebright();
+		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_PLUS:
 		    if(++(*mode.tmp) > 20) {
@@ -776,7 +996,7 @@ void mode_semitick(void) {
 			}
 		    }
 
-		    mode_update(MODE_SETBRIGHT_MAX);
+		    mode_update(MODE_CFGDISP_SETBRIGHT_MAX);
 		    break;
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
@@ -785,46 +1005,29 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_SETBRIGHT_OFF:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    display_loadbright();
-		    display_loaddigittimes();
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_SET:
-		    display_savebright();
-		    display_savedigittimes();
-		    display.off_threshold = UINT8_MAX - *mode.tmp;
-		    display_saveoff();
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_PLUS:
-		    ++(*mode.tmp);
-		    *mode.tmp %= 51;
-		    mode_update(MODE_SETBRIGHT_OFF);
-		    break;
-		default:
-		    if(mode.timer == MODE_TIMEOUT) {
-			display_loadbright();
-			display_loaddigittimes();
-		    }
-		    break;
+	case MODE_CFGDISP_SETDIGITBRIGHT_MENU: ;
+	    void menu_cfgdisp_setdigitbright_init(void) {
+		*mode.tmp = 0;
 	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGDISP_SETAUTOOFF_MENU,
+		    MODE_CFGDISP_SETDIGITBRIGHT_LEVEL,
+		    menu_cfgdisp_setdigitbright_init,
+		    btn);
 	    break;
-	case MODE_SETBRIGHT_DIGIT:
+	case MODE_CFGDISP_SETDIGITBRIGHT_LEVEL:
 	    switch(btn) {
 		case BUTTONS_MENU:
-		    display_loadbright();
 		    display_loaddigittimes();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_SET:
 		    if(++(*mode.tmp) < DISPLAY_SIZE) {
-			mode_update(MODE_SETBRIGHT_DIGIT);
+			mode_update(MODE_CFGDISP_SETDIGITBRIGHT_LEVEL);
 		    } else {
-			*mode.tmp = UINT8_MAX - display.off_threshold;
-			mode_update(MODE_SETBRIGHT_OFF);
+			mode_update(MODE_TIME_DISPLAY);
 		    }
 		    break;
 		case BUTTONS_PLUS:
@@ -837,239 +1040,41 @@ void mode_semitick(void) {
 
 		    display_noflicker();
 
-		    mode_update(MODE_SETBRIGHT_DIGIT);
+		    mode_update(MODE_CFGDISP_SETDIGITBRIGHT_LEVEL);
 		    break;
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
-			display_loadbright();
 			display_loaddigittimes();
 		    }
 		    break;
 	    }
 	    break;
-	case MODE_MENU_SETSOUND:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_MENU_SETBRIGHT);
-		    break;
-		case BUTTONS_SET:
-		    pizo_setvolume((alarm.volume_min+alarm.volume_max)>>1, 0);
-		    pizo_tryalarm_start();
-		    mode_update(MODE_SETSOUND_TYPE);
-		    break;
-		case BUTTONS_PLUS:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		default:
-		    break;
+	case MODE_CFGDISP_SETAUTOOFF_MENU: ;
+	    void menu_cfgdisp_setautooff_init(void) {
+		*mode.tmp = UINT8_MAX - display.off_threshold;
 	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGDISP_SETBRIGHT_MENU,
+		    MODE_CFGDISP_SETAUTOOFF,
+		    menu_cfgdisp_setautooff_init,
+		    btn);
 	    break;
-	case MODE_SETSOUND_TYPE:
+	case MODE_CFGDISP_SETAUTOOFF:
 	    switch(btn) {
 		case BUTTONS_MENU:
-		    pizo_tryalarm_stop();
-		    pizo_loadsound();
 		    mode_update(MODE_TIME_DISPLAY);
 		    break;
 		case BUTTONS_SET:
-		    pizo_savesound();
-		    if(alarm.volume_min != alarm.volume_max) {
-			*mode.tmp = 11;
-			pizo_tryalarm_stop();
-		    } else {
-			*mode.tmp = alarm.volume_min;
-			pizo_setvolume(alarm.volume_min, 0);
-			pizo_tryalarm_start();
-		    }
-		    mode.tmp[MODE_TMP_MIN] = alarm.volume_min;
-		    mode.tmp[MODE_TMP_MAX] = alarm.volume_max;
-		    mode_update(MODE_SETSOUND_VOL);
-		    break;
-		case BUTTONS_PLUS:
-		    pizo_nextsound();
-		    pizo_tryalarm_start();
-		    mode_update(MODE_SETSOUND_TYPE);
-		    break;
-		default:
-		    if(mode.timer == MODE_TIMEOUT) {
-			pizo_tryalarm_stop();
-			pizo_loadsound();
-		    }
-		    break;
-	    }
-	    break;
-	case MODE_SETSOUND_VOL:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    pizo_tryalarm_stop();
+		    display.off_threshold = UINT8_MAX - *mode.tmp;
+		    display_saveoff();
 		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_SET:
-		    if(*mode.tmp < 11) {
-			pizo_tryalarm_stop();
-			pizo_setvolume(*mode.tmp, 0);
-			alarm.volume_min = *mode.tmp;
-			alarm.volume_max = *mode.tmp;
-			alarm_savevolume();
-			mode_update(MODE_TIME_DISPLAY);
-		    } else {
-			pizo_setvolume(mode.tmp[MODE_TMP_MIN], 0);
-			pizo_tryalarm_start();
-			mode_update(MODE_SETSOUND_VOL_MIN);
-		    }
 		    break;
 		case BUTTONS_PLUS:
 		    ++(*mode.tmp);
-		    *mode.tmp %= 12;
-
-		    if(*mode.tmp < 11) {
-			pizo_setvolume(*mode.tmp, 0);
-			pizo_tryalarm_start();
-		    } else {
-			pizo_tryalarm_stop();
-		    }
-
-		    mode_update(MODE_SETSOUND_VOL);
-		    break;
-		default:
-		    if(mode.timer == MODE_TIMEOUT) pizo_tryalarm_stop();
-		    break;
-	    }
-	    break;
-	case MODE_SETSOUND_VOL_MIN:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    pizo_tryalarm_stop();
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_SET:
-		    pizo_setvolume(mode.tmp[MODE_TMP_MAX], 0);
-		    pizo_tryalarm_start();
-		    mode_update(MODE_SETSOUND_VOL_MAX);
-		    break;
-		case BUTTONS_PLUS:
-		    ++mode.tmp[MODE_TMP_MIN];
-		    mode.tmp[MODE_TMP_MIN] %= 10;
-		    pizo_setvolume(mode.tmp[MODE_TMP_MIN], 0);
-		    pizo_tryalarm_start();
-		    mode_update(MODE_SETSOUND_VOL_MIN);
-		    break;
-		default:
-		    if(mode.timer == MODE_TIMEOUT) pizo_tryalarm_stop();
-		    break;
-	    }
-	    break;
-	case MODE_SETSOUND_VOL_MAX:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    pizo_tryalarm_stop();
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_SET:
-		    pizo_tryalarm_stop();
-		    alarm.volume_min = mode.tmp[MODE_TMP_MIN];
-		    alarm.volume_max = mode.tmp[MODE_TMP_MAX];
-		    alarm_savevolume();
-		    *mode.tmp = alarm.ramp_time;
-		    mode_update(MODE_SETSOUND_TIME);
-		    break;
-		case BUTTONS_PLUS:
-		    ++mode.tmp[MODE_TMP_MAX];
-		    if(mode.tmp[MODE_TMP_MAX] > 10) {
-			mode.tmp[MODE_TMP_MAX] = mode.tmp[MODE_TMP_MIN] + 1;
-		    }
-		    pizo_setvolume(mode.tmp[MODE_TMP_MAX], 0);
-		    pizo_tryalarm_start();
-		    mode_update(MODE_SETSOUND_VOL_MAX);
-		    break;
-		default:
-		    if(mode.timer == MODE_TIMEOUT) pizo_tryalarm_stop();
-		    break;
-	    }
-	    break;
-	case MODE_SETSOUND_TIME:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_SET:
-		    alarm.ramp_time = *mode.tmp;
-		    alarm_newramp();  // calculate alarm.ramp_int
-		    alarm_saveramp(); // save alarm.ramp_time
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_PLUS:
-		    if(++(*mode.tmp) > 60) *mode.tmp = 1;
-		    mode_update(MODE_SETSOUND_TIME);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_MENU_SETSNOOZE:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_MENU_SETTIMEFORMAT);
-		    break;
-		case BUTTONS_SET:
-		    *mode.tmp = alarm.snooze_time / 60;
-		    mode_update(MODE_SETSNOOZE_TIME);
-		    break;
-		case BUTTONS_PLUS:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_SETSNOOZE_TIME:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_SET:
-		    alarm.snooze_time = *mode.tmp * 60;
-		    alarm_savesnooze();
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_PLUS:
-		    ++(*mode.tmp); *mode.tmp %= 31;
-		    mode_update(MODE_SETSNOOZE_TIME);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_MENU_SETTIMEFORMAT:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_SET:
-		    *mode.tmp = time.status & TIME_12HOUR;
-		    mode_update(MODE_SETTIMEFORMAT_12HOUR);
-		    break;
-		case BUTTONS_PLUS:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_SETTIMEFORMAT_12HOUR:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_SET:
-		    time.status &= ~TIME_12HOUR;
-		    time.status |=  *mode.tmp;
-		    time_savestatus();
-		    mode_update(MODE_TIME_DISPLAY);
-		    break;
-		case BUTTONS_PLUS:
-		    *mode.tmp ^= TIME_12HOUR;
-		    mode_update(MODE_SETTIMEFORMAT_12HOUR);
+		    *mode.tmp %= 51;
+		    mode_update(MODE_CFGDISP_SETAUTOOFF);
 		    break;
 		default:
 		    break;
@@ -1183,7 +1188,7 @@ void mode_update(uint8_t new_state) {
 	case MODE_SNOOZEON_DISPLAY:
 	    display_pstr(0, PSTR("snoozing"));
 	    break;
-	case MODE_MENU_SETALARM:
+	case MODE_SETALARM_MENU:
 	    display_pstr(0, PSTR("set alar"));
 	    break;
 	case MODE_SETALARM_IDX:
@@ -1242,7 +1247,7 @@ void mode_update(uint8_t new_state) {
 	    mode_daysofweek_display(mode.tmp[MODE_TMP_DAYS]);
 	    display_dot(1 + mode.tmp[MODE_TMP_IDX], TRUE);
 	    break;
-	case MODE_MENU_SETTIME:
+	case MODE_SETTIME_MENU:
 	    display_pstr(0, PSTR("set time"));
 	    break;
 	case MODE_SETTIME_HOUR:
@@ -1263,32 +1268,8 @@ void mode_update(uint8_t new_state) {
 			      mode.tmp[MODE_TMP_SECOND]);
 	    display_dotselect(7, 8);
 	    break;
-	case MODE_MENU_SETZONE:
-	    display_pstr(0, PSTR("set zone"));
-	    break;
-	case MODE_SETZONE_HOUR:
-	    mode_zone_display();
-	    display_dotselect(2, 3);
-	    break;
-	case MODE_SETZONE_MINUTE:
-	    mode_zone_display();
-	    display_dotselect(6, 7);
-	    break;
-	case MODE_MENU_SETDATE:
+	case MODE_SETDATE_MENU:
 	    display_pstr(0, PSTR("set date"));
-	    break;
-	case MODE_SETDATE_DAY:
-	    display_pstr(0, time_month2pstr(mode.tmp[MODE_TMP_MONTH]));
-	    display_digit(5, mode.tmp[MODE_TMP_DAY] / 10);
-	    display_digit(6, mode.tmp[MODE_TMP_DAY] % 10);
-	    display_dotselect(5, 6);
-	    break;
-	case MODE_SETDATE_MONTH:
-	    display_pstr(0, PSTR("20"));
-	    display_digit(3, mode.tmp[MODE_TMP_YEAR] / 10);
-	    display_digit(4, mode.tmp[MODE_TMP_YEAR] % 10);
-	    display_pstr(6, time_month2pstr(mode.tmp[MODE_TMP_MONTH]));
-	    display_dotselect(6, 8);
 	    break;
 	case MODE_SETDATE_YEAR:
 	    display_pstr(0, PSTR("20"));
@@ -1297,10 +1278,82 @@ void mode_update(uint8_t new_state) {
 	    display_pstr(6, time_month2pstr(mode.tmp[MODE_TMP_MONTH]));
 	    display_dotselect(3, 4);
 	    break;
-	case MODE_MENU_SETDST:
+	case MODE_SETDATE_MONTH:
+	    display_pstr(0, PSTR("20"));
+	    display_digit(3, mode.tmp[MODE_TMP_YEAR] / 10);
+	    display_digit(4, mode.tmp[MODE_TMP_YEAR] % 10);
+	    display_pstr(6, time_month2pstr(mode.tmp[MODE_TMP_MONTH]));
+	    display_dotselect(6, 8);
+	    break;
+	case MODE_SETDATE_DAY:
+	    display_pstr(0, time_month2pstr(mode.tmp[MODE_TMP_MONTH]));
+	    display_digit(5, mode.tmp[MODE_TMP_DAY] / 10);
+	    display_digit(6, mode.tmp[MODE_TMP_DAY] % 10);
+	    display_dotselect(5, 6);
+	    break;
+	case MODE_CFGALARM_MENU:
+	    display_pstr(0, PSTR("cfg alar"));
+	    break;
+	case MODE_CFGALARM_SETSOUND_MENU:
+	    display_pstr(0, PSTR("a sound"));
+	    display_dot(1, TRUE);
+	    break;
+	case MODE_CFGALARM_SETSOUND:
+	    switch(pizo.status & PIZO_SOUND_MASK) {
+		case PIZO_SOUND_MERRY_XMAS:
+		    display_pstr(0, PSTR("mery chr"));
+		    display_dotselect(1, 8);
+		    break;
+		case PIZO_SOUND_BIG_BEN:
+		    display_pstr(0, PSTR("big ben"));
+		    display_dotselect(1, 7);
+		    break;
+		default:
+		    display_pstr(0, PSTR(" beeps"));
+		    display_dotselect(2, 6);
+		    break;
+	    }
+	    break;
+	case MODE_CFGALARM_SETVOL_MENU:
+	    display_pstr(0, PSTR("a volume"));
+	    display_dot(1, TRUE);
+	    break;
+	case MODE_CFGALARM_SETVOL:
+	    if(*mode.tmp == 11) {
+		display_pstr(0, PSTR("vol prog"));
+		display_dotselect(5, 8);
+	    } else {
+		mode_textnum_display(PSTR("vol"), *mode.tmp);
+	    }
+	    break;
+	case MODE_CFGALARM_SETVOL_MIN:
+	    mode_textnum_display(PSTR("v min"), mode.tmp[MODE_TMP_MIN]);
+	    break;
+	case MODE_CFGALARM_SETVOL_MAX:
+	    mode_textnum_display(PSTR("v max"), mode.tmp[MODE_TMP_MAX]);
+	    break;
+	case MODE_CFGALARM_SETVOL_TIME:
+	    mode_textnum_display(PSTR("time"), *mode.tmp);
+	    break;
+	case MODE_CFGALARM_SETSNOOZE_MENU:
+	    display_pstr(0, PSTR("a snooze"));
+	    display_dot(1, TRUE);
+	    break;
+	case MODE_CFGALARM_SETSNOOZE_TIME:
+	    if(*mode.tmp) {
+		mode_textnum_display(PSTR("snoz"), *mode.tmp);
+	    } else {
+		display_pstr(0, PSTR("snoz off"));
+		display_dotselect(6, 8);
+	    }
+	    break;
+	case MODE_CFGTIME_MENU:
+	    display_pstr(0, PSTR("cfg time"));
+	    break;
+	case MODE_CFGTIME_SETDST_MENU:
 	    display_pstr(0, PSTR("set dst"));
 	    break;
-	case MODE_SETDST_STATE:
+	case MODE_CFGTIME_SETDST_STATE:
 	    switch(*mode.tmp & TIME_AUTODST_MASK) {
 		case TIME_AUTODST_USA:
 		    display_pstr(0, PSTR("dst  usa"));
@@ -1321,7 +1374,7 @@ void mode_update(uint8_t new_state) {
 		    break;
 	    }
 	    break;
-	case MODE_SETDST_ZONE:
+	case MODE_CFGTIME_SETDST_ZONE:
 	    switch(*mode.tmp & TIME_AUTODST_MASK) {
 		case TIME_AUTODST_EU_CET:
 		    display_pstr(0, PSTR("zone cet"));
@@ -1337,10 +1390,35 @@ void mode_update(uint8_t new_state) {
 		    break;
 	    }
 	    break;
-	case MODE_MENU_SETBRIGHT:
-	    display_pstr(0, PSTR("set brit"));
+	case MODE_CFGTIME_SETZONE_MENU:
+	    display_pstr(0, PSTR("set zone"));
 	    break;
-	case MODE_SETBRIGHT_LEVEL:
+	case MODE_CFGTIME_SETZONE_HOUR:
+	    mode_zone_display();
+	    display_dotselect(2, 3);
+	    break;
+	case MODE_CFGTIME_SETZONE_MINUTE:
+	    mode_zone_display();
+	    display_dotselect(6, 7);
+	    break;
+	case MODE_CFGTIME_SET12HOUR_MENU:
+	    display_pstr(0, PSTR("set 1224"));
+	    display_dot(6, TRUE);
+	    break;
+	case MODE_CFGTIME_SET12HOUR:
+	    display_pstr(0, PSTR("24-hour"));
+	    if(*mode.tmp & TIME_12HOUR) {
+		display_pstr(1, PSTR("12"));
+	    }
+	    display_dotselect(1, 2);
+	    break;
+	case MODE_CFGDISP_MENU:
+	    display_pstr(0, PSTR("cfg disp"));
+	    break;
+	case MODE_CFGDISP_SETBRIGHT_MENU:
+	    display_pstr(0, PSTR("disp bri"));
+	    break;
+	case MODE_CFGDISP_SETBRIGHT_LEVEL:
 	    if(*mode.tmp == 11) {
 		display_loadbright();
 		display_pstr(0, PSTR("bri auto"));
@@ -1351,7 +1429,7 @@ void mode_update(uint8_t new_state) {
 		mode_textnum_display(PSTR("bri"), *mode.tmp);
 	    }
 	    break;
-	case MODE_SETBRIGHT_MIN:
+	case MODE_CFGDISP_SETBRIGHT_MIN:
 	    if(*mode.tmp < 0) {
 		// user might not be able to see lowest brightness
 		display_loadbright();
@@ -1361,20 +1439,15 @@ void mode_update(uint8_t new_state) {
 	    }
 	    mode_textnum_display(PSTR("b min"), *mode.tmp);
 	    break;
-	case MODE_SETBRIGHT_MAX:
+	case MODE_CFGDISP_SETBRIGHT_MAX:
 	    display.bright_min = display.bright_max = *mode.tmp;
 	    display_autodim();
 	    mode_textnum_display(PSTR("b max"), *mode.tmp);
 	    break;
-	case MODE_SETBRIGHT_OFF:
-	    if(*mode.tmp) {
-		mode_textnum_display(PSTR("off"), *mode.tmp);
-	    } else {
-		display_pstr(0, PSTR("off nevr"));
-		display_dotselect(5, 8);
-	    }
+	case MODE_CFGDISP_SETDIGITBRIGHT_MENU:
+	    display_pstr(0, PSTR("digt bri"));
 	    break;
-	case MODE_SETBRIGHT_DIGIT:
+	case MODE_CFGDISP_SETDIGITBRIGHT_LEVEL:
 	    display_dot(0, TRUE);
 
 	    for(uint8_t i = 1; i < DISPLAY_SIZE; ++i) {
@@ -1389,65 +1462,20 @@ void mode_update(uint8_t new_state) {
 	    }
 
 	    break;
-	case MODE_MENU_SETSOUND:
-	    display_pstr(0, PSTR("cfg alar"));
+	case MODE_CFGDISP_SETAUTOOFF_MENU:
+	    display_pstr(0, PSTR("auto off"));
 	    break;
-	case MODE_SETSOUND_TYPE:
-	    switch(pizo.status & PIZO_SOUND_MASK) {
-		case PIZO_SOUND_MERRY_XMAS:
-		    display_pstr(0, PSTR("mery chr"));
-		    display_dotselect(1, 8);
-		    break;
-		case PIZO_SOUND_BIG_BEN:
-		    display_pstr(0, PSTR("big ben"));
-		    display_dotselect(1, 7);
-		    break;
-		default:
-		    display_pstr(0, PSTR(" beeps"));
-		    display_dotselect(2, 6);
-		    break;
-	    }
-	    break;
-	case MODE_SETSOUND_VOL:
-	    if(*mode.tmp == 11) {
-		display_pstr(0, PSTR("vol prog"));
-		display_dotselect(5, 8);
-	    } else {
-		mode_textnum_display(PSTR("vol"), *mode.tmp);
-	    }
-	    break;
-	case MODE_SETSOUND_VOL_MIN:
-	    mode_textnum_display(PSTR("v min"), mode.tmp[MODE_TMP_MIN]);
-	    break;
-	case MODE_SETSOUND_VOL_MAX:
-	    mode_textnum_display(PSTR("v max"), mode.tmp[MODE_TMP_MAX]);
-	    break;
-	case MODE_SETSOUND_TIME:
-	    mode_textnum_display(PSTR("time"), *mode.tmp);
-	    break;
-	case MODE_MENU_SETSNOOZE:
-	    display_pstr(0, PSTR("set snoz"));
-	    break;
-	case MODE_SETSNOOZE_TIME:
+	case MODE_CFGDISP_SETAUTOOFF:
 	    if(*mode.tmp) {
-		mode_textnum_display(PSTR("snoz"), *mode.tmp);
+		mode_textnum_display(PSTR("thrsh"), *mode.tmp);
 	    } else {
-		display_pstr(0, PSTR("snoz off"));
-		display_dotselect(6, 8);
-	    }
-	    break;
-	case MODE_MENU_SETTIMEFORMAT:
-	    display_pstr(0, PSTR("set 1224"));
-	    display_dot(6, TRUE);
-	    break;
-	case MODE_SETTIMEFORMAT_12HOUR:
-	    if(*mode.tmp) {
-		mode_textnum_display(PSTR("hours"), 12);
-	    } else {
-		mode_textnum_display(PSTR("hours"), 24);
+		display_pstr(0, PSTR("alwys on"));
+		display_dotselect(1, 5);
+		display_dotselect(7, 8);
 	    }
 	    break;
 	default:
+	    display_pstr(0, PSTR("-error-"));
 	    break;
     }
 
@@ -1605,5 +1633,24 @@ void mode_daysofweek_display(uint8_t days) {
 	if( !(days & _BV(i)) ) {
 	    display_clear(1 + i);
 	}
+    }
+}
+
+
+void mode_menu_process_button(uint8_t up, uint8_t next, uint8_t down,
+			      void (*init_func)(void), uint8_t btn) {
+    switch(btn) {
+	case BUTTONS_MENU:
+	    mode_update(up);
+	    break;
+	case BUTTONS_SET:
+	    if(init_func) init_func();
+	    mode_update(down);
+	    break;
+	case BUTTONS_PLUS:
+	    mode_update(next);
+	    break;
+	default:
+	    break;
     }
 }
