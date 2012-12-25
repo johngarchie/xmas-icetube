@@ -1495,7 +1495,11 @@ void mode_time_display(uint8_t hour, uint8_t minute,
     }
 
     // display current time
-    display_digit(1, hour_to_display / 10);
+    if(time.status & TIME_12HOUR && hour_to_display < 10) {
+	display_clear(1);
+    } else {
+	display_digit(1, hour_to_display / 10);
+    }
     display_digit(2, hour_to_display % 10);
     display_clear(3);
     display_digit(4, minute / 10);
@@ -1637,6 +1641,8 @@ void mode_daysofweek_display(uint8_t days) {
 }
 
 
+// helper function to process button presses
+// for menu states in menu_semitick()
 void mode_menu_process_button(uint8_t up, uint8_t next, uint8_t down,
 			      void (*init_func)(void), uint8_t btn) {
     switch(btn) {
