@@ -30,6 +30,8 @@ This firmware boasts many features including,
    (11) per-digit brightness control,
    (12) optionally set brightness by ambient light,** and
    (13) optionally disable display at night (when dark)**
+   (14) animated display transitions (inspired by Jeremy Fitzhardinge's
+	firmware:  https://github.com/jsgf/iceclock)
 
 *  The snooze feature, musical alarm, and progressive alarm, are automatically
    disabled during a power failure.  While on battery power, the buzzer alarm

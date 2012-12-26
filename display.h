@@ -9,10 +9,29 @@
 #define DISPLAY_OFF_TIMEOUT 30
 
 
+// types of transitions
+enum {
+    DISPLAY_TRANS_NONE,
+    DISPLAY_TRANS_INSTANT,
+    DISPLAY_TRANS_UP,
+    DISPLAY_TRANS_DOWN,
+    DISPLAY_TRANS_LEFT,
+};
+
+// left-right and up-down transition timeouts
+#define DISPLAY_TRANS_LR_DELAY 25
+#define DISPLAY_TRANS_UD_DELAY 50
+
+
 typedef struct {
-    uint8_t buffer[DISPLAY_SIZE];  // display contents
-    int8_t  bright_min;            // minimum display brightness
-    int8_t  bright_max;            // maximum display brightness
+    uint8_t trans_type;
+    uint8_t trans_timer;
+    uint8_t prebuf[DISPLAY_SIZE];   // future display contents
+    uint8_t postbuf[DISPLAY_SIZE];  // current display contents
+
+
+    int8_t  bright_min;             // minimum display brightness
+    int8_t  bright_max;             // maximum display brightness
 
     // display turns off during wake mode when photosensor is below
     // 256 * threshold and the display-off timer is expired
@@ -62,5 +81,7 @@ void display_clear(uint8_t idx);
 void display_dotselect(uint8_t idx_start, uint8_t idx_end);
 void display_dot(uint8_t idx, uint8_t show);
 void display_dash(uint8_t idx, uint8_t show);
+
+void display_transition(uint8_t type);
 
 #endif

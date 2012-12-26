@@ -18,6 +18,7 @@
 #include <avr/pgmspace.h> // for accessing data in program memory
 #include <avr/eeprom.h>   // for accessing data in eeprom memory
 #include <avr/power.h>    // for enabling/disabling chip features
+#include <util/atomic.h>  // for using atomic blocks
 
 
 #include "display.h"
@@ -26,6 +27,13 @@
 
 // extern'ed data pertaining the display
 volatile display_t display;
+
+
+uint8_t display_combineLR(uint8_t a, uint8_t b);
+uint8_t display_shiftU1(uint8_t digit);
+uint8_t display_shiftU2(uint8_t digit);
+uint8_t display_shiftD1(uint8_t digit);
+uint8_t display_shiftD2(uint8_t digit);
 
 
 // permanent place to store display brightness
@@ -155,6 +163,9 @@ void display_init(void) {
 
     // load the display-off threshold
     display_loadoff();
+
+    // set the initial transition type to none
+    display.trans_type = DISPLAY_TRANS_NONE;
 }
 
 
@@ -241,22 +252,102 @@ uint8_t display_varsemitick(void) {
     static uint8_t digit_idx = 0;
     uint32_t bits = 0;  // bits to send MAX6921 (vfd driver chip)
 
-    // update next digit
+    // compute index of next digit
     digit_idx = (digit_idx + 1) % DISPLAY_SIZE;
 
+    // calculate digit contents given transition state
+    uint8_t digit = display.postbuf[digit_idx];
+
+    switch(display.trans_type) {
+	case DISPLAY_TRANS_UP:
+	    switch(display.trans_timer) {
+		case 4:
+		    digit = display_shiftU1(display.postbuf[digit_idx]);
+		    break;
+
+		case 3:
+		    digit = display_shiftU2(display.postbuf[digit_idx]);
+		    break;
+
+		case 2:
+		    digit = display_shiftD2(display.prebuf[digit_idx]);
+		    break;
+
+		case 1:
+		    digit = display_shiftD1(display.prebuf[digit_idx]);
+		    break;
+
+		default:
+		    break;
+	    }
+	    break;
+
+	case DISPLAY_TRANS_DOWN:
+	    switch(display.trans_timer) {
+		case 4:
+		    digit = display_shiftD1(display.postbuf[digit_idx]);
+		    break;
+
+		case 3:
+		    digit = display_shiftD2(display.postbuf[digit_idx]);
+		    break;
+
+		case 2:
+		    digit = display_shiftU2(display.prebuf[digit_idx]);
+		    break;
+
+		case 1:
+		    digit = display_shiftU1(display.prebuf[digit_idx]);
+		    break;
+
+		default:
+		    break;
+	    }
+	    break;
+
+	case DISPLAY_TRANS_LEFT: ;
+	    uint8_t trans_idx =   DISPLAY_SIZE
+				- (display.trans_timer >> 1)
+				+ digit_idx;
+
+	    uint8_t digit_b = (trans_idx < DISPLAY_SIZE
+		    	       ? display.postbuf[trans_idx]
+			       : display.prebuf[trans_idx - DISPLAY_SIZE]);
+
+	    if(display.trans_timer & 0x01) {
+		uint8_t digit_a = (--trans_idx < DISPLAY_SIZE
+				   ? display.postbuf[trans_idx]
+				   : display.prebuf[trans_idx - DISPLAY_SIZE]);
+		digit = display_combineLR(digit_a, digit_b);
+	    } else {
+		digit = digit_b;
+	    }
+	    break;
+
+	default:
+	    break;
+    }
+
+    // do not display first digit when transitioning
+    if(display.trans_type != DISPLAY_TRANS_NONE && !digit_idx) {
+	digit = 0;
+    }
+
+
+    // create the sequence of bits for the calculated digit
     if(display.off_timer || (display.photo_avg >> 8) <= display.off_threshold) {
 	// select the digit position to display
 	bits = (uint32_t)1 << pgm_read_byte(&(vfd_digit_pins[digit_idx]));
 
 	// select the segments to display
 	for(uint8_t segment = 0; segment < 8; ++segment) {
-	    if(display.buffer[digit_idx] & _BV(segment)) {
+	    if(digit & _BV(segment)) {
 		bits |= (uint32_t)1
-		    	<< pgm_read_byte(&(vfd_segment_pins[segment]));
+		    << pgm_read_byte(&(vfd_segment_pins[segment]));
 	    }
 	}
     }
-	
+
 
     // send bits to the MAX6921 (vfd driver chip)
 
@@ -297,6 +388,40 @@ uint8_t display_varsemitick(void) {
 
 // called every semisecond; updates ambient brightness running average
 void display_semitick(void) {
+    static uint8_t trans_delay_timer = 0;
+
+    // calculate timer values for scrolling display
+    if(display.trans_timer) {
+	if(trans_delay_timer) {
+	    --trans_delay_timer;
+	} else {
+	    if(--display.trans_timer) {
+		switch(display.trans_type) {
+		    case DISPLAY_TRANS_UP:
+		    case DISPLAY_TRANS_DOWN:
+			trans_delay_timer = DISPLAY_TRANS_UD_DELAY;
+			break;
+
+		    case DISPLAY_TRANS_LEFT:
+			trans_delay_timer = DISPLAY_TRANS_LR_DELAY;
+			break;
+
+		    default:
+			break;
+		}
+	    } else {
+		ATOMIC_BLOCK(ATOMIC_FORCEON) {
+		    for(uint8_t i = 0; i < DISPLAY_SIZE; ++i) {
+			display.postbuf[i] = display.prebuf[i];
+		    }
+
+		    display.trans_type = DISPLAY_TRANS_NONE;
+		}
+	    }
+	}
+    }
+
+
     // get ambient lighting from photosensor every 50 semiseconds,
     // and update running average of photosensor values; note that
     // the running average has a range of [0, 0xFFFF]
@@ -321,7 +446,7 @@ void display_semitick(void) {
 
 // clear the given display position
 void display_clear(uint8_t idx) {
-    display.buffer[idx] = DISPLAY_SPACE;
+    display.prebuf[idx] = DISPLAY_SPACE;
 }
 
 
@@ -431,31 +556,31 @@ void display_autodim(void) {
 
 // display digit (n) on display position (idx)
 void display_digit(uint8_t idx, uint8_t n) {
-    display.buffer[idx] = pgm_read_byte( &(number_segments[(n % 10)]) );
+    display.prebuf[idx] = pgm_read_byte( &(number_segments[(n % 10)]) );
 }
 
 
 // display character (c) at display position (idx)
 void display_char(uint8_t idx, char c) {
     if('a' <= c && c <= 'z') {
-	display.buffer[idx] = pgm_read_byte( &(letter_segments[c - 'a']) );
+	display.prebuf[idx] = pgm_read_byte( &(letter_segments[c - 'a']) );
     } else if('A' <= c && c <= 'Z') {
-	display.buffer[idx] = pgm_read_byte( &(letter_segments[c - 'A']) );
+	display.prebuf[idx] = pgm_read_byte( &(letter_segments[c - 'A']) );
     } else if('0' <= c && c <= '9') {
-	display.buffer[idx] = pgm_read_byte( &(number_segments[c - '0']) );
+	display.prebuf[idx] = pgm_read_byte( &(number_segments[c - '0']) );
     } else {
 	switch(c) {
 	    case ' ':
-		display.buffer[idx] = DISPLAY_SPACE;
+		display.prebuf[idx] = DISPLAY_SPACE;
 		break;
 	    case '-':
-		display.buffer[idx] = DISPLAY_DASH;
+		display.prebuf[idx] = DISPLAY_DASH;
 		break;
 	    case '/':
-		display.buffer[idx] = DISPLAY_SLASH;
+		display.prebuf[idx] = DISPLAY_SLASH;
 		break;
 	    default:
-		display.buffer[idx] = DISPLAY_WILDCARD;
+		display.prebuf[idx] = DISPLAY_WILDCARD;
 		break;
 	}
     }
@@ -465,7 +590,7 @@ void display_char(uint8_t idx, char c) {
 // displays decimals at positions between idx_start and idx_end, inclusive
 void display_dotselect(uint8_t idx_start, uint8_t idx_end) {
     for(uint8_t idx = idx_start; idx <= idx_end && idx < DISPLAY_SIZE; ++idx) {
-	display.buffer[idx] |= DISPLAY_DOT;
+	display.prebuf[idx] |= DISPLAY_DOT;
     }
 }
 
@@ -474,9 +599,9 @@ void display_dotselect(uint8_t idx_start, uint8_t idx_end) {
 // if show is false, clears dot at specified display position (idx)
 void display_dot(uint8_t idx, uint8_t show) {
     if(show) {
-	display.buffer[idx] |= DISPLAY_DOT;
+	display.prebuf[idx] |= DISPLAY_DOT;
     } else {
-	display.buffer[idx] &= ~DISPLAY_DOT;
+	display.prebuf[idx] &= ~DISPLAY_DOT;
     }
 }
 
@@ -485,8 +610,95 @@ void display_dot(uint8_t idx, uint8_t show) {
 // if show is false, clears dash at specified display position (idx)
 void display_dash(uint8_t idx, uint8_t show) {
     if(show) {
-	display.buffer[idx] |= DISPLAY_DASH;
+	display.prebuf[idx] |= DISPLAY_DASH;
     } else {
-	display.buffer[idx] &= ~DISPLAY_DASH;
+	display.prebuf[idx] &= ~DISPLAY_DASH;
     }
+}
+
+
+void display_transition(uint8_t type) {
+    if(display.trans_timer) return;
+
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+	display.trans_type = type;
+
+	switch(display.trans_type) {
+	    case DISPLAY_TRANS_UP:
+	    case DISPLAY_TRANS_DOWN:
+		display.trans_timer = 5;
+		break;
+
+	    case DISPLAY_TRANS_LEFT:
+		display.trans_timer = 18;
+		break;
+
+	    case DISPLAY_TRANS_INSTANT:
+		    for(uint8_t i = 0; i < DISPLAY_SIZE; ++i) {
+			display.postbuf[i] = display.prebuf[i];
+		    }
+
+		    display.trans_type = DISPLAY_TRANS_NONE;
+		    break;
+
+	    default:
+		break;
+	}
+    }
+}
+
+
+// utility function for display_varsemitick();
+// combines two characters for the scroll-left transition
+uint8_t display_combineLR(uint8_t a, uint8_t b) {
+    uint8_t c = 0;
+
+    if(a & SEG_B) c |= SEG_F;
+    if(a & SEG_E) c |= SEG_E;
+    if(b & SEG_F) c |= SEG_B;
+    if(b & SEG_E) c |= SEG_C;
+
+    return c;
+}
+
+
+uint8_t display_shiftU1(uint8_t digit) {
+    uint8_t shifted = 0;
+
+    if(digit & SEG_G) shifted |= SEG_A;
+    if(digit & SEG_E) shifted |= SEG_F;
+    if(digit & SEG_C) shifted |= SEG_B;
+    if(digit & SEG_D) shifted |= SEG_G;
+
+    return shifted;
+}
+
+
+uint8_t display_shiftU2(uint8_t digit) {
+    uint8_t shifted = 0;
+
+    if(digit & SEG_D) shifted |= SEG_A;
+
+    return shifted;
+}
+
+
+uint8_t display_shiftD1(uint8_t digit) {
+    uint8_t shifted = 0;
+
+    if(digit & SEG_A) shifted |= SEG_G;
+    if(digit & SEG_F) shifted |= SEG_E;
+    if(digit & SEG_B) shifted |= SEG_C;
+    if(digit & SEG_G) shifted |= SEG_D;
+
+    return shifted;
+}
+
+
+uint8_t display_shiftD2(uint8_t digit) {
+    uint8_t shifted = 0;
+
+    if(digit & SEG_A) shifted |= SEG_D;
+
+    return shifted;
 }
