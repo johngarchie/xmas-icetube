@@ -8,8 +8,10 @@
 #define DISPLAY_SIZE 9
 #define DISPLAY_OFF_TIMEOUT 30
 
+// status flags
+#define DISPLAY_ANIMATED 0x01  // animated display transitions
 
-// types of transitions
+// types of display transitions
 enum {
     DISPLAY_TRANS_NONE,
     DISPLAY_TRANS_INSTANT,
@@ -18,17 +20,18 @@ enum {
     DISPLAY_TRANS_LEFT,
 };
 
-// left-right and up-down transition timeouts
-#define DISPLAY_TRANS_LR_DELAY 25
-#define DISPLAY_TRANS_UD_DELAY 50
+// duration of each left/right or up/down transiton step
+#define DISPLAY_TRANS_LR_DELAY 25  // (milliseconds)
+#define DISPLAY_TRANS_UD_DELAY 50  // (milliseconds)
 
 
 typedef struct {
-    uint8_t trans_type;
-    uint8_t trans_timer;
+    uint8_t status;
+
+    uint8_t trans_type;             // current transition type
+    uint8_t trans_timer;            // current transition timer
     uint8_t prebuf[DISPLAY_SIZE];   // future display contents
     uint8_t postbuf[DISPLAY_SIZE];  // current display contents
-
 
     int8_t  bright_min;             // minimum display brightness
     int8_t  bright_max;             // maximum display brightness
@@ -57,6 +60,8 @@ void display_sleep(void);
 void display_tick(void);
 uint8_t display_varsemitick(void);
 void display_semitick(void);
+
+void display_savestatus(void);
 
 void display_loadbright(void);
 void display_savebright(void);

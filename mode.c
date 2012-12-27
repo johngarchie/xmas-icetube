@@ -1088,7 +1088,7 @@ void mode_semitick(void) {
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
-		    MODE_CFGDISP_SETBRIGHT_MENU,
+		    MODE_CFGDISP_SETANIMATED_MENU,
 		    MODE_CFGDISP_SETAUTOOFF,
 		    menu_cfgdisp_setautooff_init,
 		    btn);
@@ -1107,6 +1107,37 @@ void mode_semitick(void) {
 		    ++(*mode.tmp);
 		    *mode.tmp %= 51;
 		    mode_update(MODE_CFGDISP_SETAUTOOFF,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_CFGDISP_SETANIMATED_MENU: ;
+	    void menu_cfgdisp_setanimated_init(void) {
+		*mode.tmp = display.status;
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGDISP_SETBRIGHT_MENU,
+		    MODE_CFGDISP_SETANIMATED_TOGGLE,
+		    menu_cfgdisp_setanimated_init,
+		    btn);
+	    break;
+	case MODE_CFGDISP_SETANIMATED_TOGGLE:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    display.status = *mode.tmp;
+		    display_savestatus();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    *mode.tmp ^= DISPLAY_ANIMATED;
+		    mode_update(MODE_CFGDISP_SETANIMATED_TOGGLE,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
@@ -1287,7 +1318,12 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    mode_time_display(mode.tmp[MODE_TMP_HOUR],
 		              mode.tmp[MODE_TMP_MINUTE],
 			      mode.tmp[MODE_TMP_SECOND]);
-	    display_dotselect(1, 2);
+
+	    if(time.status & TIME_12HOUR && mode.tmp[MODE_TMP_HOUR] < 10) {
+		display_dot(2, TRUE);
+	    } else {
+		display_dotselect(1, 2);
+	    }
 	    break;
 	case MODE_SETTIME_MINUTE:
 	    mode_time_display(mode.tmp[MODE_TMP_HOUR],
@@ -1505,6 +1541,18 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		display_pstr(0, PSTR("alwys on"));
 		display_dotselect(1, 5);
 		display_dotselect(7, 8);
+	    }
+	    break;
+	case MODE_CFGDISP_SETANIMATED_MENU:
+	    display_pstr(0, PSTR("animated"));
+	    break;
+	case MODE_CFGDISP_SETANIMATED_TOGGLE:
+	    if(*mode.tmp & DISPLAY_ANIMATED) {
+		display_pstr(0, PSTR("anim  on"));
+		display_dotselect(7, 8);
+	    } else {
+		display_pstr(0, PSTR("anim off"));
+		display_dotselect(6, 8);
 	    }
 	    break;
 	default:

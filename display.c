@@ -37,6 +37,7 @@ uint8_t display_shiftD2(uint8_t digit);
 
 
 // permanent place to store display brightness
+uint8_t ee_display_status     EEMEM = DISPLAY_ANIMATED;
 uint8_t ee_display_bright_min EEMEM = 1;
 uint8_t ee_display_bright_max EEMEM = 1;
 uint8_t ee_display_bright_off_threshold EEMEM = UINT8_MAX;
@@ -166,6 +167,9 @@ void display_init(void) {
 
     // set the initial transition type to none
     display.trans_type = DISPLAY_TRANS_NONE;
+
+    // load display status
+    display.status = eeprom_read_byte(&ee_display_status);
 }
 
 
@@ -305,22 +309,27 @@ uint8_t display_varsemitick(void) {
 	    }
 	    break;
 
-	case DISPLAY_TRANS_LEFT: ;
-	    uint8_t trans_idx =   DISPLAY_SIZE
-				- (display.trans_timer >> 1)
-				+ digit_idx;
+	case DISPLAY_TRANS_LEFT:
+	    if(display.trans_timer < 2 * DISPLAY_SIZE) {
 
-	    uint8_t digit_b = (trans_idx < DISPLAY_SIZE
-		    	       ? display.postbuf[trans_idx]
-			       : display.prebuf[trans_idx - DISPLAY_SIZE]);
+		uint8_t trans_idx =   DISPLAY_SIZE
+				    - (display.trans_timer >> 1)
+		                    + digit_idx;
 
-	    if(display.trans_timer & 0x01) {
-		uint8_t digit_a = (--trans_idx < DISPLAY_SIZE
-				   ? display.postbuf[trans_idx]
-				   : display.prebuf[trans_idx - DISPLAY_SIZE]);
-		digit = display_combineLR(digit_a, digit_b);
-	    } else {
-		digit = digit_b;
+		uint8_t digit_b = (trans_idx < DISPLAY_SIZE
+			           ? display.postbuf[trans_idx]
+			           : display.prebuf[trans_idx - DISPLAY_SIZE]);
+
+		if(display.trans_timer & 0x01) {
+		    uint8_t digit_a = (--trans_idx < DISPLAY_SIZE
+			               ? display.postbuf[trans_idx]
+			               : display.prebuf[trans_idx
+				       			- DISPLAY_SIZE]);
+
+		    digit = display_combineLR(digit_a, digit_b);
+		} else {
+		    digit = digit_b;
+		}
 	    }
 	    break;
 
@@ -441,6 +450,12 @@ void display_semitick(void) {
 	// repeat in 50 semiseconds
         photo_timer = 50;
     }
+}
+
+
+// save status to eeprom
+void display_savestatus(void) {
+    eeprom_write_byte(&ee_display_status, display.status);
 }
 
 
@@ -617,7 +632,15 @@ void display_dash(uint8_t idx, uint8_t show) {
 }
 
 
+// loads transitions display to prebuffered contents
+// using the spefied transition type
 void display_transition(uint8_t type) {
+    // all transitions should be instant when animation disabled
+    if(!(display.status & DISPLAY_ANIMATED)) {
+	type = DISPLAY_TRANS_INSTANT;
+    }
+    
+    // do nothing if transition already in-progress
     if(display.trans_timer) return;
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -662,6 +685,8 @@ uint8_t display_combineLR(uint8_t a, uint8_t b) {
 }
 
 
+// utility function for display_varsemitick();
+// shifts the given digit up by one
 uint8_t display_shiftU1(uint8_t digit) {
     uint8_t shifted = 0;
 
@@ -674,6 +699,8 @@ uint8_t display_shiftU1(uint8_t digit) {
 }
 
 
+// utility function for display_varsemitick();
+// shifts the given digit up by two
 uint8_t display_shiftU2(uint8_t digit) {
     uint8_t shifted = 0;
 
@@ -683,6 +710,8 @@ uint8_t display_shiftU2(uint8_t digit) {
 }
 
 
+// utility function for display_varsemitick();
+// shifts the given digit down by one
 uint8_t display_shiftD1(uint8_t digit) {
     uint8_t shifted = 0;
 
@@ -695,6 +724,8 @@ uint8_t display_shiftD1(uint8_t digit) {
 }
 
 
+// utility function for display_varsemitick();
+// shifts the given digit down by two
 uint8_t display_shiftD2(uint8_t digit) {
     uint8_t shifted = 0;
 
