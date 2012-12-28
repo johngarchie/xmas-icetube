@@ -4,11 +4,11 @@
 
 My father gave me an Ice Tube Clock kit from Adafruit as a Christmas gift last
 year.  As an excuse to learn AVR programming, I started playing with the
-software.  Eventually, none of the origional code remained and the project
+software.  Eventually, none of the original code remained and the project
 became a feature-rich reimplementation of the original Adafruit firmware.
 
   John Archie <www.jarchie.com>
-  December 7, 2012
+  December 27, 2012
 
 
 ##############
@@ -30,16 +30,19 @@ This firmware boasts many features including,
    (11) per-digit brightness control,
    (12) optionally set brightness by ambient light,** and
    (13) optionally disable display at night (when dark)**
-   (14) animated display transitions (inspired by Jeremy Fitzhardinge's
-	firmware:  https://github.com/jsgf/iceclock)
+   (14) animated display transitions***
+   (15) display brightness pulsing while alarming and snoozing***
 
-*  The snooze feature, musical alarm, and progressive alarm, are automatically
-   disabled during a power failure.  While on battery power, the buzzer alarm
-   sounds at a menu-settable maximum volume and the alarm can only be enabled
-   or disabled via the alarm on/off switch.  All other inputs are ignored until
-   power is restored.
+*   The snooze feature, musical alarm, and progressive alarm, are automatically
+    disabled during a power failure.  While on battery power, the buzzer alarm
+    sounds at a menu-settable maximum volume and the alarm can only be enabled
+    or disabled via the alarm on/off switch.  All other inputs are ignored until
+    power is restored.
 
-** Both features require a CdS photoresistor with 10-20k pull-up resistor.
+**  Both features require a CdS photoresistor with 10-20k pull-up resistor.
+
+*** Both features were inspired by Jeremy Fitzhardinge's firmware:
+    https://github.com/jsgf/iceclock
 
 
 For Ice Tube Clock hackers, this firmware has

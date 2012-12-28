@@ -40,6 +40,11 @@
 #define ALARM_SOUNDING 0x02
 #define ALARM_SNOOZE   0x04
 
+#define ALARM_SOUNDING_PULSE 0x10
+#define ALARM_SNOOZING_PULSE 0x20
+
+#define ALARM_SETTINGS_MASK 0xF0
+
 // enabled flag for alarm.days[i]
 #define ALARM_ENABLED 0x80
 
@@ -79,6 +84,7 @@ void alarm_savevolume(void);
 void alarm_saveramp(void);
 void alarm_newramp(void);
 void alarm_savesnooze(void);
+void alarm_savestatus(void);
 
 uint8_t alarm_onbutton(void);
 

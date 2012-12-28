@@ -22,7 +22,8 @@
 
 
 #include "display.h"
-#include "usart.h"  // for debugging output
+#include "usart.h"    // for debugging output
+#include "system.h"   // for determining system status
 
 
 // extern'ed data pertaining the display
@@ -175,9 +176,8 @@ void display_init(void) {
 
 // returns true if display is off during wake mode
 uint8_t display_onbutton(void) {
-    uint8_t old_off_timer = display.off_timer;
     display.off_timer = DISPLAY_OFF_TIMEOUT;
-    return (display.photo_avg >> 8) > display.off_threshold && !old_off_timer;
+    return display.status & DISPLAY_DISABLED;
 }
 
 
@@ -344,7 +344,7 @@ uint8_t display_varsemitick(void) {
 
 
     // create the sequence of bits for the calculated digit
-    if(display.off_timer || (display.photo_avg >> 8) <= display.off_threshold) {
+    if(!(display.status & DISPLAY_DISABLED)) {
 	// select the digit position to display
 	bits = (uint32_t)1 << pgm_read_byte(&(vfd_digit_pins[digit_idx]));
 
@@ -397,6 +397,10 @@ uint8_t display_varsemitick(void) {
 
 // called every semisecond; updates ambient brightness running average
 void display_semitick(void) {
+    // Update the display transition variables as time passes:
+    // During a transition, display_varsemitick() calculates the segments
+    // to display on-the-fly from the transition variables.
+
     static uint8_t trans_delay_timer = 0;
 
     // calculate timer values for scrolling display
@@ -431,31 +435,72 @@ void display_semitick(void) {
     }
 
 
-    // get ambient lighting from photosensor every 50 semiseconds,
+    // get ambient lighting from photosensor every 16 semiseconds,
     // and update running average of photosensor values; note that
     // the running average has a range of [0, 0xFFFF]
-    static uint8_t photo_timer = 50;
+    static uint8_t photo_timer = 16;
 
     if(! --photo_timer) {
 	// update adc running average (display.photo_avg)
 	display.photo_avg -= (display.photo_avg >> 6);
 	display.photo_avg += ADC;
 
-	// update brightness from display.photo_avg
-	display_autodim();
+	// update brightness from display.photo_avg if not pulsing
+	if(!(display.status & DISPLAY_PULSING)) display_autodim();
+
+	// toggle display status based on brightness
+	if(display.off_timer || (display.photo_avg>>8)<display.off_threshold) {
+	    display.status &= ~DISPLAY_DISABLED;
+	    if(!(system.status & SYSTEM_SLEEP)) {
+		TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
+		PORTD &= ~_BV(PD3);  // MAX6921 power on (pull low)
+	    }
+	} else if((display.photo_avg >> 8) > display.off_threshold) {
+	    display.status |=  DISPLAY_DISABLED;
+	    if(!(system.status & SYSTEM_SLEEP)) {
+		TCCR0A = _BV(WGM00) | _BV(WGM01);
+		PORTD &= ~_BV(PD6);  // boost fet off (pull low)
+		PORTD |=  _BV(PD3);  // MAX6921 power off (pull high)
+	    }
+	}
 
         // begin next analog to digital conversion
         ADCSRA |= _BV(ADSC);
 
-	// repeat in 50 semiseconds
-        photo_timer = 50;
+	// repeat in 16 semiseconds
+        photo_timer = 5;
+    }
+
+
+    // update display brightness if pulsing
+    if(display.status & DISPLAY_PULSING) {
+	static uint8_t pulse_timer = DISPLAY_PULSE_DELAY;
+
+	if(! --pulse_timer) {
+	    pulse_timer = DISPLAY_PULSE_DELAY;
+
+	    if(display.status & DISPLAY_PULSE_DOWN) {
+		if(OCR0A <= 20) {
+		    display.status &= ~DISPLAY_PULSE_DOWN;
+		} else {
+		    --OCR0A;
+		}
+	    } else {
+		if(OCR0A >= 90) {
+		    display.status |=  DISPLAY_PULSE_DOWN;
+		} else {
+		    ++OCR0A;
+		}
+	    }
+	}
     }
 }
 
 
 // save status to eeprom
 void display_savestatus(void) {
-    eeprom_write_byte(&ee_display_status, display.status);
+    eeprom_write_byte(&ee_display_status, display.status
+	    				  & DISPLAY_SETTINGS_MASK);
 }
 
 

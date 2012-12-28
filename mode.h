@@ -5,7 +5,7 @@
 
 
 // default menu timeout; on timeout, mode changes to time display
-#define MODE_TIMEOUT 10000  // semiticks (~milliseconds)
+#define MODE_TIMEOUT 30000  // semiticks (~milliseconds)
 
 
 // various clock modes; current mode given by mode.state
@@ -44,6 +44,8 @@ enum {
 	    MODE_CFGALARM_SETVOL_TIME,
 	MODE_CFGALARM_SETSNOOZE_MENU,
 	    MODE_CFGALARM_SETSNOOZE_TIME,
+	MODE_CFGALARM_SETHEARTBEAT_MENU,
+	    MODE_CFGALARM_SETHEARTBEAT_TOGGLE,
     MODE_CFGTIME_MENU,
 	MODE_CFGTIME_SETDST_MENU,
 	    MODE_CFGTIME_SETDST_STATE,

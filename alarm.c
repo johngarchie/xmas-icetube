@@ -38,6 +38,7 @@ uint8_t ee_alarm_days[ALARM_COUNT] EEMEM = {
 };
 
 // volume range, and snooze timeout
+uint8_t ee_alarm_status      EEMEM = 0;
 uint8_t ee_alarm_snooze_time EEMEM = ALARM_DEFAULT_SNOOZE_TIME;
 uint8_t ee_alarm_volume_min  EEMEM = ALARM_DEFAULT_VOLUME_MIN;
 uint8_t ee_alarm_volume_max  EEMEM = ALARM_DEFAULT_VOLUME_MAX;
@@ -50,6 +51,8 @@ void alarm_init(void) {
     for(uint8_t i = 0; i < ALARM_COUNT; ++i) alarm_loadalarm(i);
 
     // load alarm configuration and ensure reasonable values
+    alarm.status       = eeprom_read_byte(&ee_alarm_status)
+			 & ALARM_SETTINGS_MASK;
     alarm.snooze_time  = eeprom_read_byte(&ee_alarm_snooze_time) % 31;
     alarm.ramp_time    = eeprom_read_byte(&ee_alarm_ramp_time )  % 61;
     alarm.volume_max   = eeprom_read_byte(&ee_alarm_volume_max)  % 10;
@@ -90,6 +93,7 @@ void alarm_wake(void) {
     } else {
 	if(alarm.status & ALARM_SOUNDING) pizo_alarm_stop();
 	alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING & ~ALARM_SNOOZE;
+	display.status &= ~DISPLAY_PULSING;
     }
 
     if(alarm.status & ALARM_SOUNDING) {
@@ -151,6 +155,10 @@ void alarm_tick(void) {
 	    alarm.alarm_timer = 0;
 	    alarm.status |= ALARM_SOUNDING;
 
+	    if(alarm.status & ALARM_SOUNDING_PULSE) {
+		display.status |= DISPLAY_PULSING;
+	    }
+
 	    if(system.status & SYSTEM_SLEEP) {
 		// wake user immediately to reduce alarm time,
 		// save power, and extend coin battery life
@@ -187,6 +195,7 @@ void alarm_tick(void) {
 	} else if(alarm.alarm_timer > ALARM_SOUNDING_TIMEOUT) {
 	    // silence alarm on alarm timeout
 	    alarm.status &= ~ALARM_SOUNDING;
+	    display.status &= ~DISPLAY_PULSING;
 	    pizo_alarm_stop();
 	}
 
@@ -199,6 +208,10 @@ void alarm_tick(void) {
 	    alarm.alarm_timer  = 0;
 	    alarm.status &= ~ALARM_SNOOZE;
 	    alarm.status |=  ALARM_SOUNDING;
+
+	    if(alarm.status & ALARM_SOUNDING_PULSE) {
+		display.status |= DISPLAY_PULSING;
+	    }
 
 	    if(system.status & SYSTEM_SLEEP) {
 		// wake user immediately to reduce alarm time,
@@ -237,6 +250,7 @@ void alarm_semitick(void) {
 	    if(++alarm_debounce >= ALARM_DEBOUNCE_TIME) {
 		if(alarm.status & ALARM_SOUNDING) pizo_alarm_stop();
 		alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING & ~ALARM_SNOOZE;
+		display.status &= ~DISPLAY_PULSING;
 		mode_alarmoff();
 		display_onbutton();
 	    }
@@ -287,6 +301,12 @@ void alarm_savesnooze(void) {
 }
 
 
+// save alarm status settings
+void alarm_savestatus(void) {
+    eeprom_write_byte(&ee_alarm_status, alarm.status & ALARM_SETTINGS_MASK);
+}
+
+
 // called on button press; returns true if press should be
 // processed as enabling snooze, false otherwise
 uint8_t alarm_onbutton(void) {
@@ -294,6 +314,9 @@ uint8_t alarm_onbutton(void) {
 	alarm.status &= ~ALARM_SOUNDING;
 	alarm.status |=  ALARM_SNOOZE;
 	alarm.alarm_timer = 0;
+	if(! (alarm.status & ALARM_SNOOZING_PULSE)) {
+	    display.status &= ~DISPLAY_PULSING;
+	}
 	pizo_alarm_stop();
 	mode_snoozing();
 	return TRUE;

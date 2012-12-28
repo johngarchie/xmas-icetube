@@ -139,8 +139,12 @@ void mode_semitick(void) {
 	    return;  // time ourselves; skip code below
 	case MODE_MONTHDAY_DISPLAY:
 	case MODE_ALARMOFF_DISPLAY:
-	case MODE_SNOOZEON_DISPLAY:
 	    if(btn || ++mode.timer > 1250) {
+		mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+	    }
+	    return;  // time ourselves; skip code below
+	case MODE_SNOOZEON_DISPLAY:
+	    if(btn || ++mode.timer > 5250) {
 		mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 	    }
 	    return;  // time ourselves; skip code below
@@ -667,7 +671,7 @@ void mode_semitick(void) {
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
-		    MODE_CFGALARM_SETSOUND_MENU,
+		    MODE_CFGALARM_SETHEARTBEAT_MENU,
 		    MODE_CFGALARM_SETSNOOZE_TIME,
 		    menu_cfgalarm_setsnooze_init,
 		    btn);
@@ -688,6 +692,60 @@ void mode_semitick(void) {
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
+		    break;
+	    }
+	    break;
+	case MODE_CFGALARM_SETHEARTBEAT_MENU: ;
+	    void menu_cfgalarm_setheartbeat_init(void) {
+		*mode.tmp = alarm.status;
+
+		if(*mode.tmp & ALARM_SOUNDING_PULSE) {
+		    display.status |=  DISPLAY_PULSING;
+		} else {
+		    display.status &= ~DISPLAY_PULSING;
+		}
+	    };
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGALARM_SETSOUND_MENU,
+		    MODE_CFGALARM_SETHEARTBEAT_TOGGLE,
+		    menu_cfgalarm_setheartbeat_init,
+		    btn);
+	    break;
+	case MODE_CFGALARM_SETHEARTBEAT_TOGGLE:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    display.status &= ~DISPLAY_PULSING;
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    display.status &= ~DISPLAY_PULSING;
+		    if(*mode.tmp & ALARM_SOUNDING_PULSE) {
+			alarm.status |=  ALARM_SOUNDING_PULSE;
+			alarm.status |=  ALARM_SNOOZING_PULSE;
+		    } else {
+			alarm.status &= ~ALARM_SOUNDING_PULSE;
+			alarm.status &= ~ALARM_SNOOZING_PULSE;
+		    }
+		    alarm_savestatus();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    if(*mode.tmp & ALARM_SOUNDING_PULSE) {
+			*mode.tmp      &= ~ALARM_SOUNDING_PULSE;
+			display.status &= ~DISPLAY_PULSING;
+		    } else {
+			*mode.tmp      |= ALARM_SOUNDING_PULSE;
+			display.status |= DISPLAY_PULSING;
+		    }
+		    mode_update(MODE_CFGALARM_SETHEARTBEAT_TOGGLE,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			display.status &= ~DISPLAY_PULSING;
+		    }
 		    break;
 	    }
 	    break;
@@ -1219,8 +1277,8 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    display_pstr(0, PSTR("alar set"));
 	    break;
 	case MODE_ALARMIDX_DISPLAY:
-	    display_pstr(0, PSTR("alarm 0"));
-	    display_digit(8, *mode.tmp + 1);
+	    display_pstr(0, PSTR("alarm "));
+	    display_digit(7, *mode.tmp + 1);
 	    break;
 	case MODE_ALARMTIME_DISPLAY:
 	    if(alarm.days[*mode.tmp] & ALARM_ENABLED) {
@@ -1319,7 +1377,10 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		              mode.tmp[MODE_TMP_MINUTE],
 			      mode.tmp[MODE_TMP_SECOND]);
 
-	    if(time.status & TIME_12HOUR && mode.tmp[MODE_TMP_HOUR] < 10) {
+	    if(time.status & TIME_12HOUR
+		    && (   mode.tmp[MODE_TMP_HOUR] < 10
+		        || (   mode.tmp[MODE_TMP_HOUR] > 12
+			    && mode.tmp[MODE_TMP_HOUR] - 12 < 10))) {
 		display_dot(2, TRUE);
 	    } else {
 		display_dotselect(1, 2);
@@ -1413,6 +1474,19 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		mode_textnum_display(PSTR("snoz"), *mode.tmp);
 	    } else {
 		display_pstr(0, PSTR("snoz off"));
+		display_dotselect(6, 8);
+	    }
+	    break;
+	case MODE_CFGALARM_SETHEARTBEAT_MENU:
+	    display_pstr(0, PSTR("a pulse "));
+	    display_dot(1, TRUE);
+	    break;
+	case MODE_CFGALARM_SETHEARTBEAT_TOGGLE:
+	    if(*mode.tmp & ALARM_SOUNDING_PULSE) {
+		display_pstr(0, PSTR("puls  on"));
+		display_dotselect(7, 8);
+	    } else {
+		display_pstr(0, PSTR("puls off"));
 		display_dotselect(6, 8);
 	    }
 	    break;

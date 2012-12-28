@@ -8,8 +8,18 @@
 #define DISPLAY_SIZE 9
 #define DISPLAY_OFF_TIMEOUT 30
 
-// status flags
-#define DISPLAY_ANIMATED 0x01  // animated display transitions
+// status flags for display.status
+#define DISPLAY_ANIMATED     0x01  // animated display transitions
+#define DISPLAY_PULSING      0x10  // display brightness pulsing
+#define DISPLAY_PULSE_DOWN   0x20  // display brightness dimming
+#define DISPLAY_DISABLED     0x40  // display disabled
+
+// savable settings in lower nibble of display.status
+#define DISPLAY_SETTINGS_MASK 0x0F
+
+// amount of time required for one step of OCR0A when pulsing
+#define DISPLAY_PULSE_DELAY 8  // (semiticks)
+
 
 // types of display transitions
 enum {
@@ -21,12 +31,12 @@ enum {
 };
 
 // duration of each left/right or up/down transiton step
-#define DISPLAY_TRANS_LR_DELAY 25  // (milliseconds)
-#define DISPLAY_TRANS_UD_DELAY 50  // (milliseconds)
+#define DISPLAY_TRANS_LR_DELAY 25  // (semiticks)
+#define DISPLAY_TRANS_UD_DELAY 50  // (semiticks)
 
 
 typedef struct {
-    uint8_t status;
+    uint8_t status;                 // display status flags
 
     uint8_t trans_type;             // current transition type
     uint8_t trans_timer;            // current transition timer
