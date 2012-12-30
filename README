@@ -97,31 +97,3 @@ To compile and install this firmware, edit and use the provided Makefile:
     Finally, upload the compiled firmware and initial EEPROM contents:
 
 	% make install
-
-
-###############
-## Wish List ##
-###############
-
-I am likely to implement the following features eventually...
-
-(1) Firmware should detect absence of a photoresistor and
-    disable relevant menu options.
-
-(2) Implement graphical display transitions like the jgsf-icetube firmware.
-
-(3) I am thinking about adding a countdown timer and/or stopwatch.
-
-(4) I am also thinking about different time and date formats, but am not sure
-    if I will actually do it.  The current display suits me quite well.
-    Currently, the user may only select between 12 and 24 hour time display.
-
-    "set tfmt"
-        - toggle 24-hour mode	"hours 24"  "hours 12"
-        - toggle am/pm:		"a/pm cir"  "a/pm dot"  "a/pm txt"  "a/pm off"
-        - toggle seconds	"sec show"  "sec hide"
-        - toggle showdst        "dst  cir"  "dst  dot"  "dst hide"
-
-    "set dfmt"
-        - toggle weekday        "wday  on"  "wday off"
-        - date format		"date dmy"  "date mdy"  "date txt"  "date iso"

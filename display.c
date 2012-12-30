@@ -316,6 +316,9 @@ uint8_t display_varsemitick(void) {
 				    - (display.trans_timer >> 1)
 		                    + digit_idx;
 
+		// treat 0th digit as blank during transitions
+		if(trans_idx == DISPLAY_SIZE || digit_idx == 0) break;
+
 		uint8_t digit_b = (trans_idx < DISPLAY_SIZE
 			           ? display.postbuf[trans_idx]
 			           : display.prebuf[trans_idx - DISPLAY_SIZE]);

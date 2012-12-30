@@ -9,8 +9,6 @@
 #include <util/atomic.h>  // for defining non-interruptable blocks
 #include <stdio.h>        // for using the NULL pointer macro
 
-#include "config.h"  // for project configuration macros
-
 #include "mode.h"
 #include "system.h"   // for system.initial_mcusr
 #include "display.h"  // for setting display contents
@@ -95,7 +93,11 @@ void mode_semitick(void) {
 		    break;
 		case BUTTONS_PLUS:
 		case BUTTONS_SET:
+#ifdef ADAFRUIT_BUTTONS
+		    mode_update(MODE_DAYOFWEEK_DISPLAY, DISPLAY_TRANS_LEFT);
+#else
 		    mode_update(MODE_DAYOFWEEK_DISPLAY, DISPLAY_TRANS_DOWN);
+#endif
 		    break;
 		default:
 		    break;
@@ -160,16 +162,24 @@ void mode_semitick(void) {
 	    break;
 	case MODE_SETALARM_IDX:
 	    switch(btn) {
+#ifdef ADAFRUIT_BUTTONS
+		case BUTTONS_PLUS:
+#else
 		case BUTTONS_MENU:
+#endif
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
 		    mode_update(MODE_SETALARM_ENABLE, DISPLAY_TRANS_UP);
 		    break;
+#ifdef ADAFRUIT_BUTTONS
+		case BUTTONS_MENU:
+#else
 		case BUTTONS_PLUS:
+#endif
 		    ++(*mode.tmp);
 		    *mode.tmp %= ALARM_COUNT;
-		    mode_update(MODE_SETALARM_IDX, DISPLAY_TRANS_INSTANT);
+		    mode_update(MODE_SETALARM_IDX, DISPLAY_TRANS_LEFT);
 		    break;
 		default:
 		    break;
@@ -708,7 +718,11 @@ void mode_semitick(void) {
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
+#ifdef ADAFRUIT_BUTTONS
+		    MODE_CFGALARM_MENU,
+#else
 		    MODE_CFGALARM_SETSOUND_MENU,
+#endif
 		    MODE_CFGALARM_SETHEARTBEAT_TOGGLE,
 		    menu_cfgalarm_setheartbeat_init,
 		    btn);
@@ -947,7 +961,11 @@ void mode_semitick(void) {
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
+#ifdef ADAFRUIT_BUTTONS
+		    MODE_CFGTIME_MENU,
+#else
 		    MODE_CFGTIME_SETDST_MENU,
+#endif
 		    MODE_CFGTIME_SET12HOUR,
 		    menu_cfgtime_set12hour_init,
 		    btn);
@@ -973,7 +991,11 @@ void mode_semitick(void) {
 	case MODE_CFGDISP_MENU:
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
+#ifdef ADAFRUIT_BUTTONS
+		    MODE_TIME_DISPLAY,
+#else
 		    MODE_SETALARM_MENU,
+#endif
 		    MODE_CFGDISP_SETBRIGHT_MENU,
 		    NULL,
 		    btn);
@@ -1178,7 +1200,11 @@ void mode_semitick(void) {
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
+#ifdef ADAFRUIT_BUTTONS
+		    MODE_CFGDISP_MENU,
+#else
 		    MODE_CFGDISP_SETBRIGHT_MENU,
+#endif
 		    MODE_CFGDISP_SETANIMATED_TOGGLE,
 		    menu_cfgdisp_setanimated_init,
 		    btn);
@@ -1277,8 +1303,8 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    display_pstr(0, PSTR("alar set"));
 	    break;
 	case MODE_ALARMIDX_DISPLAY:
-	    display_pstr(0, PSTR("alarm "));
-	    display_digit(7, *mode.tmp + 1);
+	    display_pstr(0, PSTR("alarm"));
+	    display_digit(8, *mode.tmp + 1);
 	    break;
 	case MODE_ALARMTIME_DISPLAY:
 	    if(alarm.days[*mode.tmp] & ALARM_ENABLED) {
@@ -1314,7 +1340,8 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    display_pstr(0, PSTR("set alar"));
 	    break;
 	case MODE_SETALARM_IDX:
-	    mode_textnum_display(PSTR("alarm"), *mode.tmp + 1);
+	    display_pstr(0, PSTR("alarm"));
+	    display_digit(8, *mode.tmp + 1);
 	    break;
 	case MODE_SETALARM_ENABLE:
 	    display_pstr(0, PSTR("alar"));

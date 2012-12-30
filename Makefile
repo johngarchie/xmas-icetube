@@ -31,8 +31,8 @@ AVRDUDE    ?= avrdude
 AVROBJCOPY ?= avr-objcopy
 
 # options for avr programming utilities
-AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK)
-#AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK) -DDEBUG=1
+AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK) -DADAFRUIT_BUTTONS=1
+#AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK) -ADAFRUIT_BUTTONS=1 DDEBUG=1
 #AVRSIZEOPT    ?= -C --mcu=$(AVRMCU)
 AVRSIZEOPT    ?= -A
 AVRDUDEOPT    ?= -p $(AVRMCU) -c $(AVRISP)
