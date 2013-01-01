@@ -1465,6 +1465,10 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		    display_pstr(0, PSTR("big ben"));
 		    display_dotselect(1, 7);
 		    break;
+		case PIZO_SOUND_REVEILLE:
+		    display_pstr(0, PSTR("reveille"));
+		    display_dotselect(1, 8);
+		    break;
 		default:
 		    display_pstr(0, PSTR(" beeps"));
 		    display_dotselect(2, 6);

@@ -82,36 +82,59 @@ const uint16_t third_octave[] PROGMEM = {
 
 // the notes and timing of "merry christmas"
 const uint16_t merry_xmas[] PROGMEM = {
-    N(Dn,6,2),
-    N(Gn,6,2), N(Gn,6,1), N(An,6,1), N(Gn,6,1), N(Fs,6,1),
-    N(En,6,2), N(En,6,2), N(En,6,2),
-    N(An,6,2), N(An,6,1), N(Bn,6,1), N(An,6,1), N(Gn,6,1),
-    N(Fs,6,2), N(Dn,6,2), N(Dn,6,2),
-    N(Bn,6,2), N(Bn,6,1), N(Cn,7,1), N(Bn,6,1), N(An,6,1),
-    N(Gn,6,2), N(En,6,2), N(En,6,1), N(En,6,1),
-    N(En,6,2), N(An,6,2), N(Fs,6,2),
-    N(Gn,6,4),
+    N(Dn,6,16),
+    N(Gn,6,16), N(Gn,6,8), N(An,6,8), N(Gn,6,8), N(Fs,6,8),
+    N(En,6,16), N(En,6,16), N(En,6,16),
+    N(An,6,16), N(An,6,8), N(Bn,6,8), N(An,6,8), N(Gn,6,8),
+    N(Fs,6,16), N(Dn,6,16), N(Dn,6,16),
+    N(Bn,6,16), N(Bn,6,8), N(Cn,7,8), N(Bn,6,8), N(An,6,8),
+    N(Gn,6,16), N(En,6,16), N(En,6,8), N(En,6,8),
+    N(En,6,16), N(An,6,16), N(Fs,6,16),
+    N(Gn,6,32),
 
-    N(Dn,6,2),
-    N(Gn,6,2), N(Gn,6,2), N(Gn,6,2),
-    N(Fs,6,4), N(Fs,6,2),
-    N(Gn,6,2), N(Fs,6,2), N(En,6,2),
-    N(Dn,6,4), N(Bn,6,2),
-    N(Cn,7,2), N(Bn,6,2), N(An,6,2),
-    N(Dn,7,2), N(Dn,6,2), N(Dn,6,1), N(Dn,6,1),
-    N(En,6,2), N(An,6,2), N(Fs,6,2),
-    N(Gn,6,4), PAUSE(2),
+    N(Dn,6,16),
+    N(Gn,6,16), N(Gn,6,16), N(Gn,6,16),
+    N(Fs,6,32), N(Fs,6,16),
+    N(Gn,6,16), N(Fs,6,16), N(En,6,16),
+    N(Dn,6,32), N(Bn,6,16),
+    N(Cn,7,16), N(Bn,6,16), N(An,6,16),
+    N(Dn,7,16), N(Dn,6,16), N(Dn,6,8), N(Dn,6,8),
+    N(En,6,16), N(An,6,16), N(Fs,6,16),
+    N(Gn,6,32), PAUSE(16),
+0};
+
+
+// reville
+const uint16_t reveille[] PROGMEM = {
+    N(Gn,6,4),
+    N(Cn,7,8), N(En,7,4), N(Cn,7,4), N(Gn,6,8), N(En,7,8),
+    N(Cn,7,8), N(En,7,4), N(Cn,7,4), N(Gn,6,8), N(En,7,8),
+    N(Cn,7,8), N(En,7,4), N(Cn,7,4), N(Gn,6,8), N(Cn,7,8),
+    N(En,7,16), N(Cn,7,8), N(Gn,6,8),
+    N(Cn,7,8), N(En,7,4), N(Cn,7,4), N(Gn,6,8), N(En,7,8),
+    N(Cn,7,8), N(En,7,4), N(Cn,7,4), N(Gn,6,8), N(En,7,8),
+    N(Cn,7,8), N(En,7,4), N(Cn,7,4), N(Gn,6,8), N(Gn,6,8),
+    N(Cn,7,24), PAUSE(8),
+    N(En,7,8),
+    N(En,7,8), N(En,7,8), N(En,7,8), N(En,7,8),
+    N(Gn,7,16), N(En,7,8), N(Cn,7,8),
+    N(En,7,8), N(Cn,7,8), N(En,7,8), N(Cn,7,8),
+    N(En,7,16), N(Cn,7,8), N(En,7,8),
+    N(En,7,8), N(En,7,8), N(En,7,8), N(En,7,8),
+    N(Gn,7,16), N(En,7,8), N(Cn,7,8),
+    N(En,7,8), N(Cn,7,8), N(Gn,6,8), N(Gn,6,8),
+    N(Cn,7,24), PAUSE(8),
 0};
 
 
 // big ben chime
 const uint16_t big_ben[] PROGMEM = {
-    N(Bn,5,4), N(Gn,5,4), N(An,5,4), N(Dn,5,4),
-    N(Gn,5,4), N(An,5,4), N(Bn,5,4), N(Gn,5,4),
-    N(Bn,5,4), N(An,5,4), N(Gn,5,4), N(Dn,5,4),
-    N(Dn,5,4), N(An,5,4), N(Bn,5,4), N(Gn,5,4),
-    N(Gn,5,4), N(Gn,5,4), N(Gn,5,4), N(Gn,5,4),
-    PAUSE(4),
+    N(Bn,5,32), N(Gn,5,32), N(An,5,32), N(Dn,5,32),
+    N(Gn,5,32), N(An,5,32), N(Bn,5,32), N(Gn,5,32),
+    N(Bn,5,32), N(An,5,32), N(Gn,5,32), N(Dn,5,32),
+    N(Dn,5,32), N(An,5,32), N(Bn,5,32), N(Gn,5,32),
+    N(Gn,5,32), N(Gn,5,32), N(Gn,5,32), N(Gn,5,32),
+    PAUSE(32),
 0};
 
 
@@ -154,10 +177,12 @@ void pizo_configsound(void) {
 	case PIZO_SOUND_BIG_BEN:
 	    pizo.music = big_ben;
 	    break;
+	case PIZO_SOUND_REVEILLE:
+	    pizo.music = reveille;
+	    break;
 	default:
 	    pizo.status &= ~PIZO_SOUND_MASK;
 	    pizo.status |=  PIZO_SOUND_BEEPS;
-	    pizo.music  = merry_xmas;
 	    break;
     }
 }
@@ -175,6 +200,10 @@ void pizo_nextsound(void) {
 	    pizo.status |=  PIZO_SOUND_BIG_BEN;
 	    break;
 	case PIZO_SOUND_BIG_BEN:
+	    pizo.status &= ~PIZO_SOUND_MASK;
+	    pizo.status |=  PIZO_SOUND_REVEILLE;
+	    break;
+	case PIZO_SOUND_REVEILLE:
 	    pizo.status &= ~PIZO_SOUND_MASK;
 	    pizo.status |=  PIZO_SOUND_BEEPS;
 	    break;
@@ -321,7 +350,7 @@ void pizo_semitick(void) {
 		    pizo.timer = note & TIMING_MASK;
 		}
 
-		pizo.timer <<= 8;  // 256 semiticks per time unit
+		pizo.timer <<= 5;  // 128 semiticks per time unit
 
 		// play required note
 		pizo_buzzeron(note);
@@ -330,7 +359,11 @@ void pizo_semitick(void) {
 	    }
 
 	    // brief pause to make notes distinct
-	    if(pizo.timer == 64) pizo_buzzeroff();
+	    if((pizo.status & PIZO_SOUND_MASK) == PIZO_SOUND_REVEILLE) {
+		if(pizo.timer == 32) pizo_buzzeroff();
+	    } else {
+		if(pizo.timer == 64) pizo_buzzeroff();
+	    }
 
 	    --pizo.timer;
 
