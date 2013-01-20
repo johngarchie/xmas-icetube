@@ -34,7 +34,8 @@ void mode_dayofweek_display(void);
 void mode_monthday_display(void);
 void mode_daysofweek_display(uint8_t days);
 void mode_menu_process_button(uint8_t up, uint8_t next, uint8_t down,
-			      void (*init_func)(void), uint8_t btn);
+			      void (*init_func)(void), uint8_t btn,
+			      uint8_t next_is_up);
 
 
 // set default startup mode after system reset
@@ -93,11 +94,7 @@ void mode_semitick(void) {
 		    break;
 		case BUTTONS_PLUS:
 		case BUTTONS_SET:
-#ifdef ADAFRUIT_BUTTONS
-		    mode_update(MODE_DAYOFWEEK_DISPLAY, DISPLAY_TRANS_LEFT);
-#else
 		    mode_update(MODE_DAYOFWEEK_DISPLAY, DISPLAY_TRANS_DOWN);
-#endif
 		    break;
 		default:
 		    break;
@@ -158,7 +155,7 @@ void mode_semitick(void) {
 		(gps.data_timer && gps.warn_timer ? MODE_CFGTIME_MENU
 		 				  : MODE_SETTIME_MENU),
 		MODE_SETALARM_IDX,
-	        menu_setalarm_init, btn);
+	        menu_setalarm_init, btn, FALSE);
 	    break;
 	case MODE_SETALARM_IDX:
 	    switch(btn) {
@@ -174,6 +171,10 @@ void mode_semitick(void) {
 		    break;
 #ifdef ADAFRUIT_BUTTONS
 		case BUTTONS_MENU:
+		    if(*mode.tmp == ALARM_COUNT - 1) {
+			mode_update(MODE_SETALARM_MENU, DISPLAY_TRANS_DOWN);
+			break;
+		    }
 #else
 		case BUTTONS_PLUS:
 #endif
@@ -360,7 +361,7 @@ void mode_semitick(void) {
 		    MODE_SETDATE_MENU,
 		    MODE_SETTIME_HOUR,
 		    menu_settime_init,
-		    btn);
+		    btn, FALSE);
 	    break;
 	case MODE_SETTIME_HOUR:
 	    switch(btn) {
@@ -431,7 +432,7 @@ void mode_semitick(void) {
 		    MODE_CFGALARM_MENU,
 		    MODE_SETDATE_YEAR,
 		    menu_setdate_init,
-		    btn);
+		    btn, FALSE);
 	    break;
 	case MODE_SETDATE_YEAR:
 	    switch(btn) {
@@ -503,7 +504,7 @@ void mode_semitick(void) {
 		    MODE_CFGTIME_MENU,
 		    MODE_CFGALARM_SETSOUND_MENU,
 		    NULL,
-		    btn);
+		    btn, FALSE);
 	    break;
 	case MODE_CFGALARM_SETSOUND_MENU: ;
 	    void menu_cfgalarm_setsound_init(void) {
@@ -516,7 +517,7 @@ void mode_semitick(void) {
 		    MODE_CFGALARM_SETVOL_MENU,
 		    MODE_CFGALARM_SETSOUND,
 		    menu_cfgalarm_setsound_init,
-		    btn);
+		    btn, FALSE);
 	    break;
 	case MODE_CFGALARM_SETSOUND:
 	    switch(btn) {
@@ -561,7 +562,7 @@ void mode_semitick(void) {
 		    MODE_CFGALARM_SETSNOOZE_MENU,
 		    MODE_CFGALARM_SETVOL,
 		    menu_cfgalarm_setvol_init,
-		    btn);
+		    btn, FALSE);
 	    break;
 	case MODE_CFGALARM_SETVOL:
 	    switch(btn) {
@@ -684,7 +685,7 @@ void mode_semitick(void) {
 		    MODE_CFGALARM_SETHEARTBEAT_MENU,
 		    MODE_CFGALARM_SETSNOOZE_TIME,
 		    menu_cfgalarm_setsnooze_init,
-		    btn);
+		    btn, FALSE);
 	    break;
 	case MODE_CFGALARM_SETSNOOZE_TIME:
 	    switch(btn) {
@@ -725,7 +726,7 @@ void mode_semitick(void) {
 #endif
 		    MODE_CFGALARM_SETHEARTBEAT_TOGGLE,
 		    menu_cfgalarm_setheartbeat_init,
-		    btn);
+		    btn, TRUE);
 	    break;
 	case MODE_CFGALARM_SETHEARTBEAT_TOGGLE:
 	    switch(btn) {
@@ -769,7 +770,7 @@ void mode_semitick(void) {
 		    MODE_CFGDISP_MENU,
 		    MODE_CFGTIME_SETDST_MENU,
 		    NULL,
-		    btn);
+		    btn, FALSE);
 	    break;
 	case MODE_CFGTIME_SETDST_MENU: ;
 	    void menu_cfgtime_setdst_init(void) {
@@ -781,7 +782,7 @@ void mode_semitick(void) {
 		    MODE_CFGTIME_SETZONE_MENU,
 		    MODE_CFGTIME_SETDST_STATE,
 		    menu_cfgtime_setdst_init,
-		    btn);
+		    btn, FALSE);
 	    break;
 	case MODE_CFGTIME_SETDST_STATE:
 	    switch(btn) {
@@ -907,7 +908,7 @@ void mode_semitick(void) {
 		    MODE_CFGTIME_SET12HOUR_MENU,
 		    MODE_CFGTIME_SETZONE_HOUR,
 		    menu_cfgtime_setzone_init,
-		    btn);
+		    btn, FALSE);
 	    break;
 	case MODE_CFGTIME_SETZONE_HOUR:
 	    switch(btn) {
@@ -968,7 +969,7 @@ void mode_semitick(void) {
 #endif
 		    MODE_CFGTIME_SET12HOUR,
 		    menu_cfgtime_set12hour_init,
-		    btn);
+		    btn, TRUE);
 	    break;
 	case MODE_CFGTIME_SET12HOUR:
 	    switch(btn) {
@@ -998,7 +999,7 @@ void mode_semitick(void) {
 #endif
 		    MODE_CFGDISP_SETBRIGHT_MENU,
 		    NULL,
-		    btn);
+		    btn, TRUE);
 	    break;
 	case MODE_CFGDISP_SETBRIGHT_MENU: ;
 	    void menu_cfgdisp_setbright_init(void) {
@@ -1017,7 +1018,7 @@ void mode_semitick(void) {
 		    MODE_CFGDISP_SETDIGITBRIGHT_MENU,
 		    MODE_CFGDISP_SETBRIGHT_LEVEL,
 		    menu_cfgdisp_setbright_init,
-		    btn);
+		    btn, FALSE);
 	    break;
 	case MODE_CFGDISP_SETBRIGHT_LEVEL:
 	    switch(btn) {
@@ -1125,7 +1126,7 @@ void mode_semitick(void) {
 		    MODE_CFGDISP_SETAUTOOFF_MENU,
 		    MODE_CFGDISP_SETDIGITBRIGHT_LEVEL,
 		    menu_cfgdisp_setdigitbright_init,
-		    btn);
+		    btn, FALSE);
 	    break;
 	case MODE_CFGDISP_SETDIGITBRIGHT_LEVEL:
 	    switch(btn) {
@@ -1171,7 +1172,7 @@ void mode_semitick(void) {
 		    MODE_CFGDISP_SETANIMATED_MENU,
 		    MODE_CFGDISP_SETAUTOOFF,
 		    menu_cfgdisp_setautooff_init,
-		    btn);
+		    btn, FALSE);
 	    break;
 	case MODE_CFGDISP_SETAUTOOFF:
 	    switch(btn) {
@@ -1207,7 +1208,7 @@ void mode_semitick(void) {
 #endif
 		    MODE_CFGDISP_SETANIMATED_TOGGLE,
 		    menu_cfgdisp_setanimated_init,
-		    btn);
+		    btn, TRUE);
 	    break;
 	case MODE_CFGDISP_SETANIMATED_TOGGLE:
 	    switch(btn) {
@@ -1341,7 +1342,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    break;
 	case MODE_SETALARM_IDX:
 	    display_pstr(0, PSTR("alarm"));
-	    display_digit(8, *mode.tmp + 1);
+	    display_digit(7, *mode.tmp + 1);
 	    break;
 	case MODE_SETALARM_ENABLE:
 	    display_pstr(0, PSTR("alar"));
@@ -1832,11 +1833,16 @@ void mode_daysofweek_display(uint8_t days) {
 // helper function to process button presses
 // for menu states in menu_semitick()
 void mode_menu_process_button(uint8_t up, uint8_t next, uint8_t down,
-			      void (*init_func)(void), uint8_t btn) {
+			      void (*init_func)(void), uint8_t btn,
+			      uint8_t next_is_up) {
     switch(btn) {
 	case BUTTONS_MENU:
 #ifdef ADAFRUIT_BUTTONS
-	    mode_update(next, DISPLAY_TRANS_LEFT);
+	    if(next_is_up) {
+		mode_update(next, DISPLAY_TRANS_DOWN);
+	    } else {
+		mode_update(next, DISPLAY_TRANS_LEFT);
+	    }
 #else
 	    mode_update(up, DISPLAY_TRANS_DOWN);
 #endif

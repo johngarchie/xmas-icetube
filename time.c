@@ -67,7 +67,11 @@ void time_init(void) {
     power_timer2_enable(); // enable timer2
 
     // setup timer2 for timekeeping with clock crystal
-    ASSR   |= _BV(AS2); // clock counter with crystal oscillator
+#ifdef EXTERNAL_CLOCK
+    ASSR |= _BV(AS2) | _BV(EXCLK); // clock with external clock
+#else
+    ASSR |= _BV(AS2); // clock with crystal oscillator
+#endif
     TCCR2A  = _BV(WGM21);  // clear counter on compare match
     TCCR2B  = _BV(CS22) | _BV(CS21); // divide clock by 256
 
