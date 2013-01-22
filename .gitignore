@@ -2,6 +2,8 @@
 icetube.elf
 icetube_eeprom.hex
 icetube_flash.hex
+icetube_fuse.hex
+icetube_lock.hex
 
 # object files
 *.o

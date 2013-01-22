@@ -2,7 +2,8 @@
 #
 # all (default):   compiles program
 # install:	   uploads flash and eeprom memory
-# install-fuse:    burns fuse settings
+# install-fuse:    burns fuse bits
+# install-lock:    burns lock bits
 # install-flash:   uploads flash memory
 # install-eeprom:  uploads eeprom memory
 # clean:	   removes build files
@@ -15,7 +16,6 @@ OBJECTS ?= icetube.o system.o time.o alarm.o pizo.o \
 	   display.o buttons.o mode.o usart.o gps.o
 
 # avr microcontroller processing unit
-#AVRMCU ?= atmega168
 AVRMCU ?= atmega328p
 
 # avr system clock speed
@@ -31,78 +31,82 @@ AVRDUDE    ?= avrdude
 AVROBJCOPY ?= avr-objcopy
 
 # options for avr programming utilities
-AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK) -DADAFRUIT_BUTTONS=1
-#AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK) -ADAFRUIT_BUTTONS=1 DDEBUG=1
-#AVRSIZEOPT    ?= -C --mcu=$(AVRMCU)
+AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK)
 AVRSIZEOPT    ?= -A
 AVRDUDEOPT    ?= -p $(AVRMCU) -c $(AVRISP)
 AVROBJCOPYOPT ?=
-
-# fuse options for avrdude as implied by $(AVRMCU)
-ifeq ($(AVRMCU),atmega168)
-    FUSEOPT ?= -u -U lfuse:w:0xE2:m -u -U hfuse:w:0xD6:m -u -U efuse:w:0x01:m
-endif
-
-ifeq ($(AVRMCU),atmega328p)
-    FUSEOPT ?= -u -U lfuse:w:0x62:m -u -U hfuse:w:0xD1:m -u -U efuse:w:0x06:m
-endif
-
-ifndef FUSEOPT
-    $(error must provide fuse options in $$(FUSEOPT) for avrdude)
-endif
 
 # explicitly specify a bourne-compatable shell
 SHELL ?= /bin/sh
 
 # build project and print memory usage
-all: $(PROJECT).elf $(PROJECT)_flash.hex $(PROJECT)_eeprom.hex
+all: $(addprefix $(PROJECT),.elf _flash.hex _eeprom.hex)
 	-@echo
 	-@$(AVRSIZE) $(AVRSIZEOPT) $<
 
-# time.o must always be remade since time always changes
-time.o: time.c timedef.pl ALWAYS
-	./timedef.pl | xargs $(AVRCPP) -c $(AVRCPPFLAGS) -o $@ $<
-	./timedef.pl | xargs $(AVRCPP) -MM $(AVRCPPFLAGS) $< > $*.d
+# install flash and eeprom
+install: install-flash install-eeprom
 
 # make program binary by linking object files
 $(PROJECT).elf: $(OBJECTS)
 	$(AVRCPP) $(AVRCPPFLAGS) -o $@ $^
+
+# time.o must always be remade to make the current
+# system time the default clock time
+time.o: time.c optgen.pl ALWAYS
+	./optgen.pl time | xargs $(AVRCPP) -c $(AVRCPPFLAGS) -o $@ $<
+	./optgen.pl time | xargs $(AVRCPP) -MM $(AVRCPPFLAGS) $< > $*.d
 
 # make object files and dependency lists from source code
 %.o: %.c
 	$(AVRCPP) -c $(AVRCPPFLAGS) -o $@ $<
 	$(AVRCPP) -MM $(AVRCPPFLAGS) $< > $*.d
 
-# convert executable code to intel hex format
+# extract fuse bits from compiled code
+$(PROJECT)_fuse.hex: $(PROJECT).elf
+	$(AVROBJCOPY) $(AVROBJCOPYOPT) -j.fuse -O ihex $< $@
+
+# extract lock bits from compiled code
+$(PROJECT)_lock.hex: $(PROJECT).elf
+	$(AVROBJCOPY) $(AVROBJCOPYOPT) -j.lock -O ihex $< $@
+
+# extract program instructions from compiled code
 $(PROJECT)_flash.hex: $(PROJECT).elf
 	$(AVROBJCOPY) $(AVROBJCOPYOPT) -R.eeprom -R.fuse -R.lock -O ihex $< $@
 
-# convert eeprom data to intel hex format
+# extract eeprom data from compiled code
 $(PROJECT)_eeprom.hex: $(PROJECT).elf
 	$(AVROBJCOPY) $(AVROBJCOPYOPT) -j .eeprom -O ihex $< $@
 
-# install flash and eeprom
-install: install-flash install-eeprom
+# set fuse bits on avr chip
+install-fuse: $(PROJECT)_fuse.hex optgen.pl
+	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./optgen.pl fuse < $<`
+	-@     $(AVRDUDE) $(AVRDUDEOPT) `./optgen.pl fuse < $<`
+
+# set lock bits on avr chip
+install-lock: $(PROJECT)_lock.hex optgen.pl
+	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./optgen.pl lock < $<`
+	-@     $(AVRDUDE) $(AVRDUDEOPT) `./optgen.pl lock < $<`
 
 # install executable code to avr chip
 install-flash: $(PROJECT)_flash.hex
-	$(AVRDUDE) $(AVRDUDEOPT) -U flash:w:$(PROJECT)_flash.hex:i
+	$(AVRDUDE) $(AVRDUDEOPT) -U flash:w:$<:i
 
 # install eeprom data to avr chip
 install-eeprom: $(PROJECT)_eeprom.hex
-	$(AVRDUDE) $(AVRDUDEOPT) -U eeprom:w:$(PROJECT)_eeprom.hex:i
-
-# burn fuse settings to avr chip
-install-fuse:
-	$(AVRDUDE) $(AVRDUDEOPT) $(FUSEOPT)
+	$(AVRDUDE) $(AVRDUDEOPT) -U eeprom:w:$<:i
 
 # delete build files
 clean:
-	-rm -f $(addprefix $(PROJECT),.elf _flash.hex _eeprom.hex) \
-	       $(OBJECTS) $(OBJECTS:.o=.d) timedef.h
+	-rm -f $(addprefix $(PROJECT),.elf _flash.hex _eeprom.hex \
+	    				   _fuse.hex _lock.hex) \
+	       $(OBJECTS) $(OBJECTS:.o=.d)
 
 # include auto-generated source code dependencies
 -include $(OBJECTS:.o=.d)
 
 # always remake files depending on this target
 ALWAYS:
+
+# do not keep the temporary fuse and lock bit files
+.INTERMEDIATE: $(addprefix $(PROJECT),_fuse.hex _lock.hex)

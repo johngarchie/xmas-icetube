@@ -4,6 +4,8 @@
 #include <stdint.h>       // for using standard integer types
 #include <avr/pgmspace.h> // for PGM_P (pointer to program memory)
 
+#include "config.h"  // for configuration macros
+
 
 // month numbers
 #define TIME_JAN 1

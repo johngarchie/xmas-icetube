@@ -4,6 +4,8 @@
 
 #include <stdint.h>  // for using standard integer types
 
+#include "config.h"  // for configuration macros
+
 
 // return codes for the system_power() function
 enum {

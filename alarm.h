@@ -3,7 +3,8 @@
 
 #include <stdint.h>  // for using standard integer types
 
-#include "time.h"  // for using day-of-week definitions
+#include "config.h"  // for configuration macros
+#include "time.h"    // for day-of-week macros
 
 
 // number of alarms to set

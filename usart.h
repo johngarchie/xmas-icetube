@@ -5,6 +5,8 @@
 #include <stdint.h>        // for using standard integer types
 #include <avr/pgmspace.h>  // for using program memory
 
+#include "config.h"  // for configuration macros
+
 
 #define USART_BAUDRATE 9600
 

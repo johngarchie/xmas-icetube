@@ -4,6 +4,9 @@
 #include <stdint.h>        // for using standard integer types
 #include <avr/pgmspace.h>  // for accessing data in program memory
 
+#include "config.h"  // for configuration macros
+
+
 // duration in semiseconds of the sound made by pizo_click()
 #define PIZO_CLICKTIME 8  // semiseconds
 

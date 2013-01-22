@@ -16,6 +16,7 @@
 
 
 #include <stdint.h>         // for using standard integer types
+#include <avr/io.h>	    // for defining fuse settings
 #include <avr/interrupt.h>  // for defining interrupt handlers
 #include <avr/power.h>      // for controlling system clock speed
 #include <avr/wdt.h>        // for using the watchdog timer
@@ -23,6 +24,7 @@
 
 
 // headers for this project
+#include "config.h"
 #include "system.h"
 #include "time.h"
 #include "alarm.h"
@@ -32,6 +34,21 @@
 #include "mode.h"
 #include "usart.h"
 #include "gps.h"
+
+
+// define ATmega328p lock bits
+LOCKBITS = 0xFF;  // no restrictions on memory access
+
+// define ATmega328p fuse bits
+FUSES = {
+    .low      = 0x62,
+    .high     = 0xD1,
+#ifdef EXTERNAL_CLOCK
+    .extended = 0xFD,  // bod at 2.7 volts, when DS32kHz fails
+#else
+    .extended = 0xFE,  // bod at 1.8 volts, when battery dead
+#endif
+};
 
 
 // set to 1 every ~1 millisecond or so

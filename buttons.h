@@ -4,6 +4,8 @@
 
 #include <stdint.h>  // for using standard integer types
 
+#include "config.h"  // for configuration macros
+
 
 // debounce and repeat settings
 #define BUTTONS_DEBOUNCE_TIME   20

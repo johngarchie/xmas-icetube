@@ -3,6 +3,8 @@
 
 #include <stdint.h>  // for using standard integer types
 
+#include "config.h"  // for configuration macros
+
 
 // default menu timeout; on timeout, mode changes to time display
 #define MODE_TIMEOUT 30000  // semiticks (~milliseconds)

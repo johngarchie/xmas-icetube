@@ -3,6 +3,8 @@
 
 #include <stdint.h>  // for standard integer types
 
+#include "config.h"  // for configuration macros
+
 
 // various flags for gps.status
 #define GPS_INVALID_RMC        0x01

@@ -74,15 +74,18 @@ In regard to software, compilation and installation seems to work under
 
 To compile and install this firmware, edit and use the provided Makefile:
 
-(1) Edit Configuration Variables
+(1) Edit the Configuration Variables
 
-    Review the Makefile to ensure that configuration variables are
-    reasonable given your hardware.  In particular, AVRMCU, AVRISP,
+    First, review the macro definitions in config.h, changing macro
+    definitions as needed to enable support for various hardware hacks.
+
+    Next, review the Makefile to ensure that configuration variables
+    are reasonable given your hardware.  In particular, AVRMCU, AVRISP,
     and AVRDUDEOPT seem most likely to require attention.
 
 (2) Compile the Firmware
 
-    Build icetube_flash.hex and icetube_eeprom.hex, which contain
+    Build icetube.elf, icetube_eeprom.hex, which contain
     the firmware and initial EEPROM contents:
 
 	% make

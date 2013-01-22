@@ -4,6 +4,8 @@
 #include <stdint.h>        // for using standard integer types
 #include <avr/pgmspace.h>  // for accessing data in program memory
 
+#include "config.h"  // for configuration macros
+
 
 #define DISPLAY_SIZE 9
 #define DISPLAY_OFF_TIMEOUT 30
