@@ -11,7 +11,8 @@
 
 
 #include "time.h"
-#include "usart.h"  // for debugging output
+#include "usart.h"   // for debugging output
+#include "system.h"  // for determining power source
 
 
 // extern'ed time and date data
@@ -222,7 +223,10 @@ void time_tick(void) {
 	}
     }
 
-    time_autodst(TRUE);
+    // run autodst each minute
+    if(!time.second) time_autodst(TRUE);
+
+    // run drift correction
     time_autodrift();
 }
 
@@ -596,6 +600,12 @@ void time_autodrift(void) {
 	    // make next "second" of normal duration
 	    OCR2A = 127; // 128 values, including zero
 	}
+    }
+
+    if(system.status & SYSTEM_SLEEP) {
+	// if drift adjustment calculation is pending,
+	// defer it until external power restored
+	return;
     }
 
     ATOMIC_BLOCK(ATOMIC_FORCEON) {

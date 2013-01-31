@@ -1,7 +1,7 @@
 // system.c  --  system functions (idle, sleep, interrupts)
 //
 //    PC2                  unused pin
-//    PC1                  unused pin
+//    PC1                  power from voltage regulator
 //    AIN1 (PD7)           divided system voltage
 //    analog comparator    detects low voltage (AIN1)
 //
@@ -35,7 +35,11 @@ void system_init(void) {
     system.status &= ~SYSTEM_SLEEP;
 
     // enable pull-up resistors on unused pins to ensure a defined value
+#ifdef PICO_POWER
+    PORTC |= _BV(PC2);
+#else
     PORTC |= _BV(PC2) | _BV(PC1);
+#endif  // PICO_POWER
 
     // use internal bandgap as reference for analog comparator
     // and enable analog comparator interrupt on falling edge
@@ -69,6 +73,10 @@ void system_sleep_loop(void) {
 
     system.status |= SYSTEM_SLEEP; // set sleep flag
 
+#ifdef PICO_POWER
+    wdt_disable();
+#endif  // PICO_POWER
+
     do {
 	do {
 	    // if the alarm buzzer is going, remain in idle mode
@@ -90,10 +98,38 @@ void system_sleep_loop(void) {
 	    sleep_cpu();
 
 	    cli();
+
+#ifdef PICO_POWER
+	    // disable analog comparator if comparator enabled
+	    // and voltage absent at voltage regulator
+	    if(!(ACSR & _BV(ACD)) && !(PINC & _BV(PC1))) {
+		// disable analog comparator
+		ACSR = _BV(ACD) | _BV(ACI);
+	    }
+
+	    // enable analog comparator if comparator disabled
+	    // and digital input on comparator pin is true
+	    if((ACSR & _BV(ACD)) && (PINC & _BV(PC1))) {
+		// enable analog comparator to bandgap
+		ACSR = _BV(ACBG) | _BV(ACIE) | _BV(ACI);
+
+		_delay_us(100);  // bandgap startup time
+
+		// clear analog comparator interrupt
+		ACSR = _BV(ACBG) | _BV(ACIE) | _BV(ACI);
+	    }
+	} while((ACSR & _BV(ACD)) || system_power() == SYSTEM_BATTERY);
+#else
 	} while(system_power() == SYSTEM_BATTERY);
+#endif  // PICO_POWER
 	// debounce power-restored signal; delay is actually 100 ms
 	_delay_ms(25);  // because system clock is divided by four
     } while(system_power() == SYSTEM_BATTERY);
+
+#ifdef PICO_POWER
+    wdt_enable(WDTO_8S);
+    wdt_reset();
+#endif  // PICO_POWER
 
     system.status &= ~SYSTEM_SLEEP; // clear sleep flag
 }

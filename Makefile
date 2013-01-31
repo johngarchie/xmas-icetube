@@ -33,7 +33,7 @@ AVROBJCOPY ?= avr-objcopy
 # options for avr programming utilities
 AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK)
 AVRSIZEOPT    ?= -A
-AVRDUDEOPT    ?= -p $(AVRMCU) -c $(AVRISP)
+AVRDUDEOPT    ?= -p $(AVRMCU) -c $(AVRISP) -B 4
 AVROBJCOPYOPT ?=
 
 # explicitly specify a bourne-compatable shell

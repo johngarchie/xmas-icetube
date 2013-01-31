@@ -43,11 +43,16 @@ LOCKBITS = 0xFF;  // no restrictions on memory access
 FUSES = {
     .low      = 0x62,
     .high     = 0xD1,
+#ifdef PICO_POWER
+    .extended = 0xFF,  // disable bod to save power
+#else
 #ifdef EXTERNAL_CLOCK
     .extended = 0xFD,  // bod at 2.7 volts, when DS32kHz fails
 #else
     .extended = 0xFE,  // bod at 1.8 volts, when battery dead
-#endif
+#endif  // EXTERNAL_CLOCK
+#endif  // PICO_POWER
+
 };
 
 
