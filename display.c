@@ -39,8 +39,12 @@ uint8_t display_shiftD2(uint8_t digit);
 
 // permanent place to store display brightness
 uint8_t ee_display_status     EEMEM = DISPLAY_ANIMATED;
+#ifdef AUTOMATIC_DIMMER
 uint8_t ee_display_bright_min EEMEM = 1;
 uint8_t ee_display_bright_max EEMEM = 1;
+#else
+uint8_t ee_display_brightness EEMEM = 1;
+#endif  // AUTOMATIC_DIMMER
 uint8_t ee_display_bright_off_threshold EEMEM = UINT8_MAX;
 uint8_t ee_display_digit_times[] EEMEM = {15, 15, 15, 15, 15, 15, 15, 15, 15};
 
@@ -539,16 +543,24 @@ void display_pstr(const uint8_t idx, PGM_P pstr) {
 
 // load display brightness from eeprom
 void display_loadbright(void) {
+#ifdef AUTOMATIC_DIMMER
     display.bright_min = eeprom_read_byte(&ee_display_bright_min);
     display.bright_max = eeprom_read_byte(&ee_display_bright_max);
+#else
+    display.brightness = eeprom_read_byte(&ee_display_brightness);
+#endif  // AUTOMATIC_DIMMER
     display_autodim();
 }
 
 
 // save display brightness to eeprom
 void display_savebright(void) {
+#ifdef AUTOMATIC_DIMMER
     eeprom_write_byte(&ee_display_bright_min, display.bright_min);
     eeprom_write_byte(&ee_display_bright_max, display.bright_max);
+#else
+    eeprom_write_byte(&ee_display_brightness, display.brightness);
+#endif  // AUTOMATIC_DIMMER
 }
 
 
@@ -601,16 +613,20 @@ void display_saveoff(void) {
 // set display brightness from display.bright_min,
 // display.bright_max, and display.photo_avg
 void display_autodim(void) {
+#ifdef AUTOMATIC_DIMMER
     // convert photoresistor value to 20-90 for OCR0A
-    int16_t new_OCR0A = 20 + 7 * display.bright_max
+    int16_t new_OCR0A = OCR0A_MIN + OCR0A_SCALE * display.bright_max
 			 - ( (display.photo_avg >> 8) * 7
                              * (display.bright_max - display.bright_min) >> 8);
+#else
+    int16_t new_OCR0A = OCR0A_MIN + OCR0A_SCALE * display.brightness;
+#endif  // AUTOMATIC_DIMMER
 
     // ensure display will not be too dim or too bright:
     // if too dim, low voltage may not light digit segments;
     // if too bright, excessive voltage may damage display.
-    if(new_OCR0A < 20) new_OCR0A = 20;
-    if(new_OCR0A > 90) new_OCR0A = 90;
+    if(new_OCR0A < 20) new_OCR0A = OCR0A_MIN;
+    if(new_OCR0A > 90) new_OCR0A = OCR0A_MIN + OCR0A_SCALE * 10;
 
     // set new brightness
     OCR0A = new_OCR0A;

@@ -6,6 +6,10 @@
 //
 
 
+#include "config.h"
+
+#if defined(DEBUG) || defined(GPS_TIMEKEEPING)
+
 #include <avr/io.h>     // for using register names
 #include <avr/power.h>  // for enabling and disabling usart
 
@@ -122,3 +126,4 @@ int usart_getc(void) {
 	return -1;
     }
 }
+#endif  // DEBUG || GPS_TIMEKEEPING

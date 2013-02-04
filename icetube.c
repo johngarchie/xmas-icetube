@@ -37,9 +37,14 @@
 
 
 // define ATmega328p lock bits
+#ifdef __AVR_ATmega328P__
 LOCKBITS = 0xFF;  // no restrictions on memory access
+#else
+#error LOCKBITS not defined for MCU
+#endif  // __AVR_ATmega328P__
 
-// define ATmega328p fuse bits
+// define fuse bits for the ATmega168 and ATmega328p
+#ifdef __AVR_ATmega328P__
 FUSES = {
     .low      = 0x62,
     .high     = 0xD1,
@@ -52,8 +57,11 @@ FUSES = {
     .extended = 0xFE,  // bod at 1.8 volts, when battery dead
 #endif  // EXTERNAL_CLOCK
 #endif  // PICO_POWER
-
 };
+#else
+#error FUSES not defined for MCU
+#endif  // __AVR_ATmega328P__
+
 
 
 // set to 1 every ~1 millisecond or so
@@ -67,14 +75,18 @@ int main(void) {
     // initialize the system: each init function leaves
     // the system in a low-power configuration
     system_init();
+#if defined(DEBUG) || defined(GPS_TIMEKEEPING)
     usart_init();
+#endif  // DEBUG || GPS_TIMEKEEPING
     time_init();
     buttons_init();
     alarm_init();
     pizo_init();
     display_init();
     mode_init();
+#ifdef GPS_TIMEKEEPING
     gps_init();
+#endif  // GPS_TIMEKEEPING
 
     // if the system is on battery power, sleep until power restored
     if(system_power() == SYSTEM_BATTERY) {
@@ -87,14 +99,18 @@ int main(void) {
     sei(); // enable interrupts
 
     // wakey, wakey
+#if defined(DEBUG) || defined(GPS_TIMEKEEPING)
     usart_wake();
+#endif  // DEBUG || GPS_TIMEKEEPING
     time_wake();
     buttons_wake();
     alarm_wake();
     pizo_wake();
     display_wake();
     mode_wake();
+#ifdef GPS_TIMEKEEPING
     gps_wake();
+#endif  // GPS_TIMEKEEPING
     
     // half-second beep on system reset
     pizo_setvolume(3, 0);
@@ -124,7 +140,9 @@ ISR(TIMER2_COMPA_vect) {
 	pizo_tick();
 	mode_tick();
 	display_tick();
+#ifdef GPS_TIMEKEEPING
 	gps_tick();
+#endif  // GPS_TIMEKEEPING
 	if(semitick_successful) wdt_reset();
 	semitick_successful = 0;
     }
@@ -155,7 +173,9 @@ ISR(TIMER0_OVF_vect) {
 	pizo_semitick();
 	mode_semitick();
 	display_semitick();
+#ifdef GPS_TIMEKEEPING
 	gps_semitick();
+#endif  // GPS_TIMEKEEPING
 
 	semitick_successful = 1;
     }
@@ -179,8 +199,12 @@ ISR(ANALOG_COMP_vect) {
     buttons_sleep();  // disable button pull-up resistors
     time_sleep();     // save current time
     mode_sleep();     // does nothing
+#ifdef GPS_TIMEKEEPING
     gps_sleep();      // disable usart rx interrupt
+#endif  // GPS_TIMEKEEPING
+#if defined(DEBUG) || defined(GPS_TIMEKEEPING)
     usart_sleep();    // disable usart
+#endif  // DEBUG || GPS_TIMEKEEPING
     pizo_sleep();     // adjust buzzer for slower clock
 
     // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
@@ -199,7 +223,11 @@ ISR(ANALOG_COMP_vect) {
     mode_wake();     // display time after waking
     buttons_wake();  // enable button pull-ups
     alarm_wake();    // enable alarm switch pull-up
+#if defined(DEBUG) || defined(GPS_TIMEKEEPING)
     usart_wake();    // enable and configure usart
+#endif  // DEBUG || GPS_TIMEKEEPING
+#ifdef GPS_TIMEKEEPING
     gps_wake();      // enable usart rx interrupt
+#endif  // GPS_TIMEKEEPING
     display_wake();  // start boost timer and enable display
 }

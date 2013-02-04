@@ -369,7 +369,7 @@ void pizo_semitick(void) {
 
 	    break;
 
-	default: // PIZO_INACTIVE, PIZO_TRYALARM_BEEPS, or PIZO_ALARM_BEEPS
+	default: // PIZO_INACTIVE or PIZO_ALARM_BEEPS
 	    break;
     }
 }
@@ -377,7 +377,8 @@ void pizo_semitick(void) {
 
 // enables buzzer with given sound: PAUSE, BEEP, or N(a,b)
 void pizo_buzzeron(uint16_t sound) {
-    uint16_t top_value; uint8_t top_shift;
+    uint16_t top_value;
+    uint8_t top_shift;
 
     if(sound == BEEP) {
 	top_value = 2048;
@@ -530,6 +531,7 @@ void pizo_tryalarm_start(void) {
 	    // reset music poisition and timer
 	    pizo.pos   = 0;
 	    pizo.timer = 0;
+
 	    break;
     }
 }

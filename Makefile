@@ -58,7 +58,7 @@ time.o: time.c optgen.pl ALWAYS
 	./optgen.pl time | xargs $(AVRCPP) -MM $(AVRCPPFLAGS) $< > $*.d
 
 # make object files and dependency lists from source code
-%.o: %.c
+%.o: %.c Makefile
 	$(AVRCPP) -c $(AVRCPPFLAGS) -o $@ $<
 	$(AVRCPP) -MM $(AVRCPPFLAGS) $< > $*.d
 

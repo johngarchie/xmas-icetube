@@ -1,0 +1,60 @@
+######################
+## ACKNOWLEDGEMENTS ##
+######################
+
+  * Limor Fried (Adafruit), of course, designed this wonderful clock.
+
+  * Jeremy Fitzhardinge's iceclock was the inspiration for several features.
+
+  * Ray Ramirez contributed code and provided valuable feedback and discussion.
+
+
+#############################
+## OTHER FIRMWARE PROJECTS ##
+#############################
+
+Many of the improvements in the xmas-icetube were first implemented in
+other alternative firmware.  Although I have not personally tried all those
+mentioned below, I have heard they all provide wonderful improvements over
+the original Adafruit firmware.
+
+::William Phelps (wbp)::
+https://github.com/wbphelps/Ice-Tube-Clock
+http://forums.adafruit.com/viewtopic.php?f=41&t=25108
+
+::CaitSith2::
+https://github.com/CaitSith2/Ice-Tube-Death-Clock
+
+::jgsf (Jeremy Fitzhardinge)::
+https://github.com/jsgf/iceclock/
+
+::DigiSage::
+http://forums.adafruit.com/viewtopic.php?f=41&t=13225
+
+
+#############################
+## ICE TUBE HACKS AND MODS ##
+#############################
+
+Development of the various hacks and mods has been discussed extensively
+in the Adafruit discussion board, and the Adafruit hacker community
+deserves credit for their many contributions.
+
+::Automatic Dimmer::
+http://forums.adafruit.com/viewtopic.php?f=41&t=12932
+
+::Extended Battery Hack::
+http://forums.adafruit.com/viewtopic.php?f=41&t=36697
+
+::Temperature Compensated Timekeeping::
+http://forums.adafruit.com/viewtopic.php?f=41&t=14941
+
+::GPS Timekeeping::
+http://www.ladyada.net/make/icetube/mods.html
+http://forums.adafruit.com/viewtopic.php?f=41&t=32660
+
+::Drift Correction::
+http://forums.adafruit.com/viewtopic.php?f=41&t=12720
+
+::Per-Digit Brightness Adjustment::
+http://forums.adafruit.com/viewtopic.php?f=41&t=23586

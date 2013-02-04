@@ -4,6 +4,9 @@
 //
 
 
+#include "config.h"
+#ifdef GPS_TIMEKEEPING
+
 #include <avr/io.h>         // for using avr register names
 #include <avr/eeprom.h>     // for accessing data in eeprom memory
 #include <avr/interrupt.h>  // for defining usart rx interrupt
@@ -376,3 +379,5 @@ ISR(USART_RX_vect) {
 
     ++gps.idx;
 }
+
+#endif  // GPS_TIMEKEEPING

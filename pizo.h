@@ -41,8 +41,9 @@
 typedef struct {
     uint8_t  status;
     uint8_t  cm_factor;
-    uint8_t  pos;
     uint16_t timer;
+
+    uint8_t  pos;
     const uint16_t *music;
 } pizo_t;
 
@@ -52,17 +53,13 @@ extern volatile pizo_t pizo;
 
 void pizo_init(void);
 
-void pizo_loadsound(void);
-void pizo_savesound(void);
-void pizo_configsound(void);
-void pizo_nextsound(void);
-void pizo_setvolume(uint8_t vol, uint8_t interp);
-
 void pizo_wake(void);
 void pizo_sleep(void);
 
 void pizo_tick(void);
 void pizo_semitick(void);
+
+void pizo_setvolume(uint8_t vol, uint8_t interp);
 
 void pizo_buzzeron(uint16_t sound);
 void pizo_buzzeroff(void);
@@ -72,6 +69,11 @@ void pizo_beep(uint16_t duration);
 
 void pizo_alarm_start(void);
 void pizo_alarm_stop(void);
+
+void pizo_loadsound(void);
+void pizo_savesound(void);
+void pizo_configsound(void);
+void pizo_nextsound(void);
 
 void pizo_tryalarm_start(void);
 void pizo_tryalarm_stop(void);

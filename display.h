@@ -45,8 +45,12 @@ typedef struct {
     uint8_t prebuf[DISPLAY_SIZE];   // future display contents
     uint8_t postbuf[DISPLAY_SIZE];  // current display contents
 
+#ifdef AUTOMATIC_DIMMER
     int8_t  bright_min;             // minimum display brightness
     int8_t  bright_max;             // maximum display brightness
+#else
+    int8_t  brightness;             // display brightness
+#endif  // AUTOMATIC_DIMMER
 
     // display turns off during wake mode when photosensor is below
     // 256 * threshold and the display-off timer is expired

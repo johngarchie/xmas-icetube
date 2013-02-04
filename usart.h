@@ -1,14 +1,12 @@
+#include "config.h"  // for configuration macros
+
+#if defined(DEBUG) || defined(GPS_TIMEKEEPING)
 #ifndef USART_H
 #define USART_H
 
 
 #include <stdint.h>        // for using standard integer types
 #include <avr/pgmspace.h>  // for using program memory
-
-#include "config.h"  // for configuration macros
-
-
-#define USART_BAUDRATE 9600
 
 
 #ifdef DEBUG
@@ -46,4 +44,5 @@ void usart_print_ln(void);
 int usart_getc(void);
 void usart_putc(char c);
 
-#endif
+#endif  // USART_H
+#endif  // DEBUG || GPS_TIMEKEEPING

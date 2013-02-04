@@ -61,9 +61,11 @@ void mode_tick(void) {
 	       display_pstr(0, PSTR(""));
 	   }
 	   display_transition(DISPLAY_TRANS_INSTANT);
+#ifdef GPS_TIMEKEEPING
 	} else if(gps.data_timer && !gps.warn_timer && time.second % 2) {
 	    display_pstr(0, PSTR("gps lost"));
 	    display_transition(DISPLAY_TRANS_INSTANT);
+#endif  // GPS_TIMEKEEPING
 	} else {
 	    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_INSTANT);
 	}
@@ -152,8 +154,12 @@ void mode_semitick(void) {
 
 	    mode_menu_process_button(
 		MODE_TIME_DISPLAY, 
-		(gps.data_timer && gps.warn_timer ? MODE_CFGTIME_MENU
+#ifdef GPS_TIMEKEEPING
+		(gps.data_timer && gps.warn_timer ? MODE_CFGALARM_MENU
 		 				  : MODE_SETTIME_MENU),
+#else
+		MODE_SETTIME_MENU,
+#endif  // GPS_TIMEKEEPING
 		MODE_SETALARM_IDX,
 	        menu_setalarm_init, btn, FALSE);
 	    break;
@@ -501,7 +507,7 @@ void mode_semitick(void) {
 	case MODE_CFGALARM_MENU:
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
-		    MODE_CFGTIME_MENU,
+		    MODE_CFGDISP_MENU,
 		    MODE_CFGALARM_SETSOUND_MENU,
 		    NULL,
 		    btn, FALSE);
@@ -723,7 +729,7 @@ void mode_semitick(void) {
 		    MODE_CFGALARM_MENU,
 #else
 		    MODE_CFGALARM_SETSOUND_MENU,
-#endif
+#endif  // ADAFRUIT_BUTTONS
 		    MODE_CFGALARM_SETHEARTBEAT_TOGGLE,
 		    menu_cfgalarm_setheartbeat_init,
 		    btn, TRUE);
@@ -764,245 +770,17 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_CFGTIME_MENU:
-	    mode_menu_process_button(
-		    MODE_TIME_DISPLAY,
-		    MODE_CFGDISP_MENU,
-		    MODE_CFGTIME_SETDST_MENU,
-		    NULL,
-		    btn, FALSE);
-	    break;
-	case MODE_CFGTIME_SETDST_MENU: ;
-	    void menu_cfgtime_setdst_init(void) {
-		*mode.tmp = time.status;
-	    }
-
-	    mode_menu_process_button(
-		    MODE_TIME_DISPLAY,
-		    MODE_CFGTIME_SETZONE_MENU,
-		    MODE_CFGTIME_SETDST_STATE,
-		    menu_cfgtime_setdst_init,
-		    btn, FALSE);
-	    break;
-	case MODE_CFGTIME_SETDST_STATE:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
-		    break;
-		case BUTTONS_SET:
-		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-			uint8_t autodst = *mode.tmp & TIME_AUTODST_MASK;
-
-			if(autodst) {
-			    time_autodst(FALSE);
-			} else {
-			    if(*mode.tmp & TIME_DST) {
-				time_dston(TRUE);
-			    } else {
-				time_dstoff(TRUE);
-			    }
-			}
-
-			time.status = *mode.tmp;
-			time_savestatus();
-
-			switch(autodst) {
-			    case TIME_AUTODST_USA:
-			    case TIME_AUTODST_NONE:
-				mode_update(MODE_TIME_DISPLAY,
-					    DISPLAY_TRANS_UP);
-				break;
-			    default:  // GMT, CET, or EET
-				mode_update(MODE_CFGTIME_SETDST_ZONE,
-					    DISPLAY_TRANS_UP);
-				break;
-			}
-		    }
-		    break;
-		case BUTTONS_PLUS:
-		    switch(*mode.tmp & TIME_AUTODST_MASK) {
-			case TIME_AUTODST_USA:
-			    // after autodst usa, go to manual
-			    // dst for current dst state
-			    *mode.tmp &= ~TIME_AUTODST_MASK;
-			    break;
-			case TIME_AUTODST_NONE:
-			    if( (*mode.tmp & TIME_DST)
-				    == (time.status & TIME_DST) ) {
-				// after current dst state,
-				// go to other dst state
-				*mode.tmp ^= TIME_DST;
-			    } else {
-				// after other dst state,
-				// go to autodst eu
-				*mode.tmp ^= TIME_DST;
-				switch(time.status & TIME_AUTODST_MASK) {
-				    case TIME_AUTODST_EU_CET:
-					*mode.tmp |= TIME_AUTODST_EU_CET;
-					break;
-				    case TIME_AUTODST_EU_EET:
-					*mode.tmp |= TIME_AUTODST_EU_EET;
-					break;
-				    default:
-					*mode.tmp |= TIME_AUTODST_EU_GMT;
-					break;
-				}
-			    }
-			    break;
-			default:  // GMT, CET, or EET
-			    // after autodst eu, go to autodst usa
-			    *mode.tmp &= ~TIME_AUTODST_MASK;
-			    *mode.tmp |=  TIME_AUTODST_USA;
-			    break;
-		    }
-		    mode_update(MODE_CFGTIME_SETDST_STATE,
-			        DISPLAY_TRANS_INSTANT);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_CFGTIME_SETDST_ZONE:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
-		    break;
-		case BUTTONS_SET:
-		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-			time.status = *mode.tmp;
-			time_autodst(FALSE);
-			time_savestatus();
-		    }
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
-		    break;
-		case BUTTONS_PLUS:
-		    switch(*mode.tmp & TIME_AUTODST_MASK) {
-			case TIME_AUTODST_EU_CET:
-			    *mode.tmp &= ~TIME_AUTODST_MASK;
-			    *mode.tmp |=  TIME_AUTODST_EU_EET;
-			    break;
-			case TIME_AUTODST_EU_EET:
-			    *mode.tmp &= ~TIME_AUTODST_MASK;
-			    *mode.tmp |=  TIME_AUTODST_EU_GMT;
-			    break;
-			default:  // GMT
-			    *mode.tmp &= ~TIME_AUTODST_MASK;
-			    *mode.tmp |=  TIME_AUTODST_EU_CET;
-			    break;
-		    }
-		    mode_update(MODE_CFGTIME_SETDST_ZONE,
-			        DISPLAY_TRANS_INSTANT);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_CFGTIME_SETZONE_MENU: ;
-	    void menu_cfgtime_setzone_init(void) {
-		mode.tmp[MODE_TMP_HOUR]   = gps.rel_utc_hour;
-		mode.tmp[MODE_TMP_MINUTE] = gps.rel_utc_minute;
-	    }
-
-	    mode_menu_process_button(
-		    MODE_TIME_DISPLAY,
-		    MODE_CFGTIME_SET12HOUR_MENU,
-		    MODE_CFGTIME_SETZONE_HOUR,
-		    menu_cfgtime_setzone_init,
-		    btn, FALSE);
-	    break;
-	case MODE_CFGTIME_SETZONE_HOUR:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
-		    break;
-		case BUTTONS_SET:
-		    mode_update(MODE_CFGTIME_SETZONE_MINUTE,
-			        DISPLAY_TRANS_INSTANT);
-		    break;
-		case BUTTONS_PLUS:
-		    if(mode.tmp[MODE_TMP_HOUR] >= GPS_HOUR_OFFSET_MAX) {
-			mode.tmp[MODE_TMP_HOUR] = GPS_HOUR_OFFSET_MIN;
-		    } else {
-			++mode.tmp[MODE_TMP_HOUR];
-		    }
-		    mode_update(MODE_CFGTIME_SETZONE_HOUR,
-			        DISPLAY_TRANS_INSTANT);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_CFGTIME_SETZONE_MINUTE:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
-		    break;
-		case BUTTONS_SET:
-		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-			gps.rel_utc_hour   = mode.tmp[MODE_TMP_HOUR  ];
-			gps.rel_utc_minute = mode.tmp[MODE_TMP_MINUTE];
-			gps_saverelutc();
-		    }
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
-		    break;
-		case BUTTONS_PLUS:
-		    ++mode.tmp[MODE_TMP_MINUTE];
-		    mode.tmp[MODE_TMP_MINUTE] %= 60;
-		    mode_update(MODE_CFGTIME_SETZONE_MINUTE,
-			        DISPLAY_TRANS_INSTANT);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
-	case MODE_CFGTIME_SET12HOUR_MENU: ;
-	    void menu_cfgtime_set12hour_init(void) {
-		*mode.tmp = time.status;
-	    }
-
-	    mode_menu_process_button(
-		    MODE_TIME_DISPLAY,
-#ifdef ADAFRUIT_BUTTONS
-		    MODE_CFGTIME_MENU,
-#else
-		    MODE_CFGTIME_SETDST_MENU,
-#endif
-		    MODE_CFGTIME_SET12HOUR,
-		    menu_cfgtime_set12hour_init,
-		    btn, TRUE);
-	    break;
-	case MODE_CFGTIME_SET12HOUR:
-	    switch(btn) {
-		case BUTTONS_MENU:
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
-		    break;
-		case BUTTONS_SET:
-		    time.status = *mode.tmp;
-		    time_savestatus();
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
-		    break;
-		case BUTTONS_PLUS:
-		    *mode.tmp ^= TIME_12HOUR;
-		    mode_update(MODE_CFGTIME_SET12HOUR, DISPLAY_TRANS_INSTANT);
-		    break;
-		default:
-		    break;
-	    }
-	    break;
 	case MODE_CFGDISP_MENU:
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
-#ifdef ADAFRUIT_BUTTONS
-		    MODE_TIME_DISPLAY,
-#else
-		    MODE_SETALARM_MENU,
-#endif
+		    MODE_CFGREGION_MENU,
 		    MODE_CFGDISP_SETBRIGHT_MENU,
 		    NULL,
-		    btn, TRUE);
+		    btn, FALSE);
 	    break;
 	case MODE_CFGDISP_SETBRIGHT_MENU: ;
 	    void menu_cfgdisp_setbright_init(void) {
+#ifdef AUTOMATIC_DIMMER
 		mode.tmp[MODE_TMP_MIN] = display.bright_min;
 		mode.tmp[MODE_TMP_MAX] = display.bright_max;
 
@@ -1011,6 +789,7 @@ void mode_semitick(void) {
 		} else {
 		    *mode.tmp = 11;
 		}
+#endif  // AUTOMATIC_DIMMER
 	    }
 
 	    mode_menu_process_button(
@@ -1027,6 +806,7 @@ void mode_semitick(void) {
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
+#ifdef AUTOMATIC_DIMMER
 		    if(*mode.tmp == 11) {
 			*mode.tmp = mode.tmp[MODE_TMP_MIN];
 			mode_update(MODE_CFGDISP_SETBRIGHT_MIN,
@@ -1035,10 +815,19 @@ void mode_semitick(void) {
 			display_savebright();
 			mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 		    }
+#else
+		    display_savebright();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+#endif  // AUTOMATIC_DIMMER
 		    break;
 		case BUTTONS_PLUS:
+#ifdef AUTOMATIC_DIMMER
 		    ++(*mode.tmp);
 		    *mode.tmp %= 12;
+#else
+		    ++display.brightness;
+		    display.brightness %= 11;
+#endif  // AUTOMATIC_DIMMER
 		    mode_update(MODE_CFGDISP_SETBRIGHT_LEVEL,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
@@ -1049,6 +838,7 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
+#ifdef AUTOMATIC_DIMMER
 	case MODE_CFGDISP_SETBRIGHT_MIN:
 	    switch(btn) {
 		case BUTTONS_MENU:
@@ -1116,6 +906,7 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
+#endif  // AUTOMATIC_DIMMER
 	case MODE_CFGDISP_SETDIGITBRIGHT_MENU: ;
 	    void menu_cfgdisp_setdigitbright_init(void) {
 		*mode.tmp = 0;
@@ -1228,6 +1019,241 @@ void mode_semitick(void) {
 		default:
 		    break;
 	    }
+	case MODE_CFGREGION_MENU:
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+#ifdef ADAFRUIT_BUTTONS
+		    MODE_TIME_DISPLAY,
+#else
+		    MODE_SETALARM_MENU,
+#endif
+		    MODE_CFGREGION_SETDST_MENU,
+		    NULL,
+		    btn, TRUE);
+	    break;
+	case MODE_CFGREGION_SETDST_MENU: ;
+	    void menu_cfgtime_setdst_init(void) {
+		*mode.tmp = time.status;
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+#ifdef GPS_TIMEKEEPING
+		    MODE_CFGREGION_SETZONE_MENU,
+#else
+		    MODE_CFGREGION_SET12HOUR_MENU,
+#endif  // GPS_TIMEKEEPING
+		    MODE_CFGREGION_SETDST_STATE,
+		    menu_cfgtime_setdst_init,
+		    btn, FALSE);
+	    break;
+	case MODE_CFGREGION_SETDST_STATE:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+			uint8_t autodst = *mode.tmp & TIME_AUTODST_MASK;
+
+			if(autodst) {
+			    time_autodst(FALSE);
+			} else {
+			    if(*mode.tmp & TIME_DST) {
+				time_dston(TRUE);
+			    } else {
+				time_dstoff(TRUE);
+			    }
+			}
+
+			time.status = *mode.tmp;
+			time_savestatus();
+
+			switch(autodst) {
+			    case TIME_AUTODST_USA:
+			    case TIME_AUTODST_NONE:
+				mode_update(MODE_TIME_DISPLAY,
+					    DISPLAY_TRANS_UP);
+				break;
+			    default:  // GMT, CET, or EET
+				mode_update(MODE_CFGREGION_SETDST_ZONE,
+					    DISPLAY_TRANS_UP);
+				break;
+			}
+		    }
+		    break;
+		case BUTTONS_PLUS:
+		    switch(*mode.tmp & TIME_AUTODST_MASK) {
+			case TIME_AUTODST_USA:
+			    // after autodst usa, go to manual
+			    // dst for current dst state
+			    *mode.tmp &= ~TIME_AUTODST_MASK;
+			    break;
+			case TIME_AUTODST_NONE:
+			    if( (*mode.tmp & TIME_DST)
+				    == (time.status & TIME_DST) ) {
+				// after current dst state,
+				// go to other dst state
+				*mode.tmp ^= TIME_DST;
+			    } else {
+				// after other dst state,
+				// go to autodst eu
+				*mode.tmp ^= TIME_DST;
+				switch(time.status & TIME_AUTODST_MASK) {
+				    case TIME_AUTODST_EU_CET:
+					*mode.tmp |= TIME_AUTODST_EU_CET;
+					break;
+				    case TIME_AUTODST_EU_EET:
+					*mode.tmp |= TIME_AUTODST_EU_EET;
+					break;
+				    default:
+					*mode.tmp |= TIME_AUTODST_EU_GMT;
+					break;
+				}
+			    }
+			    break;
+			default:  // GMT, CET, or EET
+			    // after autodst eu, go to autodst usa
+			    *mode.tmp &= ~TIME_AUTODST_MASK;
+			    *mode.tmp |=  TIME_AUTODST_USA;
+			    break;
+		    }
+		    mode_update(MODE_CFGREGION_SETDST_STATE,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_CFGREGION_SETDST_ZONE:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+			time.status = *mode.tmp;
+			time_autodst(FALSE);
+			time_savestatus();
+		    }
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    switch(*mode.tmp & TIME_AUTODST_MASK) {
+			case TIME_AUTODST_EU_CET:
+			    *mode.tmp &= ~TIME_AUTODST_MASK;
+			    *mode.tmp |=  TIME_AUTODST_EU_EET;
+			    break;
+			case TIME_AUTODST_EU_EET:
+			    *mode.tmp &= ~TIME_AUTODST_MASK;
+			    *mode.tmp |=  TIME_AUTODST_EU_GMT;
+			    break;
+			default:  // GMT
+			    *mode.tmp &= ~TIME_AUTODST_MASK;
+			    *mode.tmp |=  TIME_AUTODST_EU_CET;
+			    break;
+		    }
+		    mode_update(MODE_CFGREGION_SETDST_ZONE,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+#ifdef GPS_TIMEKEEPING
+	case MODE_CFGREGION_SETZONE_MENU: ;
+	    void menu_cfgtime_setzone_init(void) {
+		mode.tmp[MODE_TMP_HOUR]   = gps.rel_utc_hour;
+		mode.tmp[MODE_TMP_MINUTE] = gps.rel_utc_minute;
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGREGION_SET12HOUR_MENU,
+		    MODE_CFGREGION_SETZONE_HOUR,
+		    menu_cfgtime_setzone_init,
+		    btn, FALSE);
+	    break;
+	case MODE_CFGREGION_SETZONE_HOUR:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    mode_update(MODE_CFGREGION_SETZONE_MINUTE,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		case BUTTONS_PLUS:
+		    if(mode.tmp[MODE_TMP_HOUR] >= GPS_HOUR_OFFSET_MAX) {
+			mode.tmp[MODE_TMP_HOUR] = GPS_HOUR_OFFSET_MIN;
+		    } else {
+			++mode.tmp[MODE_TMP_HOUR];
+		    }
+		    mode_update(MODE_CFGREGION_SETZONE_HOUR,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_CFGREGION_SETZONE_MINUTE:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+			gps.rel_utc_hour   = mode.tmp[MODE_TMP_HOUR  ];
+			gps.rel_utc_minute = mode.tmp[MODE_TMP_MINUTE];
+			gps_saverelutc();
+		    }
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    ++mode.tmp[MODE_TMP_MINUTE];
+		    mode.tmp[MODE_TMP_MINUTE] %= 60;
+		    mode_update(MODE_CFGREGION_SETZONE_MINUTE,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+#endif  // GPS_TIMEKEEPING
+	case MODE_CFGREGION_SET12HOUR_MENU: ;
+	    void menu_cfgtime_set12hour_init(void) {
+		*mode.tmp = time.status;
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+#ifdef ADAFRUIT_BUTTONS
+		    MODE_CFGREGION_MENU,
+#else
+		    MODE_CFGREGION_SETDST_MENU,
+#endif
+		    MODE_CFGREGION_SET12HOUR,
+		    menu_cfgtime_set12hour_init,
+		    btn, TRUE);
+	    break;
+	case MODE_CFGREGION_SET12HOUR:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    time.status = *mode.tmp;
+		    time_savestatus();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    *mode.tmp ^= TIME_12HOUR;
+		    mode_update(MODE_CFGREGION_SET12HOUR, DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
 	    break;
 	default:
 	    break;
@@ -1305,7 +1331,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    break;
 	case MODE_ALARMIDX_DISPLAY:
 	    display_pstr(0, PSTR("alarm"));
-	    display_digit(8, *mode.tmp + 1);
+	    display_digit(7, *mode.tmp + 1);
 	    break;
 	case MODE_ALARMTIME_DISPLAY:
 	    if(alarm.days[*mode.tmp] & ALARM_ENABLED) {
@@ -1522,71 +1548,6 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		display_dotselect(6, 8);
 	    }
 	    break;
-	case MODE_CFGTIME_MENU:
-	    display_pstr(0, PSTR("cfg time"));
-	    break;
-	case MODE_CFGTIME_SETDST_MENU:
-	    display_pstr(0, PSTR("set dst"));
-	    break;
-	case MODE_CFGTIME_SETDST_STATE:
-	    switch(*mode.tmp & TIME_AUTODST_MASK) {
-		case TIME_AUTODST_USA:
-		    display_pstr(0, PSTR("dst  usa"));
-		    display_dotselect(6, 8);
-		    break;
-		case TIME_AUTODST_NONE:
-		    if(*mode.tmp & TIME_DST) {
-			display_pstr(0, PSTR("dst   on"));
-			display_dotselect(7, 8);
-		    } else {
-			display_pstr(0, PSTR("dst  off"));
-			display_dotselect(6, 8);
-		    }
-		    break;
-		default:  // GMT, CET, or EET
-		    display_pstr(0, PSTR("dst   eu"));
-		    display_dotselect(7, 8);
-		    break;
-	    }
-	    break;
-	case MODE_CFGTIME_SETDST_ZONE:
-	    switch(*mode.tmp & TIME_AUTODST_MASK) {
-		case TIME_AUTODST_EU_CET:
-		    display_pstr(0, PSTR("zone cet"));
-		    display_dotselect(6, 8);
-		    break;
-		case TIME_AUTODST_EU_EET:
-		    display_pstr(0, PSTR("zone eet"));
-		    display_dotselect(6, 8);
-		    break;
-		default:  // GMT
-		    display_pstr(0, PSTR("zone utc"));
-		    display_dotselect(6, 8);
-		    break;
-	    }
-	    break;
-	case MODE_CFGTIME_SETZONE_MENU:
-	    display_pstr(0, PSTR("set zone"));
-	    break;
-	case MODE_CFGTIME_SETZONE_HOUR:
-	    mode_zone_display();
-	    display_dotselect(2, 3);
-	    break;
-	case MODE_CFGTIME_SETZONE_MINUTE:
-	    mode_zone_display();
-	    display_dotselect(6, 7);
-	    break;
-	case MODE_CFGTIME_SET12HOUR_MENU:
-	    display_pstr(0, PSTR("set 1224"));
-	    display_dot(6, TRUE);
-	    break;
-	case MODE_CFGTIME_SET12HOUR:
-	    display_pstr(0, PSTR("24-hour"));
-	    if(*mode.tmp & TIME_12HOUR) {
-		display_pstr(1, PSTR("12"));
-	    }
-	    display_dotselect(1, 2);
-	    break;
 	case MODE_CFGDISP_MENU:
 	    display_pstr(0, PSTR("cfg disp"));
 	    break;
@@ -1594,6 +1555,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    display_pstr(0, PSTR("disp bri"));
 	    break;
 	case MODE_CFGDISP_SETBRIGHT_LEVEL:
+#ifdef AUTOMATIC_DIMMER
 	    if(*mode.tmp == 11) {
 		display_loadbright();
 		display_pstr(0, PSTR("bri auto"));
@@ -1603,7 +1565,12 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		display_autodim();
 		mode_textnum_display(PSTR("bri"), *mode.tmp);
 	    }
+#else
+	    display_autodim();
+	    mode_textnum_display(PSTR("bri"), display.brightness);
+#endif  // AUTOMATIC_DIMMER
 	    break;
+#ifdef AUTOMATIC_DIMMER
 	case MODE_CFGDISP_SETBRIGHT_MIN:
 	    if(*mode.tmp < 0) {
 		// user might not be able to see lowest brightness
@@ -1619,6 +1586,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    display_autodim();
 	    mode_textnum_display(PSTR("b max"), *mode.tmp);
 	    break;
+#endif  // AUTOMATIC_DIMMER
 	case MODE_CFGDISP_SETDIGITBRIGHT_MENU:
 	    display_pstr(0, PSTR("digt bri"));
 	    break;
@@ -1660,6 +1628,73 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		display_pstr(0, PSTR("anim off"));
 		display_dotselect(6, 8);
 	    }
+	    break;
+	case MODE_CFGREGION_MENU:
+	    display_pstr(0, PSTR("cfg regn"));
+	    break;
+	case MODE_CFGREGION_SETDST_MENU:
+	    display_pstr(0, PSTR("set dst"));
+	    break;
+	case MODE_CFGREGION_SETDST_STATE:
+	    switch(*mode.tmp & TIME_AUTODST_MASK) {
+		case TIME_AUTODST_USA:
+		    display_pstr(0, PSTR("dst  usa"));
+		    display_dotselect(6, 8);
+		    break;
+		case TIME_AUTODST_NONE:
+		    if(*mode.tmp & TIME_DST) {
+			display_pstr(0, PSTR("dst   on"));
+			display_dotselect(7, 8);
+		    } else {
+			display_pstr(0, PSTR("dst  off"));
+			display_dotselect(6, 8);
+		    }
+		    break;
+		default:  // GMT, CET, or EET
+		    display_pstr(0, PSTR("dst   eu"));
+		    display_dotselect(7, 8);
+		    break;
+	    }
+	    break;
+	case MODE_CFGREGION_SETDST_ZONE:
+	    switch(*mode.tmp & TIME_AUTODST_MASK) {
+		case TIME_AUTODST_EU_CET:
+		    display_pstr(0, PSTR("zone cet"));
+		    display_dotselect(6, 8);
+		    break;
+		case TIME_AUTODST_EU_EET:
+		    display_pstr(0, PSTR("zone eet"));
+		    display_dotselect(6, 8);
+		    break;
+		default:  // GMT
+		    display_pstr(0, PSTR("zone utc"));
+		    display_dotselect(6, 8);
+		    break;
+	    }
+	    break;
+#ifdef GPS_TIMEKEEPING
+	case MODE_CFGREGION_SETZONE_MENU:
+	    display_pstr(0, PSTR("set zone"));
+	    break;
+	case MODE_CFGREGION_SETZONE_HOUR:
+	    mode_zone_display();
+	    display_dotselect(2, 3);
+	    break;
+	case MODE_CFGREGION_SETZONE_MINUTE:
+	    mode_zone_display();
+	    display_dotselect(6, 7);
+	    break;
+#endif  // GPS_TIMEKEEPING
+	case MODE_CFGREGION_SET12HOUR_MENU:
+	    display_pstr(0, PSTR("set 1224"));
+	    display_dot(6, TRUE);
+	    break;
+	case MODE_CFGREGION_SET12HOUR:
+	    display_pstr(0, PSTR("24-hour"));
+	    if(*mode.tmp & TIME_12HOUR) {
+		display_pstr(1, PSTR("12"));
+	    }
+	    display_dotselect(1, 2);
 	    break;
 	default:
 	    display_pstr(0, PSTR("-error-"));
