@@ -321,7 +321,10 @@ uint8_t display_varsemitick(void) {
 		                    + digit_idx;
 
 		// treat 0th digit as blank during transitions
-		if(trans_idx == DISPLAY_SIZE || digit_idx == 0) break;
+		if(trans_idx == DISPLAY_SIZE) {
+		    digit = 0;
+		    break;
+		}
 
 		uint8_t digit_b = (trans_idx < DISPLAY_SIZE
 			           ? display.postbuf[trans_idx]
