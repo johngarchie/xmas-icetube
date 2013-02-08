@@ -96,7 +96,11 @@ void mode_semitick(void) {
 		    break;
 		case BUTTONS_PLUS:
 		case BUTTONS_SET:
-		    mode_update(MODE_DAYOFWEEK_DISPLAY, DISPLAY_TRANS_DOWN);
+		    if(time.dateformat & TIME_DATEFORMAT_SHOWWDAY) {
+			mode_update(MODE_DAYOFWEEK_DISPLAY, DISPLAY_TRANS_DOWN);
+		    } else {
+			mode_update(MODE_MONTHDAY_DISPLAY, DISPLAY_TRANS_DOWN);
+		    }
 		    break;
 		default:
 		    break;
@@ -105,6 +109,20 @@ void mode_semitick(void) {
 	case MODE_DAYOFWEEK_DISPLAY:
 	    if(btn || ++mode.timer > 1250) {
 		mode_update(MODE_MONTHDAY_DISPLAY, DISPLAY_TRANS_LEFT);
+	    }
+	    return;  // time ourselves; skip code below
+	case MODE_MONTHDAY_DISPLAY:
+	    if(btn || ++mode.timer > 1250) {
+		if(time.dateformat & TIME_DATEFORMAT_SHOWYEAR) {
+		    mode_update(MODE_YEAR_DISPLAY, DISPLAY_TRANS_LEFT);
+		} else {
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		}
+	    }
+	    return;  // time ourselves; skip code below
+	case MODE_YEAR_DISPLAY:
+	    if(btn || ++mode.timer > 1250) {
+		mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 	    }
 	    return;  // time ourselves; skip code below
 	case MODE_ALARMSET_DISPLAY:
@@ -138,7 +156,6 @@ void mode_semitick(void) {
 		}
 	    }
 	    return;  // time ourselves; skip code below
-	case MODE_MONTHDAY_DISPLAY:
 	case MODE_ALARMOFF_DISPLAY:
 	    if(btn || ++mode.timer > 1250) {
 		mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
@@ -773,7 +790,7 @@ void mode_semitick(void) {
 	case MODE_CFGDISP_MENU:
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
-		    MODE_CFGREGION_MENU,
+		    MODE_CFGREGN_MENU,
 		    MODE_CFGDISP_SETBRIGHT_MENU,
 		    NULL,
 		    btn, FALSE);
@@ -1019,7 +1036,7 @@ void mode_semitick(void) {
 		default:
 		    break;
 	    }
-	case MODE_CFGREGION_MENU:
+	case MODE_CFGREGN_MENU:
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
 #ifdef ADAFRUIT_BUTTONS
@@ -1027,27 +1044,27 @@ void mode_semitick(void) {
 #else
 		    MODE_SETALARM_MENU,
 #endif
-		    MODE_CFGREGION_SETDST_MENU,
+		    MODE_CFGREGN_SETDST_MENU,
 		    NULL,
 		    btn, TRUE);
 	    break;
-	case MODE_CFGREGION_SETDST_MENU: ;
-	    void menu_cfgtime_setdst_init(void) {
+	case MODE_CFGREGN_SETDST_MENU: ;
+	    void menu_cfgregn_setdst_init(void) {
 		*mode.tmp = time.status;
 	    }
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
 #ifdef GPS_TIMEKEEPING
-		    MODE_CFGREGION_SETZONE_MENU,
+		    MODE_CFGREGN_SETZONE_MENU,
 #else
-		    MODE_CFGREGION_SET12HOUR_MENU,
+		    MODE_CFGREGN_DATEFMT_MENU,
 #endif  // GPS_TIMEKEEPING
-		    MODE_CFGREGION_SETDST_STATE,
-		    menu_cfgtime_setdst_init,
+		    MODE_CFGREGN_SETDST_STATE,
+		    menu_cfgregn_setdst_init,
 		    btn, FALSE);
 	    break;
-	case MODE_CFGREGION_SETDST_STATE:
+	case MODE_CFGREGN_SETDST_STATE:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
@@ -1076,7 +1093,7 @@ void mode_semitick(void) {
 					    DISPLAY_TRANS_UP);
 				break;
 			    default:  // GMT, CET, or EET
-				mode_update(MODE_CFGREGION_SETDST_ZONE,
+				mode_update(MODE_CFGREGN_SETDST_ZONE,
 					    DISPLAY_TRANS_UP);
 				break;
 			}
@@ -1118,14 +1135,14 @@ void mode_semitick(void) {
 			    *mode.tmp |=  TIME_AUTODST_USA;
 			    break;
 		    }
-		    mode_update(MODE_CFGREGION_SETDST_STATE,
+		    mode_update(MODE_CFGREGN_SETDST_STATE,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
 		    break;
 	    }
 	    break;
-	case MODE_CFGREGION_SETDST_ZONE:
+	case MODE_CFGREGN_SETDST_ZONE:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
@@ -1153,7 +1170,7 @@ void mode_semitick(void) {
 			    *mode.tmp |=  TIME_AUTODST_EU_CET;
 			    break;
 		    }
-		    mode_update(MODE_CFGREGION_SETDST_ZONE,
+		    mode_update(MODE_CFGREGN_SETDST_ZONE,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
@@ -1161,26 +1178,26 @@ void mode_semitick(void) {
 	    }
 	    break;
 #ifdef GPS_TIMEKEEPING
-	case MODE_CFGREGION_SETZONE_MENU: ;
-	    void menu_cfgtime_setzone_init(void) {
+	case MODE_CFGREGN_SETZONE_MENU: ;
+	    void menu_cfgregn_setzone_init(void) {
 		mode.tmp[MODE_TMP_HOUR]   = gps.rel_utc_hour;
 		mode.tmp[MODE_TMP_MINUTE] = gps.rel_utc_minute;
 	    }
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
-		    MODE_CFGREGION_SET12HOUR_MENU,
-		    MODE_CFGREGION_SETZONE_HOUR,
-		    menu_cfgtime_setzone_init,
+		    MODE_CFGREGN_DATEFMT_MENU,
+		    MODE_CFGREGN_SETZONE_HOUR,
+		    menu_cfgregn_setzone_init,
 		    btn, FALSE);
 	    break;
-	case MODE_CFGREGION_SETZONE_HOUR:
+	case MODE_CFGREGN_SETZONE_HOUR:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
-		    mode_update(MODE_CFGREGION_SETZONE_MINUTE,
+		    mode_update(MODE_CFGREGN_SETZONE_MINUTE,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		case BUTTONS_PLUS:
@@ -1189,14 +1206,14 @@ void mode_semitick(void) {
 		    } else {
 			++mode.tmp[MODE_TMP_HOUR];
 		    }
-		    mode_update(MODE_CFGREGION_SETZONE_HOUR,
+		    mode_update(MODE_CFGREGN_SETZONE_HOUR,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
 		    break;
 	    }
 	    break;
-	case MODE_CFGREGION_SETZONE_MINUTE:
+	case MODE_CFGREGN_SETZONE_MINUTE:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
@@ -1212,7 +1229,7 @@ void mode_semitick(void) {
 		case BUTTONS_PLUS:
 		    ++mode.tmp[MODE_TMP_MINUTE];
 		    mode.tmp[MODE_TMP_MINUTE] %= 60;
-		    mode_update(MODE_CFGREGION_SETZONE_MINUTE,
+		    mode_update(MODE_CFGREGN_SETZONE_MINUTE,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
@@ -1220,40 +1237,139 @@ void mode_semitick(void) {
 	    }
 	    break;
 #endif  // GPS_TIMEKEEPING
-	case MODE_CFGREGION_SET12HOUR_MENU: ;
-	    void menu_cfgtime_set12hour_init(void) {
-		*mode.tmp = time.status;
+	case MODE_CFGREGN_DATEFMT_MENU: ;
+	    void menu_cfgregn_datefmt(void) {
+		*mode.tmp = time.dateformat;
 	    }
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
-#ifdef ADAFRUIT_BUTTONS
-		    MODE_CFGREGION_MENU,
-#else
-		    MODE_CFGREGION_SETDST_MENU,
-#endif
-		    MODE_CFGREGION_SET12HOUR,
-		    menu_cfgtime_set12hour_init,
-		    btn, TRUE);
+		    MODE_CFGREGN_TIMEFMT_MENU,
+		    MODE_CFGREGN_DATEFMT_SHOWWDAY,
+		    menu_cfgregn_datefmt, btn, FALSE);
 	    break;
-	case MODE_CFGREGION_SET12HOUR:
+	case MODE_CFGREGN_DATEFMT_SHOWWDAY:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
-		    time.status = *mode.tmp;
-		    time_savestatus();
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    time.dateformat = *mode.tmp;
+		    *mode.tmp = time.dateformat & TIME_DATEFORMAT_MASK;
+		    mode_update(MODE_CFGREGN_DATEFMT_FORMAT, DISPLAY_TRANS_UP);
 		    break;
 		case BUTTONS_PLUS:
-		    *mode.tmp ^= TIME_12HOUR;
-		    mode_update(MODE_CFGREGION_SET12HOUR, DISPLAY_TRANS_INSTANT);
+		    *mode.tmp ^= TIME_DATEFORMAT_SHOWWDAY;
+		    mode_update(MODE_CFGREGN_DATEFMT_SHOWWDAY,
+			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
 		    break;
 	    }
 	    break;
+	case MODE_CFGREGN_DATEFMT_FORMAT:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    time_loaddateformat();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    switch(*mode.tmp) {
+			case TIME_DATEFORMAT_NUMERIC_ISO:
+			case TIME_DATEFORMAT_NUMERIC_EU:
+			case TIME_DATEFORMAT_NUMERIC_USA:
+			    time.dateformat &= ~TIME_DATEFORMAT_SHOWYEAR;
+			    time_savedateformat();
+			    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+			    break;
+			default:
+			    mode_update(MODE_CFGREGN_DATEFMT_SHOWYEAR,
+				        DISPLAY_TRANS_UP);
+			    break;
+		    }
+		    break;
+		case BUTTONS_PLUS:
+		    if(++(*mode.tmp) > TIME_DATEFORMAT_TEXT_USA) {
+			*mode.tmp = TIME_DATEFORMAT_NUMERIC_ISO;
+		    }
+
+		    time.dateformat &= ~TIME_DATEFORMAT_MASK;
+		    time.dateformat |= *mode.tmp;
+
+		    mode_update(MODE_CFGREGN_DATEFMT_FORMAT,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			time_loaddateformat();
+		    } else if(!(mode.timer & 0x01FF)) {
+			if(mode.timer & 0x0200) {
+			    display_pstr(0, PSTR(""));
+			    display_transition(DISPLAY_TRANS_INSTANT);
+			} else {
+			    mode_monthday_display();
+			    display_transition(DISPLAY_TRANS_INSTANT);
+			}
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_CFGREGN_DATEFMT_SHOWYEAR:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    time_loaddateformat();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    time_savedateformat();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    time.dateformat ^= TIME_DATEFORMAT_SHOWYEAR;
+		    mode_update(MODE_CFGREGN_DATEFMT_SHOWYEAR,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			time_loaddateformat();
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_CFGREGN_TIMEFMT_MENU: ;
+	    void menu_cfgregn_set12hour_init(void) {
+		*mode.tmp = time.timeformat;
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+#ifdef ADAFRUIT_BUTTONS
+		    MODE_CFGREGN_MENU,
+#else
+		    MODE_CFGREGN_SETDST_MENU,
+#endif
+		    MODE_CFGREGN_TIMEFMT_12HOUR,
+		    menu_cfgregn_set12hour_init,
+		    btn, TRUE);
+	    break;
+	case MODE_CFGREGN_TIMEFMT_12HOUR:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    time.timeformat = *mode.tmp;
+		    time_savetimeformat();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    *mode.tmp ^= TIME_TIMEFORMAT_12HOUR;
+		    mode_update(MODE_CFGREGN_TIMEFMT_12HOUR,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    break;
+	    }
 	    break;
 	default:
 	    break;
@@ -1306,7 +1422,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    mode_time_display(time.hour, time.minute, time.second);
 
 	    // show daylight savings time indicator
-	    if(time.status & TIME_12HOUR) {
+	    if(time.timeformat & TIME_TIMEFORMAT_12HOUR) {
 		// show rightmost decimal if dst
 		display_dot(8, time.status & TIME_DST);
 	    } else {
@@ -1325,6 +1441,11 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    break;
 	case MODE_MONTHDAY_DISPLAY:
 	    mode_monthday_display();
+	    break;
+	case MODE_YEAR_DISPLAY:
+	    display_pstr(0, PSTR("  20"));
+	    display_digit(5, time.year / 10);
+	    display_digit(6, time.year % 10);
 	    break;
 	case MODE_ALARMSET_DISPLAY:
 	    display_pstr(0, PSTR("alar set"));
@@ -1383,7 +1504,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	case MODE_SETALARM_HOUR:
 	    mode_alarm_display(alarm.hours[*mode.tmp],
 			       alarm.minutes[*mode.tmp]);
-	    if(time.status & TIME_12HOUR) {
+	    if(time.timeformat & TIME_TIMEFORMAT_12HOUR) {
 		display_dotselect(1, 2);
 	    } else {
 		display_dotselect(2, 3);
@@ -1392,7 +1513,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	case MODE_SETALARM_MINUTE:
 	    mode_alarm_display(alarm.hours[*mode.tmp],
 			       alarm.minutes[*mode.tmp]);
-	    if(time.status & TIME_12HOUR) {
+	    if(time.timeformat & TIME_TIMEFORMAT_12HOUR) {
 		display_dotselect(4, 5);
 	    } else {
 		display_dotselect(5, 6);
@@ -1431,7 +1552,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		              mode.tmp[MODE_TMP_MINUTE],
 			      mode.tmp[MODE_TMP_SECOND]);
 
-	    if(time.status & TIME_12HOUR
+	    if(time.timeformat & TIME_TIMEFORMAT_12HOUR
 		    && (   mode.tmp[MODE_TMP_HOUR] < 10
 		        || (   mode.tmp[MODE_TMP_HOUR] > 12
 			    && mode.tmp[MODE_TMP_HOUR] - 12 < 10))) {
@@ -1629,13 +1750,13 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		display_dotselect(6, 8);
 	    }
 	    break;
-	case MODE_CFGREGION_MENU:
+	case MODE_CFGREGN_MENU:
 	    display_pstr(0, PSTR("cfg regn"));
 	    break;
-	case MODE_CFGREGION_SETDST_MENU:
+	case MODE_CFGREGN_SETDST_MENU:
 	    display_pstr(0, PSTR("set dst"));
 	    break;
-	case MODE_CFGREGION_SETDST_STATE:
+	case MODE_CFGREGN_SETDST_STATE:
 	    switch(*mode.tmp & TIME_AUTODST_MASK) {
 		case TIME_AUTODST_USA:
 		    display_pstr(0, PSTR("dst  usa"));
@@ -1656,7 +1777,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		    break;
 	    }
 	    break;
-	case MODE_CFGREGION_SETDST_ZONE:
+	case MODE_CFGREGN_SETDST_ZONE:
 	    switch(*mode.tmp & TIME_AUTODST_MASK) {
 		case TIME_AUTODST_EU_CET:
 		    display_pstr(0, PSTR("zone cet"));
@@ -1673,25 +1794,50 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    }
 	    break;
 #ifdef GPS_TIMEKEEPING
-	case MODE_CFGREGION_SETZONE_MENU:
+	case MODE_CFGREGN_SETZONE_MENU:
 	    display_pstr(0, PSTR("set zone"));
 	    break;
-	case MODE_CFGREGION_SETZONE_HOUR:
+	case MODE_CFGREGN_SETZONE_HOUR:
 	    mode_zone_display();
 	    display_dotselect(2, 3);
 	    break;
-	case MODE_CFGREGION_SETZONE_MINUTE:
+	case MODE_CFGREGN_SETZONE_MINUTE:
 	    mode_zone_display();
 	    display_dotselect(6, 7);
 	    break;
 #endif  // GPS_TIMEKEEPING
-	case MODE_CFGREGION_SET12HOUR_MENU:
+	case MODE_CFGREGN_DATEFMT_MENU:
+	    display_pstr(0, PSTR("date fmt"));
+	    break;
+	case MODE_CFGREGN_DATEFMT_SHOWWDAY:
+	    if(*mode.tmp & TIME_DATEFORMAT_SHOWWDAY) {
+		display_pstr(0, PSTR("wday  on"));
+		display_dotselect(7, 8);
+	    } else {
+		display_pstr(0, PSTR("wday off"));
+		display_dotselect(6, 8);
+	    }
+	    break;
+	case MODE_CFGREGN_DATEFMT_FORMAT:
+	    mode_monthday_display();
+	    break;
+	case MODE_CFGREGN_DATEFMT_SHOWYEAR:
+	    display_pstr(0, PSTR("year"));
+	    if(time.dateformat & TIME_DATEFORMAT_SHOWYEAR) {
+		display_pstr(7, PSTR("on"));
+		display_dotselect(7, 8);
+	    } else {
+		display_pstr(6, PSTR("off"));
+		display_dotselect(6, 8);
+	    }
+	    break;
+	case MODE_CFGREGN_TIMEFMT_MENU:
 	    display_pstr(0, PSTR("set 1224"));
 	    display_dot(6, TRUE);
 	    break;
-	case MODE_CFGREGION_SET12HOUR:
+	case MODE_CFGREGN_TIMEFMT_12HOUR:
 	    display_pstr(0, PSTR("24-hour"));
-	    if(*mode.tmp & TIME_12HOUR) {
+	    if(*mode.tmp & TIME_TIMEFORMAT_12HOUR) {
 		display_pstr(1, PSTR("12"));
 	    }
 	    display_dotselect(1, 2);
@@ -1713,13 +1859,13 @@ void mode_time_display(uint8_t hour, uint8_t minute,
 		       uint8_t second) {
     uint8_t hour_to_display = hour;
 
-    if(time.status & TIME_12HOUR) {
+    if(time.timeformat & TIME_TIMEFORMAT_12HOUR) {
 	if(hour_to_display > 12) hour_to_display -= 12;
 	if(hour_to_display == 0) hour_to_display  = 12;
     }
 
     // display current time
-    if(time.status & TIME_12HOUR && hour_to_display < 10) {
+    if(time.timeformat & TIME_TIMEFORMAT_12HOUR && hour_to_display < 10) {
 	display_clear(1);
     } else {
 	display_digit(1, hour_to_display / 10);
@@ -1733,7 +1879,7 @@ void mode_time_display(uint8_t hour, uint8_t minute,
     display_digit(8, second % 10);
 
     // set or clear am or pm indicator
-    if(time.status & TIME_12HOUR) {
+    if(time.timeformat & TIME_TIMEFORMAT_12HOUR) {
 	display_dot(0, hour >= 12);  // left-most circle if pm
     }
 }
@@ -1744,7 +1890,7 @@ void mode_alarm_display(uint8_t hour, uint8_t minute) {
     uint8_t hour_to_display = hour;
     uint8_t idx = 0;
 
-    if(time.status & TIME_12HOUR) {
+    if(time.timeformat & TIME_TIMEFORMAT_12HOUR) {
 	if(hour_to_display > 12) hour_to_display -= 12;
 	if(hour_to_display == 0) hour_to_display  = 12;
     } else {
@@ -1760,7 +1906,7 @@ void mode_alarm_display(uint8_t hour, uint8_t minute) {
     display_digit(idx++, minute % 10);
     display_clear(idx++);
 
-    if(time.status & TIME_12HOUR) {
+    if(time.timeformat & TIME_TIMEFORMAT_12HOUR) {
 	if(hour < 12) {
 	    display_char(idx++, 'a');
 	    display_char(idx++, 'm');
@@ -1845,12 +1991,63 @@ void mode_dayofweek_display(void) {
 // displays current month and day
 void mode_monthday_display(void) {
     display_clear(0);
-    display_clear(1);
-    display_pstr(2, time_month2pstr(time.month));
-    display_clear(5);
-    display_digit(6, time.day / 10);
-    display_digit(7, time.day % 10);
-    display_clear(8);
+
+    switch(time.dateformat & TIME_DATEFORMAT_MASK) {
+	case TIME_DATEFORMAT_NUMERIC_ISO:
+	    display_digit(1, 2);
+	    display_digit(2, 0);
+	    display_digit(3, time.year / 10);
+	    display_digit(4, time.year % 10);
+	    display_dot(4, TRUE);
+	    display_digit(5, time.month / 10);
+	    display_digit(6, time.month % 10);
+	    display_dot(6, TRUE);
+	    display_digit(7, time.day / 10);
+	    display_digit(8, time.day % 10);
+	    break;
+	case TIME_DATEFORMAT_NUMERIC_EU:
+	    display_digit(1, time.day / 10);
+	    display_digit(2, time.day % 10);
+	    display_dot(2, TRUE);
+	    display_digit(3, time.month / 10);
+	    display_digit(4, time.month % 10);
+	    display_dot(4, TRUE);
+	    display_digit(5, 2);
+	    display_digit(6, 0);
+	    display_digit(7, time.year / 10);
+	    display_digit(8, time.year % 10);
+	    break;
+	case TIME_DATEFORMAT_NUMERIC_USA:
+	    display_digit(1, time.month / 10);
+	    display_digit(2, time.month % 10);
+	    display_dot(2, TRUE);
+	    display_digit(3, time.day / 10);
+	    display_digit(4, time.day % 10);
+	    display_dot(4, TRUE);
+	    display_digit(5, 2);
+	    display_digit(6, 0);
+	    display_digit(7, time.year / 10);
+	    display_digit(8, time.year % 10);
+	    break;
+	case TIME_DATEFORMAT_TEXT_EU:
+	    display_clear(1);
+	    display_digit(2, time.day / 10);
+	    display_digit(3, time.day % 10);
+	    display_clear(4);
+	    display_pstr(5, time_month2pstr(time.month));
+	    display_clear(8);
+	    break;
+	case TIME_DATEFORMAT_TEXT_USA:
+	    display_clear(1);
+	    display_pstr(2, time_month2pstr(time.month));
+	    display_clear(5);
+	    display_digit(6, time.day / 10);
+	    display_digit(7, time.day % 10);
+	    display_clear(8);
+	    break;
+	default:
+	    break;
+    }
 }
 
 

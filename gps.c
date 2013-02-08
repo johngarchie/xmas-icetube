@@ -160,15 +160,23 @@ void gps_settime(void) {
 	    }
 	}
 
-	// finally, set new time and date!
-	time_settime(hour, minute, second);
-	time_setdate(year, month,  day   );
+	// finally, syncronize the new time and date!
+	if(hour != time.hour || minute != time.minute
+		|| second != time.second) {
+	    time_settime(hour, minute, second);
+	}
+
+	if(day != time.day || year != time.year || month != time.month) {
+	    time_setdate(year, month,  day   );
+	}
     }
 }
 
 
 // parse character from gps
 ISR(USART_RX_vect) {
+    cli();  // diable interrupts
+
     char c = UDR0;
 
     // reset rmc parser on carriage return

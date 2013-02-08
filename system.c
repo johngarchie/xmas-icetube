@@ -1,5 +1,6 @@
 // system.c  --  system functions (idle, sleep, interrupts)
 //
+//    PB4 (MISO)           unused pin
 //    PC2                  unused pin
 //    PC1                  power from voltage regulator
 //    AIN1 (PD7)           divided system voltage
@@ -35,6 +36,7 @@ void system_init(void) {
     system.status &= ~SYSTEM_SLEEP;
 
     // enable pull-up resistors on unused pins to ensure a defined value
+    PORTB |= _BV(PB4);
 #ifdef PICO_POWER
     PORTC |= _BV(PC2);
 #else

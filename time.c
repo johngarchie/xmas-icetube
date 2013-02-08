@@ -32,6 +32,12 @@ uint8_t ee_time_hour   EEMEM = TIME_DEFAULT_HOUR;
 uint8_t ee_time_minute EEMEM = TIME_DEFAULT_MINUTE;
 uint8_t ee_time_second EEMEM = TIME_DEFAULT_SECOND;
 
+// places to store the time and date display format
+uint8_t ee_time_timeformat EEMEM = 0;
+uint8_t ee_time_dateformat EEMEM =   TIME_DATEFORMAT_SHOWWDAY
+				   | TIME_DATEFORMAT_SHOWYEAR
+				   | TIME_DATEFORMAT_TEXT_EU;
+
 // drift adjustment data
 uint8_t ee_time_drift_count EEMEM = 0;
 uint8_t ee_time_drift_idx   EEMEM = 0;
@@ -62,7 +68,10 @@ void time_init(void) {
     // load drift_adjust
     time_loaddriftmedian();
 
-    time.status  = eeprom_read_byte(&ee_time_status);
+    time_loadstatus();
+    time_loaddateformat();
+    time_loadtimeformat();
+
     time.status |= TIME_UNSET;
 
     power_timer2_enable(); // enable timer2
@@ -128,6 +137,37 @@ void time_savetime(void) {
 void time_savestatus(void) {
     eeprom_write_byte(&ee_time_status, time.status);
 }
+
+
+// load status from eeprom
+void time_loadstatus(void) {
+    time.status = eeprom_read_byte(&ee_time_status);
+}
+
+
+// save date format
+void time_savedateformat(void) {
+    eeprom_write_byte(&ee_time_dateformat, time.dateformat);
+}
+
+
+// load date format
+void time_loaddateformat(void) {
+    time.dateformat = eeprom_read_byte(&ee_time_dateformat);
+}
+
+
+// save time format
+void time_savetimeformat(void) {
+    eeprom_write_byte(&ee_time_timeformat, time.timeformat);
+}
+
+
+// load time format
+void time_loadtimeformat(void) {
+    time.timeformat = eeprom_read_byte(&ee_time_timeformat);
+}
+
 
 
 // set current time
