@@ -18,6 +18,7 @@
 #include "buttons.h"  // for processing button presses
 #include "gps.h"      // for setting the utc offset
 #include "usart.h"    // for debugging output
+#include "temp.h"     // for displaying current temperature
 
 
 // extern'ed clock mode data
@@ -116,11 +117,16 @@ void mode_semitick(void) {
 		if(time.dateformat & TIME_DATEFORMAT_SHOWYEAR) {
 		    mode_update(MODE_YEAR_DISPLAY, DISPLAY_TRANS_LEFT);
 		} else {
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    mode_update(MODE_TEMP_DISPLAY, DISPLAY_TRANS_LEFT);
 		}
 	    }
 	    return;  // time ourselves; skip code below
 	case MODE_YEAR_DISPLAY:
+	    if(btn || ++mode.timer > 1250) {
+		mode_update(MODE_TEMP_DISPLAY, DISPLAY_TRANS_LEFT);
+	    }
+	    return;  // time ourselves; skip code below
+	case MODE_TEMP_DISPLAY:
 	    if(btn || ++mode.timer > 1250) {
 		mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 	    }
@@ -1446,6 +1452,12 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    display_pstr(0, PSTR("  20"));
 	    display_digit(5, time.year / 10);
 	    display_digit(6, time.year % 10);
+	    break;
+	case MODE_TEMP_DISPLAY:
+	    display_pstr(0, PSTR("  xx \370F"));
+	    int16_t degF = temp_degF();
+	    display_digit(3, degF / 10);
+	    display_digit(4, degF % 10);
 	    break;
 	case MODE_ALARMSET_DISPLAY:
 	    display_pstr(0, PSTR("alar set"));

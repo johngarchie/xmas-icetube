@@ -1,7 +1,5 @@
 // gps.c  --  parses gps output from usart and sets time accordingly
 //
-//    PB4    gps power control; high normally, pulled low during sleep
-//
 
 
 #include "config.h"
@@ -47,10 +45,6 @@ uint8_t ee_gps_rel_utc_minute EEMEM = 0;
 // load time offsets from gmt/utc
 void gps_init(void) {
     gps_loadrelutc();
-
-    // configure gps power pin (gps off)
-    PORTB &= ~_BV(PB4);  // clamp to ground
-    DDRB  |=  _BV(PB4);  // set to ouput
 }
 
 
@@ -58,9 +52,6 @@ void gps_init(void) {
 void gps_wake(void) {
     // enable usart rx interrupt
     UCSR0B |= _BV(RXCIE0);
-
-    // configure gps power pin (gps on)
-    PORTB |= _BV(PB4);  // clamp to +5v
 
     // give gps time to acquire signal before issuing "gps lost" warning
     gps.warn_timer = GPS_WARN_TIMEOUT;
@@ -71,9 +62,6 @@ void gps_wake(void) {
 void gps_sleep(void) {
     // disable usart rx interrupt
     UCSR0B &= ~_BV(RXCIE0);
-
-    // configure gps power pin (gps off)
-    PORTB &= ~_BV(PB4);  // clamp to ground
 }
 
 

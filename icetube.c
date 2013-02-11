@@ -34,6 +34,7 @@
 #include "mode.h"
 #include "usart.h"
 #include "gps.h"
+#include "temp.h"
 
 
 // define ATmega328p lock bits
@@ -87,6 +88,9 @@ int main(void) {
 #ifdef GPS_TIMEKEEPING
     gps_init();
 #endif  // GPS_TIMEKEEPING
+#ifdef TEMPERATURE_SENSOR
+    temp_init();
+#endif  // TEMPERATURE_SENSOR
 
     // if the system is on battery power, sleep until power restored
     if(system_power() == SYSTEM_BATTERY) {
@@ -99,6 +103,7 @@ int main(void) {
     sei(); // enable interrupts
 
     // wakey, wakey
+    system_wake();
 #if defined(DEBUG) || defined(GPS_TIMEKEEPING)
     usart_wake();
 #endif  // DEBUG || GPS_TIMEKEEPING
@@ -111,6 +116,9 @@ int main(void) {
 #ifdef GPS_TIMEKEEPING
     gps_wake();
 #endif  // GPS_TIMEKEEPING
+#ifdef TEMPERATURE_SENSOR
+    temp_wake();
+#endif  // TEMPERATURE_SENSOR
     
     // half-second beep on system reset
     pizo_setvolume(3, 0);
@@ -129,11 +137,13 @@ ISR(TIMER2_COMPA_vect) {
     sei();  // allow nested interrupts
 
     if(system.status & SYSTEM_SLEEP) {
+	system_semitick();
 	time_tick();
 	alarm_tick();
 	pizo_tick();
 	wdt_reset();
     } else {
+	system_semitick();
 	time_tick();
 	buttons_tick();
 	alarm_tick();
@@ -143,6 +153,9 @@ ISR(TIMER2_COMPA_vect) {
 #ifdef GPS_TIMEKEEPING
 	gps_tick();
 #endif  // GPS_TIMEKEEPING
+#ifdef TEMPERATURE_SENSOR
+	temp_tick();
+#endif  // TEMPERATURE_SENSOR
 	if(semitick_successful) wdt_reset();
 	semitick_successful = 0;
     }
@@ -167,6 +180,7 @@ ISR(TIMER0_OVF_vect) {
 
 	// code below runs every "semisecond" or
 	// every 0.99 microseconds (1.01 khz)
+	system_semitick();
 	time_semitick();
 	buttons_semitick();
 	alarm_semitick();
@@ -176,6 +190,9 @@ ISR(TIMER0_OVF_vect) {
 #ifdef GPS_TIMEKEEPING
 	gps_semitick();
 #endif  // GPS_TIMEKEEPING
+#ifdef TEMPERATURE_SENSOR
+	temp_semitick();
+#endif  // TEMPERATURE_SENSOR
 
 	semitick_successful = 1;
     }
@@ -199,12 +216,16 @@ ISR(ANALOG_COMP_vect) {
     buttons_sleep();  // disable button pull-up resistors
     time_sleep();     // save current time
     mode_sleep();     // does nothing
+#ifdef TEMPERATURE_SENSOR
+    temp_sleep();
+#endif  // TEMPERATURE_SENSOR
 #ifdef GPS_TIMEKEEPING
     gps_sleep();      // disable usart rx interrupt
 #endif  // GPS_TIMEKEEPING
 #if defined(DEBUG) || defined(GPS_TIMEKEEPING)
     usart_sleep();    // disable usart
 #endif  // DEBUG || GPS_TIMEKEEPING
+    system_sleep();   // pulls PC5 low, if necessary
     pizo_sleep();     // adjust buzzer for slower clock
 
     // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
@@ -220,6 +241,7 @@ ISR(ANALOG_COMP_vect) {
     sei();  // allow interrupts
 
     pizo_wake();     // adjust buzzer for faster clock
+    system_wake();   // pulls PC5 high, if necessary
     mode_wake();     // display time after waking
     buttons_wake();  // enable button pull-ups
     alarm_wake();    // enable alarm switch pull-up
@@ -229,5 +251,8 @@ ISR(ANALOG_COMP_vect) {
 #ifdef GPS_TIMEKEEPING
     gps_wake();      // enable usart rx interrupt
 #endif  // GPS_TIMEKEEPING
+#ifdef TEMPERATURE_SENSOR
+    temp_wake();
+#endif  // TEMPERATURE_SENSOR
     display_wake();  // start boost timer and enable display
 }

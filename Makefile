@@ -13,7 +13,7 @@ PROJECT ?= icetube
 
 # object files
 OBJECTS ?= icetube.o system.o time.o alarm.o pizo.o \
-	   display.o buttons.o mode.o usart.o gps.o
+	   display.o buttons.o mode.o usart.o gps.o temp.o
 
 # avr microcontroller processing unit
 AVRMCU ?= atmega328p

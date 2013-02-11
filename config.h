@@ -14,7 +14,7 @@
 // "next selected option," or "increment selected number."
 //
 //
-#define ADAFRUIT_BUTTONS
+// #define ADAFRUIT_BUTTONS
 
 
 // AUTOMATIC DIMMER HACK
@@ -27,7 +27,7 @@
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=12932
 //
 //
-// #define AUTOMATIC_DIMMER
+#define AUTOMATIC_DIMMER
 
 
 // GPS TIMEKEEPING
@@ -53,7 +53,7 @@
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=14941
 //
 //
-// #define EXTERNAL_CLOCK
+#define EXTERNAL_CLOCK
 
 
 // EXTENDED BATTERY HACK
@@ -71,7 +71,17 @@
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=36697
 //
 //
-// #define PICO_POWER
+#define PICO_POWER
+
+
+// TEMPERATURE SENSOR HACK
+//
+// With a DS18B20 digial sensor probe attached to PC2, the clock can display
+// temperature readings.
+//
+//
+#define TEMPERATURE_SENSOR
+#define TEMPERATURE_ADJUST -96
 
 
 // DISPLAY BRIGHTNESS / BOOST CONFIGURATION
@@ -106,7 +116,7 @@
 // macros defined in usart.h.  The default speed is 9600 baud.
 //
 //
-// #define DEBUG
+#define DEBUG
 
 
 // USART BAUD RATE

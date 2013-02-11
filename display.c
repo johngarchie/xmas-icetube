@@ -3,7 +3,6 @@
 //
 //    PB5 (SCK)                      MAX6921 CLK pin
 //    PB3 (MOSI)                     MAX6921 DIN pin
-//    PC5                            photoresistor pull-up
 //    PC4 (ADC4)                     photoresistor voltage
 //    PC3                            MAX6921 BLANK pin
 //    PC0                            MAX6921 LOAD pin
@@ -63,6 +62,7 @@ uint8_t ee_display_digit_times[] EEMEM = {15, 15, 15, 15, 15, 15, 15, 15, 15};
 #define DISPLAY_DOT      SEG_H
 #define DISPLAY_DASH     SEG_G
 #define DISPLAY_SLASH    SEG_B | SEG_G | SEG_E
+#define DISPLAY_DEGREE   SEG_A | SEG_B | SEG_F | SEG_G;
 #define DISPLAY_WILDCARD SEG_A | SEG_G | SEG_D
 
 // codes for vfd letter display
@@ -154,12 +154,12 @@ void display_init(void) {
     // as inputs *without* pull-ups!?!?)
     DDRB  &= ~_BV(PB5) & ~_BV(PB3);  // set to input
 
-    // configure photoresistor pull-up pin
-    DDRC  |=  _BV(PC5);  // set pin as output
-    PORTC &= ~_BV(PC5);  // pull to ground
-
+#ifdef AUTOMATIC_DIMMER
     // disable digital circuitry on photoresistor pins
     DIDR0 |= _BV(ADC5D) | _BV(ADC4D);
+#else
+    PORTC |= _BV(PC4);  // enable pull-up on unused pin
+#endif  // AUTOMATIC_DIMMER
 
     // set initial photo_avg to maximum ambient light
     display.photo_avg = UINT16_MAX;
@@ -187,10 +187,7 @@ uint8_t display_onbutton(void) {
 
 // enable display after low-power mode
 void display_wake(void) {
-    // enable external and internal photoresistor pull-ups (the latter
-    // ensures a defined value if no photoresistor installed)
-    PORTC |= _BV(PC5) | _BV(PC4);  // output +5v, enable pull-up
-
+#ifdef AUTOMATIC_DIMMER
     // enable analog to digital converter
     power_adc_enable();
 
@@ -203,6 +200,7 @@ void display_wake(void) {
     // ADSC    =   1:  start ADC conversion now
     // ADPS2:0 = 110:  system clock / 64  (8 MHz / 4 = 125 kHz)
     ADCSRA = _BV(ADEN) | _BV(ADSC) | _BV(ADPS2) | _BV(ADPS1);
+#endif  // AUTOMATIC_DIMMER
 
     // configure spi sck and mosi pins as outputs
     DDRB |= _BV(PB5) | _BV(PB3);
@@ -230,12 +228,11 @@ void display_sleep(void) {
     PORTD &= ~_BV(PD6); // boost fet off (pull low)
     PORTD |=  _BV(PD3); // MAX6921 power off (pull high)
 
-    // disable external and internal photoresistor pull-ups
-    PORTC &= ~_BV(PC5) & ~_BV(PC4);  // pull to ground, disable pull-up
-
+#ifdef AUTOMATIC_DIMMER
     // disable analog to digital converter
     ADCSRA = 0;  // disable ADC before power_adc_disable()
     power_adc_disable();
+#endif  // AUTOMATIC_DIMMER
 
     // configure MAX6921 LOAD and BLANK pins
     PORTC &= ~_BV(PC0) & ~_BV(PC3); // clamp to ground
@@ -660,6 +657,9 @@ void display_char(uint8_t idx, char c) {
 		break;
 	    case '/':
 		display.prebuf[idx] = DISPLAY_SLASH;
+		break;
+	    case '\370':
+		display.prebuf[idx] = DISPLAY_DEGREE;
 		break;
 	    default:
 		display.prebuf[idx] = DISPLAY_WILDCARD;

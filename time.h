@@ -81,6 +81,7 @@ enum {
 };
 
 #define TIME_TIMEFORMAT_12HOUR  0x80
+#define TIME_TIMEFORMAT_SHOWPM  0x30
 #define TIME_TIMEFORMAT_SHOWDST 0x40
 
 enum {

@@ -1,8 +1,9 @@
 // system.c  --  system functions (idle, sleep, interrupts)
 //
 //    PB4 (MISO)           unused pin
-//    PC2                  unused pin
-//    PC1                  power from voltage regulator
+//    PC5                  photoresistor pull-up / temperature sensor power
+//    PC2                  1-Wire bus for temperature sensor
+//    PC1                  unused pin or power from voltage regulator
 //    AIN1 (PD7)           divided system voltage
 //    analog comparator    detects low voltage (AIN1)
 //
@@ -37,11 +38,21 @@ void system_init(void) {
 
     // enable pull-up resistors on unused pins to ensure a defined value
     PORTB |= _BV(PB4);
-#ifdef PICO_POWER
-    PORTC |= _BV(PC2);
+
+#if defined(TEMPERATURE_SENSOR) || defined(AUTOMATIC_DIMMER)
+    DDRC  |=  _BV(PC5);  // set pin as output
+    PORTC &= ~_BV(PC5);  // pull to ground
 #else
-    PORTC |= _BV(PC2) | _BV(PC1);
+    PORTC |=  _BV(PC5);  // enable pull-up
+#endif  // TEMPERATURE_SENSOR || AUTOMATIC_DIMMER
+
+#ifndef PICO_POWER
+    PORTC |= _BV(PC2);
 #endif  // PICO_POWER
+
+#ifndef TEMPERATURE_SENSOR
+    PORTC |= _BV(PC1);
+#endif  // TEMPERATURE_SENSOR
 
     // use internal bandgap as reference for analog comparator
     // and enable analog comparator interrupt on falling edge
@@ -55,6 +66,21 @@ void system_init(void) {
     // one-by-one in appropriate submodules
     power_all_disable();
 }
+
+#if defined(TEMPERATURE_SENSOR) || defined(AUTOMATIC_DIMMER)
+// pull power indicator pin high when waking
+void system_wake(void) {
+    PORTC |= _BV(PC5);
+}
+#endif  // TEMPERATURE_SENSOR || AUTOMATIC_DIMMER
+
+
+#if defined(TEMPERATURE_SENSOR) || defined(AUTOMATIC_DIMMER)
+// place managed pins in low power state
+void system_sleep(void) {
+    PORTC &= ~_BV(PC5);  // pull low when sleeping
+}
+#endif  // TEMPERATURE_SENSOR || AUTOMATIC_DIMMER
 
 
 // repeatedly enter idle mode forevermore
