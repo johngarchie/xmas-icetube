@@ -520,6 +520,14 @@ void display_clear(uint8_t idx) {
 }
 
 
+// clears entire display
+void display_clearall(void) {
+    for(uint8_t i = 0; i < DISPLAY_SIZE; ++i) {
+	display.prebuf[i] = DISPLAY_SPACE;
+    }
+}
+
+
 // display the given program memory string at the given display index
 void display_pstr(const uint8_t idx, PGM_P pstr) {
     uint8_t pstr_idx = 0;
@@ -642,6 +650,51 @@ void display_digit(uint8_t idx, uint8_t n) {
 }
 
 
+// display zero-padded two-digit number (n)
+// at display positions (idx & idx+1)
+void display_twodigit_rightadj(uint8_t idx, int8_t n) {
+    if(n < 0) {
+	display_char(idx, '-');
+	n *= -1;
+    } else if(n < 10) {
+	display_clear(idx);
+    } else {
+	display_digit(idx, n / 10);
+    }
+
+    display_digit(++idx, n % 10);
+}
+
+
+// display zero-padded two-digit number (n)
+// at display positions (idx & idx+1)
+void display_twodigit_leftadj(uint8_t idx, int8_t n) {
+    if(n < 0) {
+	display_char(idx++, '-');
+	n *= -1;
+    } else if(n < 10) {
+	display_clear(idx + 1);
+    } else {
+	display_digit(idx++, n / 10);
+    }
+
+    display_digit(idx, n % 10);
+}
+
+
+// display zero-padded two-digit number (n)
+// at display positions (idx & idx+1)
+void display_twodigit_zeropad(uint8_t idx, int8_t n) {
+    if(n < 0) {
+	display_char(   idx, '-');
+	display_digit(++idx, n * -1);
+    } else {
+	display_digit(  idx, n / 10);
+	display_digit(++idx, n % 10);
+    }
+}
+
+
 // display character (c) at display position (idx)
 void display_char(uint8_t idx, char c) {
     if('a' <= c && c <= 'z') {
@@ -669,10 +722,13 @@ void display_char(uint8_t idx, char c) {
 }
 
 
-// displays decimals at positions between idx_start and idx_end, inclusive
+// displays decimals after displayable characters
+// between idx_start and idx_end, inclusive
 void display_dotselect(uint8_t idx_start, uint8_t idx_end) {
     for(uint8_t idx = idx_start; idx <= idx_end && idx < DISPLAY_SIZE; ++idx) {
-	display.prebuf[idx] |= DISPLAY_DOT;
+	if(display.prebuf[idx] & ~SEG_G & ~SEG_H) {
+	    display.prebuf[idx] |= DISPLAY_DOT;
+	}
     }
 }
 
@@ -696,6 +752,37 @@ void display_dash(uint8_t idx, uint8_t show) {
     } else {
 	display.prebuf[idx] &= ~DISPLAY_DASH;
     }
+}
+
+
+// formats and displays seconds as a dial
+// at the specified diplays position (idx)
+void display_dial(uint8_t idx, uint8_t seconds) {
+    uint8_t segs = 0;
+
+    if(seconds >= 10) segs |= SEG_A;
+    if(seconds >= 20) segs |= SEG_B;
+    if(seconds >= 30) segs |= SEG_C;
+    if(seconds >= 40) segs |= SEG_D;
+    if(seconds >= 50) segs |= SEG_E;
+
+    if(!(seconds & 0x01)) {
+	if(seconds < 10) {
+	    segs |= SEG_A;
+	} else if (seconds < 20) {
+	    segs |= SEG_B;
+	} else if (seconds < 30) {
+	    segs |= SEG_C;
+	} else if (seconds < 40) {
+	    segs |= SEG_D;
+	} else if (seconds < 50) {
+	    segs |= SEG_E;
+	} else {
+	    segs |= SEG_F;
+	}
+    }
+
+    display.prebuf[idx] = segs;
 }
 
 

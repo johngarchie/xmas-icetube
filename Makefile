@@ -23,6 +23,7 @@ AVRCLOCK ?= 8000000
 
 # avr in-system programmer
 AVRISP ?= usbtiny
+#AVRISP ?= dragon_isp
 
 # avr programming utilities
 AVRCPP     ?= avr-gcc

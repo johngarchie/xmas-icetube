@@ -96,12 +96,17 @@ void display_autodim(void);
 
 void display_pstr(const uint8_t idx, PGM_P pstr);
 void display_digit(uint8_t idx, uint8_t n);
+void display_twodigit_rightadj(uint8_t idx, int8_t n);
+void display_twodigit_leftadj(uint8_t idx, int8_t n);
+void display_twodigit_zeropad(uint8_t idx, int8_t n);
 void display_char(uint8_t idx, char c);
 void display_clear(uint8_t idx);
 
+void display_clearall(void);
 void display_dotselect(uint8_t idx_start, uint8_t idx_end);
 void display_dot(uint8_t idx, uint8_t show);
 void display_dash(uint8_t idx, uint8_t show);
+void display_dial(uint8_t idx, uint8_t seconds);
 
 void display_transition(uint8_t type);
 

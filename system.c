@@ -16,7 +16,8 @@
 #include <avr/power.h>     // for disabling microcontroller modules
 #include <avr/sleep.h>     // for entering low-power modes
 #include <avr/wdt.h>       // for using the watchdog timer
-#include <util/delay.h>    // for debouncing delay
+#include <util/atomic.h>   // for non-interruptable blocks
+#include <util/delay.h>    // for enabling delays
 
 
 #include "system.h"
@@ -89,13 +90,13 @@ void system_sleep_loop(void) {
 		set_sleep_mode(SLEEP_MODE_PWR_SAVE);
 	    }
 
-	    sei();
-
 	    // wait until asynchronous updates are complete
 	    // or system might fail to wake from sleep
 	    while(ASSR & (  _BV(TCN2UB) 
 			  | _BV(OCR2AUB) | _BV(OCR2BUB)
 			  | _BV(TCR2AUB) | _BV(TCR2BUB) ));
+
+	    sei();
 
 	    sleep_cpu();
 

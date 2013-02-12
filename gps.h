@@ -29,8 +29,8 @@
 #define GPS_WARN_TIMEOUT 180  // (seconds)
 
 // the maximum and minimum hour offset from utc/gmt
-#define GPS_HOUR_OFFSET_MIN -13
-#define GPS_HOUR_OFFSET_MAX  13
+#define GPS_HOUR_OFFSET_MIN -12
+#define GPS_HOUR_OFFSET_MAX  14
 
 
 typedef struct {
