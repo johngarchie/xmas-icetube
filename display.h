@@ -12,6 +12,8 @@
 
 // status flags for display.status
 #define DISPLAY_ANIMATED     0x01  // animated display transitions
+#define DISPLAY_ZEROPAD      0x02  // zero-pad all numbers
+#define DISPLAY_ALTNINE      0x04  // alternative display for 9s
 #define DISPLAY_PULSING      0x10  // display brightness pulsing
 #define DISPLAY_PULSE_DOWN   0x20  // display brightness dimming
 #define DISPLAY_DISABLED     0x40  // display disabled
@@ -48,22 +50,23 @@ typedef struct {
 #ifdef AUTOMATIC_DIMMER
     int8_t  bright_min;             // minimum display brightness
     int8_t  bright_max;             // maximum display brightness
-#else
-    int8_t  brightness;             // display brightness
-#endif  // AUTOMATIC_DIMMER
 
     // display turns off during wake mode when photosensor is below
     // 256 * threshold and the display-off timer is expired
     uint8_t off_threshold;         // display-off threshold
-    uint8_t off_timer;             // display-off timer
 
     // photoresistor adc result (times 2^6, running average)
     uint16_t photo_avg;
+#else
+    int8_t  brightness;             // display brightness
+#endif  // AUTOMATIC_DIMMER
+
+    uint8_t off_timer;             // display-off timer
 
     // length of time to display each digit (32 microsecond units)
     uint8_t digit_times[DISPLAY_SIZE];
-
-    uint8_t digit_time_shift;
+    uint8_t digit_time_shift;  // flicker reduction adjustment
+    uint8_t gradient;          // display gradient adjustment
 } display_t;
 
 volatile extern display_t display;
@@ -78,6 +81,7 @@ uint8_t display_varsemitick(void);
 void display_semitick(void);
 
 void display_savestatus(void);
+void display_loadstatus(void);
 
 void display_loadbright(void);
 void display_savebright(void);
@@ -87,8 +91,10 @@ void display_savedigittimes(void);
 
 void display_noflicker(void);
 
+#ifdef AUTOMATIC_DIMMER
 void display_loadoff(void);
 void display_saveoff(void);
+#endif  // AUTOMATIC_DIMMER
 
 uint8_t display_onbutton(void);
 

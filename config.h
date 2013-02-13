@@ -14,7 +14,7 @@
 // "next selected option," or "increment selected number."
 //
 //
-#define ADAFRUIT_BUTTONS
+// #define ADAFRUIT_BUTTONS
 
 
 // AUTOMATIC DIMMER HACK
@@ -27,7 +27,7 @@
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=12932
 //
 //
-// #define AUTOMATIC_DIMMER
+#define AUTOMATIC_DIMMER
 
 
 // GPS TIMEKEEPING
@@ -41,7 +41,7 @@
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=32660
 //
 //
-// #define GPS_TIMEKEEPING
+#define GPS_TIMEKEEPING
 
 
 // TEMPERATURE COMPENSATED CRYSTAL OSCILLATOR
@@ -71,7 +71,7 @@
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=36697
 //
 //
-// #define PICO_POWER
+#define PICO_POWER
 
 
 // DISPLAY BRIGHTNESS / BOOST CONFIGURATION
@@ -106,7 +106,7 @@
 // macros defined in usart.h.  The default speed is 9600 baud.
 //
 //
-// #define DEBUG
+#define DEBUG
 
 
 // USART BAUD RATE

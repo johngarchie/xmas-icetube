@@ -30,6 +30,12 @@ extern volatile system_t system;
 
 void system_init(void);
 
+inline void system_wake(void) {};
+inline void system_sleep(void) {};
+
+inline void system_tick(void) {};
+inline void system_semitick(void) {};
+
 void system_idle_loop(void);
 void system_sleep_loop(void);
 

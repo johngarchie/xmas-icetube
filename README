@@ -15,34 +15,36 @@ became a feature-rich reimplementation of the original Adafruit firmware.
 ## Features ##
 ##############
 
-This firmware boasts many features including,
+Many of the features in the xmas-icetube firmware were first implemented in
+other firmware projects; see the CREDITS file for details.  The features of
+this firmware include
 
-    (1) three alarms by time and days of the week,
-    (2) adjustable alarm volume (11 levels),
-    (3) progressive alarm option (low to high volume),
-    (4) alarm sounds (beeps, Merry Christmas, Big Ben, or Reveille),
-    (5) adjustable snooze time,
-    (6) DST support (USA, EU, or manual),
-    (7) automatic drift correction,
-    (8) time-from-GPS support,
-    (9) alarm sounds during power outage,*
-   (10) no beeping or time loss after power failure,
-   (11) per-digit brightness control,
-   (12) optionally set brightness by ambient light,** and
-   (13) optionally disable display at night (when dark)**
-   (14) animated display transitions***
-   (15) display brightness pulsing while alarming and snoozing***
+  - multiple time and date formats,
+  - three alarms by time and days of the week,
+  - fine adjustment of alarm volume,
+  - progressive alarm option (gradually increasing volume),
+  - multiple alarm sounds (beeps, Merry Christmas, Big Ben, or Reveille),
+  - adjustable snooze time,
+  - DST support (USA, EU, or manual),
+  - fully automatic correction for time drift,
+  - time-from-GPS support,*
+  - alarm sounds during power outage,**
+  - no beeping or time loss after power failure,
+  - 25-fold increase in battery life,*
+  - per-digit brightness control,
+  - automatic brightness control by ambient light,*
+  - optionally disable display at night (when dark),*
+  - animated display transitions,
+  - display pulsing during alarm and snooze
 
-*   The snooze feature, musical alarm, and progressive alarm, are automatically
-    disabled during a power failure.  While on battery power, the buzzer alarm
-    sounds at a menu-settable maximum volume and the alarm can only be enabled
-    or disabled via the alarm on/off switch.  All other inputs are ignored until
-    power is restored.
+*  These hacks require hardware modification and support must be enabled by
+   uncommenting macros in config.h .  See config.h for more information.
 
-**  Both features require a CdS photoresistor with 10-20k pull-up resistor.
-
-*** Both features were inspired by Jeremy Fitzhardinge's firmware:
-    https://github.com/jsgf/iceclock
+** The snooze feature, musical alarm, and progressive alarm, are automatically
+   disabled during a power failure.  While on battery power, the buzzer alarm
+   sounds at the menu-settable maximum volume and the alarm can only be enabled
+   or disabled via the alarm on/off switch.  All other inputs are ignored until
+   power is restored.
 
 
 For Ice Tube Clock hackers, this firmware has

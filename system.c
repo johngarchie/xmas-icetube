@@ -2,7 +2,7 @@
 //
 //    PB4 (MISO)           unused pin
 //    PC2                  unused pin
-//    PC1                  power from voltage regulator
+//    PC1                  power from voltage regulator or unused pin
 //    AIN1 (PD7)           divided system voltage
 //    analog comparator    detects low voltage (AIN1)
 //

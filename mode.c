@@ -928,12 +928,16 @@ void mode_semitick(void) {
 #endif  // AUTOMATIC_DIMMER
 	case MODE_CFGDISP_SETDIGITBRIGHT_MENU: ;
 	    void menu_cfgdisp_setdigitbright_init(void) {
-		*mode.tmp = 0;
+		*mode.tmp = -1;
 	    }
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
+#ifdef AUTOMATIC_DIMMER
 		    MODE_CFGDISP_SETAUTOOFF_MENU,
+#else
+		    MODE_CFGDISP_SETANIMATED_MENU,
+#endif  // AUTOMATIC_DIMMER
 		    MODE_CFGDISP_SETDIGITBRIGHT_LEVEL,
 		    menu_cfgdisp_setdigitbright_init,
 		    btn, FALSE);
@@ -953,7 +957,10 @@ void mode_semitick(void) {
 		    }
 		    break;
 		case BUTTONS_PLUS:
-		    if(display.digit_times[*mode.tmp] < 2 * UINT8_MAX / 3 ) {
+		    if(*mode.tmp < 0) {
+			display.gradient = (display.gradient + 1) % 10;
+		    } else if(display.digit_times[*mode.tmp]
+			      < 2 * UINT8_MAX / 3 ) {
 			display.digit_times[*mode.tmp] +=
 					display.digit_times[*mode.tmp] >> 1;
 		    } else {
@@ -972,6 +979,7 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
+#ifdef AUTOMATIC_DIMMER
 	case MODE_CFGDISP_SETAUTOOFF_MENU: ;
 	    void menu_cfgdisp_setautooff_init(void) {
 		*mode.tmp = UINT8_MAX - display.off_threshold;
@@ -1004,6 +1012,7 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
+#endif  // AUTOMATIC_DIMMER
 	case MODE_CFGDISP_SETANIMATED_MENU: ;
 	    void menu_cfgdisp_setanimated_init(void) {
 		*mode.tmp = display.status;
@@ -1345,11 +1354,7 @@ void mode_semitick(void) {
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
-#ifdef ADAFRUIT_BUTTONS
-		    MODE_CFGREGN_MENU,
-#else
-		    MODE_CFGREGN_SETDST_MENU,
-#endif
+		    MODE_CFGREGN_TEXTFMT_MENU,
 		    MODE_CFGREGN_TIMEFMT_12HOUR,
 		    menu_cfgregn_set12hour_init,
 		    btn, TRUE);
@@ -1361,10 +1366,11 @@ void mode_semitick(void) {
 		    break;
 		case BUTTONS_SET:
 		    time.timeformat = *mode.tmp;
-		    *mode.tmp &= TIME_TIMEFORMAT_MASK;
-		    if(*mode.tmp > TIME_TIMEFORMAT_HH_MM) {
+		    if(!(*mode.tmp & TIME_TIMEFORMAT_12HOUR)
+			    && *mode.tmp > TIME_TIMEFORMAT_HH_MM) {
 			*mode.tmp = TIME_TIMEFORMAT_HH_MM_SS;
 		    }
+		    *mode.tmp &= TIME_TIMEFORMAT_MASK;
 		    mode_update(MODE_CFGREGN_TIMEFMT_FORMAT, DISPLAY_TRANS_UP);
 		    break;
 		case BUTTONS_PLUS:
@@ -1434,8 +1440,20 @@ void mode_semitick(void) {
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
+#ifdef GPS_TIMEKEEPING
+		    if((time.timeformat & TIME_TIMEFORMAT_SHOWAMPM)
+			    && (time.timeformat & TIME_TIMEFORMAT_SHOWDST)) {
+			time.timeformat &= ~TIME_TIMEFORMAT_SHOWGPS;
+			time_savetimeformat();
+			mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    } else {
+			mode_update(MODE_CFGREGN_TIMEFMT_SHOWGPS,
+				    DISPLAY_TRANS_UP);
+		    }
+#else
 		    time_savetimeformat();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+#endif  // GPS_TIMEKEEPING
 		    break;
 		case BUTTONS_PLUS:
 		    time.timeformat ^= TIME_TIMEFORMAT_SHOWDST;
@@ -1445,6 +1463,86 @@ void mode_semitick(void) {
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
 			time_loadtimeformat();
+		    }
+		    break;
+	    }
+	    break;
+#ifdef GPS_TIMEKEEPING
+	case MODE_CFGREGN_TIMEFMT_SHOWGPS:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    time_loadtimeformat();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    time_savetimeformat();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    time.timeformat ^= TIME_TIMEFORMAT_SHOWGPS;
+		    mode_update(MODE_CFGREGN_TIMEFMT_SHOWGPS,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			time_loadtimeformat();
+		    }
+		    break;
+	    }
+	    break;
+#endif  // GPS_TIMEKEEPING
+	case MODE_CFGREGN_TEXTFMT_MENU: ;
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+#ifdef ADAFRUIT_BUTTONS
+		    MODE_CFGREGN_MENU,
+#else
+		    MODE_CFGREGN_SETDST_MENU,
+#endif
+		    MODE_CFGREGN_TEXTFMT_ZEROPAD,
+		    NULL,
+		    btn, TRUE);
+	    break;
+	case MODE_CFGREGN_TEXTFMT_ZEROPAD:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    display_loadstatus();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    mode_update(MODE_CFGREGN_TEXTFMT_ALTNINE,
+			        DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    display.status ^= DISPLAY_ZEROPAD;
+		    mode_update(MODE_CFGREGN_TEXTFMT_ZEROPAD,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			display_loadstatus();
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_CFGREGN_TEXTFMT_ALTNINE:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    display_loadstatus();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    display_savestatus();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    display.status ^= DISPLAY_ALTNINE;
+		    mode_update(MODE_CFGREGN_TEXTFMT_ALTNINE,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			display_loadstatus();
 		    }
 		    break;
 	    }
@@ -1491,7 +1589,7 @@ void mode_snoozing(void) {
 
 // change mode to specified state and update display
 void mode_update(uint8_t new_state, uint8_t disp_trans) {
-    PGM_P text_option;
+    PGM_P pstr_ptr;
 
     mode.timer = 0;
     mode.state = new_state;
@@ -1559,11 +1657,11 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    break;
 	case MODE_SETALARM_ENABLE:
 	    if(alarm.days[*mode.tmp] & ALARM_ENABLED) {
-		text_option = PSTR("on");
+		pstr_ptr = PSTR("on");
 	    } else {
-		text_option = PSTR("off");
+		pstr_ptr = PSTR("off");
 	    }
-	    mode_texttext_display(PSTR("alar"), text_option);
+	    mode_texttext_display(PSTR("alar"), pstr_ptr);
 	    break;
 	case MODE_SETALARM_HOUR:
 	    mode_alarm_display(alarm.hours[*mode.tmp],
@@ -1676,11 +1774,11 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    display_dot(1, TRUE);
 	    break;
 	case MODE_CFGALARM_SETVOL:
-	    text_option = PSTR("vol");
+	    pstr_ptr = PSTR("vol");
 	    if(*mode.tmp == 11) {
-		mode_texttext_display(text_option, PSTR("prog"));
+		mode_texttext_display(pstr_ptr, PSTR("prog"));
 	    } else {
-		mode_textnum_display(text_option, *mode.tmp);
+		mode_textnum_display(pstr_ptr, *mode.tmp);
 	    }
 	    break;
 	case MODE_CFGALARM_SETVOL_MIN:
@@ -1697,11 +1795,11 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    display_dot(1, TRUE);
 	    break;
 	case MODE_CFGALARM_SETSNOOZE_TIME:
-	    text_option = PSTR("snoz");
+	    pstr_ptr = PSTR("snoz");
 	    if(*mode.tmp) {
-		mode_textnum_display(text_option, *mode.tmp);
+		mode_textnum_display(pstr_ptr, *mode.tmp);
 	    } else {
-		mode_texttext_display(text_option, PSTR("off"));
+		mode_texttext_display(pstr_ptr, PSTR("off"));
 		display_dotselect(6, 8);
 	    }
 	    break;
@@ -1711,11 +1809,11 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    break;
 	case MODE_CFGALARM_SETHEARTBEAT_TOGGLE:
 	    if(*mode.tmp & ALARM_SOUNDING_PULSE) {
-		text_option = PSTR("on");
+		pstr_ptr = PSTR("on");
 	    } else {
-		text_option = PSTR("off");
+		pstr_ptr = PSTR("off");
 	    }
-	    mode_texttext_display(PSTR("puls"), text_option);
+	    mode_texttext_display(PSTR("puls"), pstr_ptr);
 	    break;
 	case MODE_CFGDISP_MENU:
 	    display_pstr(0, PSTR("cfg disp"));
@@ -1765,7 +1863,12 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		display_digit(i, 8);
 	    }
 
-	    if(*mode.tmp) {
+	    if(*mode.tmp < 0) {
+		display_dash(0, TRUE);
+		for(uint8_t i = 1; i < DISPLAY_SIZE; ++i) {
+		    display_dot(i, TRUE);
+		}
+	    } else if(*mode.tmp) {
 		display_dot(*mode.tmp, TRUE);
 		display_dash(0, FALSE);
 	    } else {
@@ -1773,6 +1876,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    }
 
 	    break;
+#ifdef AUTOMATIC_DIMMER
 	case MODE_CFGDISP_SETAUTOOFF_MENU:
 	    display_pstr(0, PSTR("auto off"));
 	    break;
@@ -1784,16 +1888,17 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		display_dotselect(1, 8);
 	    }
 	    break;
+#endif  // AUTOMATIC_DIMMER
 	case MODE_CFGDISP_SETANIMATED_MENU:
 	    display_pstr(0, PSTR("animated"));
 	    break;
 	case MODE_CFGDISP_SETANIMATED_TOGGLE:
 	    if(*mode.tmp & DISPLAY_ANIMATED) {
-		text_option = PSTR("on");
+		pstr_ptr = PSTR("on");
 	    } else {
-		text_option = PSTR("off");
+		pstr_ptr = PSTR("off");
 	    }
-	    mode_texttext_display(PSTR("anim"), text_option);
+	    mode_texttext_display(PSTR("anim"), pstr_ptr);
 	    break;
 	case MODE_CFGREGN_MENU:
 	    display_pstr(0, PSTR("cfg regn"));
@@ -1804,37 +1909,37 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	case MODE_CFGREGN_SETDST_STATE:
 	    switch(*mode.tmp & TIME_AUTODST_MASK) {
 		case TIME_AUTODST_USA:
-		    text_option = PSTR("usa");
+		    pstr_ptr = PSTR("usa");
 		    display_dotselect(6, 8);
 		    break;
 		case TIME_AUTODST_NONE:
 		    if(*mode.tmp & TIME_DST) {
-			text_option = PSTR("on");
+			pstr_ptr = PSTR("on");
 		    } else {
-			text_option = PSTR("off");
+			pstr_ptr = PSTR("off");
 		    }
 		    break;
 		default:  // GMT, CET, or EET
-		    text_option = PSTR("eu");
+		    pstr_ptr = PSTR("eu");
 		    break;
 	    }
 
-	    mode_texttext_display(PSTR("dst"), text_option);
+	    mode_texttext_display(PSTR("dst"), pstr_ptr);
 	    break;
 	case MODE_CFGREGN_SETDST_ZONE:
 	    switch(*mode.tmp & TIME_AUTODST_MASK) {
 		case TIME_AUTODST_EU_CET:
-		    text_option = PSTR("cet");
+		    pstr_ptr = PSTR("cet");
 		    break;
 		case TIME_AUTODST_EU_EET:
-		    text_option = PSTR("eet");
+		    pstr_ptr = PSTR("eet");
 		    break;
 		default:  // GMT
-		    text_option = PSTR("utc");
+		    pstr_ptr = PSTR("utc");
 		    break;
 	    }
 
-	    mode_texttext_display(PSTR("zone"), text_option);
+	    mode_texttext_display(PSTR("zone"), pstr_ptr);
 	    break;
 #ifdef GPS_TIMEKEEPING
 	case MODE_CFGREGN_SETZONE_MENU:
@@ -1854,23 +1959,23 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    break;
 	case MODE_CFGREGN_DATEFMT_SHOWWDAY:
 	    if(*mode.tmp & TIME_DATEFORMAT_SHOWWDAY) {
-		text_option = PSTR("on");
+		pstr_ptr = PSTR("on");
 	    } else {
-		text_option = PSTR("off");
+		pstr_ptr = PSTR("off");
 	    }
-	    mode_texttext_display(PSTR("wday"), text_option);
+	    mode_texttext_display(PSTR("wday"), pstr_ptr);
 	    break;
 	case MODE_CFGREGN_DATEFMT_FORMAT:
 	    mode_monthday_display();
 	    break;
 	case MODE_CFGREGN_DATEFMT_SHOWYEAR:
 	    if(time.dateformat & TIME_DATEFORMAT_SHOWYEAR) {
-		text_option = PSTR("on");
+		pstr_ptr = PSTR("on");
 	    } else {
-		text_option = PSTR("off");
+		pstr_ptr = PSTR("off");
 	    }
 
-	    mode_texttext_display(PSTR("year"), text_option);
+	    mode_texttext_display(PSTR("year"), pstr_ptr);
 	    break;
 	case MODE_CFGREGN_TIMEFMT_MENU:
 	    display_pstr(0, PSTR("time fmt"));
@@ -1883,12 +1988,31 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    mode_time_display(time.hour, time.minute, time.second);
 	    break;
 	case MODE_CFGREGN_TIMEFMT_SHOWDST:
-	    text_option = PSTR("dst");
+	    pstr_ptr = PSTR("dst");
 	    if(time.timeformat & TIME_TIMEFORMAT_SHOWDST) {
-		mode_texttext_display(text_option, PSTR("show"));
+		mode_texttext_display(pstr_ptr, PSTR("show"));
 	    } else {
-		mode_texttext_display(text_option, PSTR("hide"));
+		mode_texttext_display(pstr_ptr, PSTR("hide"));
 	    }
+	    break;
+#ifdef GPS_TIMEKEEPING
+	case MODE_CFGREGN_TIMEFMT_SHOWGPS:
+	    pstr_ptr = PSTR("gps");
+	    if(time.timeformat & TIME_TIMEFORMAT_SHOWGPS) {
+		mode_texttext_display(pstr_ptr, PSTR("show"));
+	    } else {
+		mode_texttext_display(pstr_ptr, PSTR("hide"));
+	    }
+	    break;
+#endif  // GPS_TIMEKEEPING
+	case MODE_CFGREGN_TEXTFMT_MENU:
+	    display_pstr(0, PSTR("digt fmt"));
+	    break;
+	case MODE_CFGREGN_TEXTFMT_ZEROPAD:
+	    mode_textnum_display(PSTR("zero"), 0);
+	    break;
+	case MODE_CFGREGN_TEXTFMT_ALTNINE:
+	    mode_textnum_display(PSTR("nine"), 9);
 	    break;
 	default:
 	    display_pstr(0, PSTR("-error-"));
@@ -1959,11 +2083,26 @@ void mode_time_display(uint8_t hour, uint8_t minute, uint8_t second) {
 	    // show rightmost decimal if dst
 	    display_dot(8, time.status & TIME_DST);
 	}
+#ifdef GPS_TIMEKEEPING
+	else if(time.timeformat & TIME_TIMEFORMAT_SHOWGPS) {
+	    display_dot(8, gps.status & GPS_SIGNAL_GOOD);
+	}
+#endif  // GPS_TIMEKEEPING
     } else {
 	if(time.timeformat & TIME_TIMEFORMAT_SHOWDST) {
 	    // show leftmost circle if dst
 	    display_dot(0, time.status & TIME_DST);
+#ifdef GPS_TIMEKEEPING
+	    if(time.timeformat & TIME_TIMEFORMAT_SHOWGPS) {
+		display_dot(8, gps.status & GPS_SIGNAL_GOOD);
+	    }
+#endif  // GPS_TIMEKEEPING
 	}
+#ifdef GPS_TIMEKEEPING
+	else if(time.timeformat & TIME_TIMEFORMAT_SHOWGPS) {
+	    display_dot(0, gps.status & GPS_SIGNAL_GOOD);
+	}
+#endif  // GPS_TIMEKEEPING
     }
 
     // show alarm status with leftmost dash

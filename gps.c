@@ -1,6 +1,5 @@
 // gps.c  --  parses gps output from usart and sets time accordingly
 //
-//    PB4    gps power control; high normally, pulled low during sleep
 //
 
 
@@ -47,23 +46,22 @@ uint8_t ee_gps_rel_utc_minute EEMEM = 0;
 // load time offsets from gmt/utc
 void gps_init(void) {
     gps_loadrelutc();
-
-    // configure gps power pin (gps off)
-    PORTB &= ~_BV(PB4);  // clamp to ground
-    DDRB  |=  _BV(PB4);  // set to ouput
 }
 
 
 // enable interrupt on received data; called *after* usart_wake()
 void gps_wake(void) {
+    // reset parser
+    gps.status  = 0;
+
     // enable usart rx interrupt
     UCSR0B |= _BV(RXCIE0);
 
-    // configure gps power pin (gps on)
-    PORTB |= _BV(PB4);  // clamp to +5v
-
     // give gps time to acquire signal before issuing "gps lost" warning
     gps.warn_timer = GPS_WARN_TIMEOUT;
+
+    // gps needs to reacquire satellites
+    gps.status &= ~GPS_SIGNAL_GOOD;
 }
 
 
@@ -71,15 +69,17 @@ void gps_wake(void) {
 void gps_sleep(void) {
     // disable usart rx interrupt
     UCSR0B &= ~_BV(RXCIE0);
-
-    // configure gps power pin (gps off)
-    PORTB &= ~_BV(PB4);  // clamp to ground
 }
 
 
 // decrement gps timers
 void gps_tick(void) {
-    if(gps.data_timer) --gps.data_timer;
+    if(gps.data_timer) {
+	--gps.data_timer;
+    } else {
+	gps.status &= ~GPS_SIGNAL_GOOD;
+    }
+
     if(gps.warn_timer) --gps.warn_timer;
 }
 
@@ -108,12 +108,20 @@ void gps_saverelutc(void) {
 
 // set clock time from rmc parse (assumes successful parse)
 void gps_settime(void) {
-    gps.status = 0; // only set time once per rmc sentence
+    // only set time once per rmc sentence
+    gps.status &= GPS_SIGNAL_GOOD;
 
     gps.data_timer = GPS_DATA_TIMEOUT;
 
     if(gps.status_code == 'A') {
 	gps.warn_timer = GPS_WARN_TIMEOUT;
+
+	if(!(gps.status & GPS_SIGNAL_GOOD)) {
+	    // don't set time on first good gps signal;
+	    // on the adafruit ultimate gps, it is garbage
+	    gps.status |= GPS_SIGNAL_GOOD;
+	    return;
+	}
 
 	// never set time when new time could skip alarm time
 	if(alarm_nearalarm()) return;
@@ -167,9 +175,12 @@ void gps_settime(void) {
 	}
 
 	if(day != time.day || year != time.year || month != time.month) {
-	    time_setdate(year, month,  day   );
+	    time_setdate(year, month, day);
 	}
+    } else {
+	gps.status &= ~GPS_SIGNAL_GOOD;
     }
+
 }
 
 
@@ -181,9 +192,9 @@ ISR(USART_RX_vect) {
 
     // reset rmc parser on carriage return
     if(c == '\r') {
-	gps.status   = 0;
-	gps.field    = FIELD_NEWLINE;
-	gps.idx      = 1;  // because '\r' has already been processed
+	gps.status   &= GPS_SIGNAL_GOOD;
+	gps.field     = FIELD_NEWLINE;
+	gps.idx       = 1;  // because '\r' has already been processed
 	return;
     }
 

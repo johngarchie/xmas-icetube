@@ -1,10 +1,11 @@
-#include "config.h"  // for configuration macros
-
-#ifdef GPS_TIMEKEEPING
 #ifndef GPS_H
 #define GPS_H
 
 #include <stdint.h>  // for standard integer types
+
+#include "config.h"  // for configuration macros
+
+#ifdef GPS_TIMEKEEPING
 
 // various flags for gps.status
 #define GPS_INVALID_RMC        0x01
@@ -13,6 +14,7 @@
 #define GPS_PARSED_DATE        0x08
 #define GPS_PARSED_CHECKSUM    0x10
 #define GPS_INVALID_CHECKSUM   0x20
+#define GPS_SIGNAL_GOOD        0x40
 
 // standard definitions for TRUE and FALSE
 #ifndef TRUE
@@ -74,5 +76,16 @@ void gps_saverelutc(void);
 
 void gps_settime(void);
 
-#endif  // GPS_H
+#else  // GPS_TIMEKEEPING
+
+inline void gps_init(void) {};
+
+inline void gps_wake(void) {};
+inline void gps_sleep(void) {};
+
+inline void gps_tick(void) {};
+inline void gps_semitick(void) {};
+
 #endif  // GPS_TIMEKEEPING
+
+#endif  // GPS_H

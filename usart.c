@@ -5,17 +5,14 @@
 //    usart0       usart module
 //
 
-
-#include "config.h"
-
-#if defined(DEBUG) || defined(GPS_TIMEKEEPING)
-
 #include <avr/io.h>     // for using register names
 #include <avr/power.h>  // for enabling and disabling usart
 
-
 #include "usart.h"
+#include "config.h"  // for configuration macros
 
+
+#if defined(DEBUG) || defined(GPS_TIMEKEEPING)
 
 // initialize usart after system reset
 void usart_init(void) {
@@ -126,4 +123,13 @@ int usart_getc(void) {
 	return -1;
     }
 }
+
+#else  // DEBUG || GPS_TIMEKEEPING
+
+// initialize usart after system reset
+void usart_init(void) {
+    // enable pull-ups on PD0 and PD1 (rxd, txd);
+    PORTD |= _BV(PD1) | _BV(PD0);
+}
+
 #endif  // DEBUG || GPS_TIMEKEEPING

@@ -42,11 +42,12 @@ uint8_t ee_display_status     EEMEM = DISPLAY_ANIMATED;
 #ifdef AUTOMATIC_DIMMER
 uint8_t ee_display_bright_min EEMEM = 1;
 uint8_t ee_display_bright_max EEMEM = 1;
+uint8_t ee_display_bright_off_threshold EEMEM = UINT8_MAX;
 #else
 uint8_t ee_display_brightness EEMEM = 1;
 #endif  // AUTOMATIC_DIMMER
-uint8_t ee_display_bright_off_threshold EEMEM = UINT8_MAX;
 uint8_t ee_display_digit_times[] EEMEM = {15, 15, 15, 15, 15, 15, 15, 15, 15};
+uint8_t ee_display_gradient EEMEM = 0;
 
 // display of letters and numbers is coded by 
 // the appropriate segment flags:
@@ -161,20 +162,22 @@ void display_init(void) {
     // disable digital circuitry on photoresistor pins
     DIDR0 |= _BV(ADC5D) | _BV(ADC4D);
 
+#ifdef AUTOMATIC_DIMMER
     // set initial photo_avg to maximum ambient light
     display.photo_avg = UINT16_MAX;
 
-    // load the digit display times
-    display_loaddigittimes();
-
     // load the display-off threshold
     display_loadoff();
+#endif  // AUTOMATIC_DIMMER
+
+    // load the digit display times
+    display_loaddigittimes();
 
     // set the initial transition type to none
     display.trans_type = DISPLAY_TRANS_NONE;
 
     // load display status
-    display.status = eeprom_read_byte(&ee_display_status);
+    display_loadstatus();
 }
 
 
@@ -257,11 +260,9 @@ void display_tick(void) {
 // called periodically to to control the VFD via the MAX6921
 // returns time (in 32us units) to display current digit
 uint8_t display_varsemitick(void) {
-    static uint8_t digit_idx = 0;
-    uint32_t bits = 0;  // bits to send MAX6921 (vfd driver chip)
+    static uint8_t digit_idx = DISPLAY_SIZE - 1;
 
-    // compute index of next digit
-    digit_idx = (digit_idx + 1) % DISPLAY_SIZE;
+    uint32_t bits = 0;  // bits to send MAX6921 (vfd driver chip)
 
     // calculate digit contents given transition state
     uint8_t digit = display.postbuf[digit_idx];
@@ -401,7 +402,32 @@ uint8_t display_varsemitick(void) {
     PORTC &= ~_BV(PC0);
 
     // amount of time to display current digit
-    return display.digit_times[digit_idx] >> display.digit_time_shift;
+    uint8_t digit_time = display.digit_times[digit_idx];
+
+    // apply flicker reduction shift
+    digit_time >>= display.digit_time_shift;
+
+    // compute gradient correction scaler
+    static uint16_t gradient_correction;
+    if(digit_idx >= DISPLAY_SIZE - 1) {
+	// set to maximum on first digit
+	gradient_correction = UINT16_MAX;
+    } else {
+	// calculate next step of exponentional decay
+	gradient_correction -= display.gradient * (gradient_correction >> 6);
+    }
+
+    // apply gradient correction scaler to digit_time
+    digit_time = (((gradient_correction >> 8) * digit_time) >> 8);
+
+    // next time, display previous digit
+    if(!digit_idx) {
+	digit_idx = DISPLAY_SIZE - 1;
+    } else {
+	--digit_idx;
+    }
+
+    return digit_time;
 }
 
 
@@ -445,6 +471,7 @@ void display_semitick(void) {
     }
 
 
+#ifdef AUTOMATIC_DIMMER
     // get ambient lighting from photosensor every 16 semiseconds,
     // and update running average of photosensor values; note that
     // the running average has a range of [0, 0xFFFF]
@@ -480,6 +507,7 @@ void display_semitick(void) {
 	// repeat in 16 semiseconds
         photo_timer = 5;
     }
+#endif  // AUTOMATIC_DIMMER
 
 
     // update display brightness if pulsing
@@ -511,6 +539,13 @@ void display_semitick(void) {
 void display_savestatus(void) {
     eeprom_write_byte(&ee_display_status, display.status
 	    				  & DISPLAY_SETTINGS_MASK);
+}
+
+
+// load status from eeprom
+void display_loadstatus(void) {
+    display.status &= ~DISPLAY_SETTINGS_MASK;
+    display.status |= eeprom_read_byte(&ee_display_status);
 }
 
 
@@ -581,6 +616,8 @@ void display_loaddigittimes(void) {
 	display.digit_times[i] = eeprom_read_byte(&(ee_display_digit_times[i]));
     }
 
+    display.gradient = eeprom_read_byte(&ee_display_gradient);
+
     display_noflicker();
 }
 
@@ -590,6 +627,8 @@ void display_savedigittimes(void) {
     for(uint8_t i = 0; i < DISPLAY_SIZE; ++i) {
 	eeprom_write_byte(&(ee_display_digit_times[i]), display.digit_times[i]);
     }
+
+    eeprom_write_byte(&ee_display_gradient, display.gradient);
 }
 
 
@@ -609,6 +648,7 @@ void display_noflicker(void) {
 }
 
 
+#ifdef AUTOMATIC_DIMMER
 // load the display-off threshold
 void display_loadoff(void) {
     display.off_threshold = eeprom_read_byte(&ee_display_bright_off_threshold);
@@ -619,6 +659,7 @@ void display_loadoff(void) {
 void display_saveoff(void) {
     eeprom_write_byte(&ee_display_bright_off_threshold, display.off_threshold);
 }
+#endif  // AUTOMATIC_DIMMER
 
 
 // set display brightness from display.bright_min,
@@ -647,38 +688,50 @@ void display_autodim(void) {
 // display digit (n) on display position (idx)
 void display_digit(uint8_t idx, uint8_t n) {
     display.prebuf[idx] = pgm_read_byte( &(number_segments[(n % 10)]) );
+
+    if(n == 9 && (display.status & DISPLAY_ALTNINE)) {
+	display.prebuf[idx] |= SEG_D;
+    }
 }
 
 
 // display zero-padded two-digit number (n)
 // at display positions (idx & idx+1)
 void display_twodigit_rightadj(uint8_t idx, int8_t n) {
-    if(n < 0) {
-	display_char(idx, '-');
-	n *= -1;
-    } else if(n < 10) {
-	display_clear(idx);
+    if(display.status & DISPLAY_ZEROPAD) {
+	display_twodigit_zeropad(idx, n);
     } else {
-	display_digit(idx, n / 10);
-    }
+	if(n < 0) {
+	    display_char(idx, '-');
+	    n *= -1;
+	} else if(n < 10) {
+	    display_clear(idx);
+	} else {
+	    display_digit(idx, n / 10);
+	}
 
-    display_digit(++idx, n % 10);
+	display_digit(++idx, n % 10);
+    }
 }
 
 
 // display zero-padded two-digit number (n)
 // at display positions (idx & idx+1)
 void display_twodigit_leftadj(uint8_t idx, int8_t n) {
-    if(n < 0) {
-	display_char(idx++, '-');
-	n *= -1;
-    } else if(n < 10) {
-	display_clear(idx + 1);
+    if(display.status & DISPLAY_ZEROPAD) {
+	display_twodigit_zeropad(idx, n);
     } else {
-	display_digit(idx++, n / 10);
-    }
+	if(n < 0) {
+	    display_char(idx++, '-');
+	    n *= -1;
+	} else if(n < 10) {
+	    display_clear(idx + 1);
+	} else {
+	    display_digit(idx++, n / 10);
+	}
 
-    display_digit(idx, n % 10);
+	display_digit(idx, n % 10);
+    }
 }
 
 
@@ -702,7 +755,7 @@ void display_char(uint8_t idx, char c) {
     } else if('A' <= c && c <= 'Z') {
 	display.prebuf[idx] = pgm_read_byte( &(letter_segments[c - 'A']) );
     } else if('0' <= c && c <= '9') {
-	display.prebuf[idx] = pgm_read_byte( &(number_segments[c - '0']) );
+	display_digit(idx, c - '0');
     } else {
 	switch(c) {
 	    case ' ':
@@ -760,26 +813,22 @@ void display_dash(uint8_t idx, uint8_t show) {
 void display_dial(uint8_t idx, uint8_t seconds) {
     uint8_t segs = 0;
 
-    if(seconds >= 10) segs |= SEG_A;
-    if(seconds >= 20) segs |= SEG_B;
-    if(seconds >= 30) segs |= SEG_C;
-    if(seconds >= 40) segs |= SEG_D;
-    if(seconds >= 50) segs |= SEG_E;
+    if(seconds < 10) {
+        segs |= SEG_A;
+    } else if(seconds < 20) {
+	segs |= SEG_B;
+    } else if(seconds < 30) {
+	segs |= SEG_C;
+    } else if(seconds < 40) {
+	segs |= SEG_D;
+    } else if(seconds < 50) {
+	segs |= SEG_E;
+    } else {
+	segs |= SEG_F;
+    }
 
-    if(!(seconds & 0x01)) {
-	if(seconds < 10) {
-	    segs |= SEG_A;
-	} else if (seconds < 20) {
-	    segs |= SEG_B;
-	} else if (seconds < 30) {
-	    segs |= SEG_C;
-	} else if (seconds < 40) {
-	    segs |= SEG_D;
-	} else if (seconds < 50) {
-	    segs |= SEG_E;
-	} else {
-	    segs |= SEG_F;
-	}
+    if(seconds & 0x01) {
+	segs |= SEG_G;
     }
 
     display.prebuf[idx] = segs;
