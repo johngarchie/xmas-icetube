@@ -117,7 +117,7 @@ int main(void) {
 // counter0 compare match interrupt
 // triggered every second
 // counter0 is clocked by the clock crystal
-ISR(TIMER2_COMPA_vect) {
+ISR(TIMER2_COMPB_vect) {
     sei();  // allow nested interrupts
 
     if(system.status & SYSTEM_SLEEP) {
@@ -159,7 +159,7 @@ ISR(TIMER0_OVF_vect) {
 	semicounter = 32;
 
 	// code below runs every "semisecond" or
-	// every 0.99 microseconds (1.01 khz)
+	// every 1.02 microseconds (0.98 khz)
 	system_semitick();
 	time_semitick();
 	buttons_semitick();

@@ -260,13 +260,15 @@ void alarm_semitick(void) {
     }
 }
 
+
+// load alarm number idx from eeprom
 void alarm_loadalarm(uint8_t idx) {
     alarm.hours[idx]   = eeprom_read_byte(&(ee_alarm_hours[idx]))   % 24;
     alarm.minutes[idx] = eeprom_read_byte(&(ee_alarm_minutes[idx])) % 60;
     alarm.days[idx]    = eeprom_read_byte(&(ee_alarm_days[idx]));
 }
 
-// set new time and save time to eeprom
+// save alarm number idx to eeprom
 void alarm_savealarm(uint8_t idx) {
     eeprom_write_byte(&(ee_alarm_hours[idx]), alarm.hours[idx]);
     eeprom_write_byte(&(ee_alarm_minutes[idx]), alarm.minutes[idx]);
@@ -334,11 +336,15 @@ uint8_t alarm_onbutton(void) {
 // returns true if current time is within two seconds of alarm time
 uint8_t alarm_nearalarm(void) {
     for(uint8_t i = 0; i < ALARM_COUNT; ++i) {
-	int32_t time_diff = alarm.hours[i] - time.hour;
+	int8_t delta_hour   = alarm.hours[i]   - time.hour;
+	int8_t delta_minute = alarm.minutes[i] - time.minute;
+	int8_t delta_second = 0                - time.second;
+
+	int32_t time_diff = delta_hour;
 	time_diff *= 60;  // hours to minutes
-	time_diff += alarm.minutes[i] - time.minute;
+	time_diff += delta_minute;
 	time_diff *= 60;  // minutes to seconds
-	time_diff += 0 - time.second;
+	time_diff += delta_second;
 
 	if(time_diff > (int32_t)12 * 60 * 60) {
 	    time_diff -= (int32_t)24 * 60 * 60;

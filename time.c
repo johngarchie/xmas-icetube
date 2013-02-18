@@ -89,8 +89,11 @@ void time_init(void) {
     // 32,786 Hz / 256 = 128, so set compare match to
     OCR2A = 127;  // 172 (128 values, including zero)
 
+    // run the once-per-second interrupt when TCNT2 is zero
+    OCR2B = 0;
+
     // call interrupt on compare match (once per second)
-    TIMSK2 = _BV(OCIE2A);
+    TIMSK2 = _BV(OCIE2B);
 }
 
 
@@ -169,22 +172,34 @@ void time_loadtimeformat(void) {
 }
 
 
-
 // set current time
 void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
+    // pause clock while mucking with clock timer
+    // to prevent race conditions
+    TCCR2B = 0;
+
+    // delay until TCCR2B has been written
+    while(ASSR & _BV(TCR2BUB));
+
     // stage time change for later drift correction
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+	// set fractional seconds to zero
+	uint8_t TCNT2_old = TCNT2;
+	TCNT2 = 0;
+
+	// restart timer (clock with quartz oscillator divided by 256)
+	TCCR2B  = _BV(CS22) | _BV(CS21);
+
+	// determine if clock drift estimate should be computed
 	if(time.status & TIME_UNSET) {
-	    // reset drift monitor variables
+	    // reset drift monitoring variables
 	    time.drift_total_seconds = 0;
 	    time.drift_delta_seconds = 0;
 	} else {
-	    int8_t delta_hour, delta_minute, delta_second;
-
 	    // compute the time difference between old and new times
-	    delta_hour   = hour   - time.hour;
-	    delta_minute = minute - time.minute;
-	    delta_second = second - time.second;
+	    int8_t delta_hour   = hour   - time.hour;
+	    int8_t delta_minute = minute - time.minute;
+	    int8_t delta_second = second - time.second;
 
 	    int32_t total_delta = delta_hour;
 	    total_delta *= 60;            // hours to minutes
@@ -208,6 +223,16 @@ void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
 	    // defer setting drift adjustment to allow
 	    // correction of an incorrectly set time
 	    time.drift_delay_timer = TIME_DRIFT_SAVE_DELAY;
+
+	    // tally fractional seconds
+	    time.drift_frac_seconds += TCNT2_old;
+
+	    // when fractional seconds make one full second, process
+	    // the missed second with the drift correction code
+	    if(time.drift_frac_seconds >= 127) {
+		time.drift_frac_seconds -= 127;
+		time_autodrift();
+	    }
 	}
 
 	// set the new time
@@ -216,6 +241,12 @@ void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
 	time.second = second;
 
 	time.status &= ~TIME_UNSET;
+
+	// ensure TCNT2 and TCR2B write completes
+	while(ASSR & (_BV(TCN2UB) | _BV(TCR2BUB)));
+
+	// ensure no pending OCR2A compare match interrupt
+	TIFR2 = _BV(OCF2A);
     }
 }
 

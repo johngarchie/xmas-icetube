@@ -106,6 +106,7 @@ typedef struct {
     uint8_t status;  // status flags
     uint8_t dateformat;  // date format
     uint8_t timeformat;  // time format
+
     uint8_t year;    // years past 2000 (0 during year 2000)
     uint8_t month;   // month (1 during january)
     uint8_t day;     // day of month (1 on the first)
@@ -132,6 +133,8 @@ typedef struct {
 
     uint16_t drift_delay_timer;  // seconds until system computes a new
     // drift adjustment using drift_delta_seconds and drift_total_seconds
+
+    uint8_t drift_frac_seconds;  // monitors fractional seconds from time sets
 } time_t;
 
 
