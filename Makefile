@@ -33,6 +33,7 @@ AVROBJCOPY ?= avr-objcopy
 
 # options for avr programming utilities
 AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK)
+# AVRCPPFLAGS for assembler listings:  -gstabs -Wa,-ahlmsd=$*.lst
 AVRSIZEOPT    ?= -A
 AVRDUDEOPT    ?= -p $(AVRMCU) -c $(AVRISP) -P usb -B 4
 AVROBJCOPYOPT ?=

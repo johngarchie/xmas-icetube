@@ -20,7 +20,7 @@
 #include <avr/interrupt.h>  // for defining interrupt handlers
 #include <avr/power.h>      // for controlling system clock speed
 #include <avr/wdt.h>        // for using the watchdog timer
-#include <util/delay.h>     // for the _delay_ms() function
+#include <util/atomic.h>    // for noninterruptable code blocks
 
 
 // headers for this project
@@ -118,8 +118,6 @@ int main(void) {
 // triggered every second
 // counter0 is clocked by the clock crystal
 ISR(TIMER2_COMPB_vect) {
-    sei();  // allow nested interrupts
-
     if(system.status & SYSTEM_SLEEP) {
 	system_tick();
 	time_tick();
@@ -146,31 +144,34 @@ ISR(TIMER2_COMPB_vect) {
 // triggered every 32 microseconds (32.25 khz);
 // pwm output from timer0 controls boost power
 ISR(TIMER0_OVF_vect) {
-    cli();  // deferring interrupts prevents display flicker
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	static uint8_t varcounter = 1;
+	if(varcounter && !--varcounter) {
+	    varcounter = display_varsemitick();
+	}
+    }
 
-    static uint8_t varcounter = 1, semicounter = 1;
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	// interupt just returns 31 out of 32 times
+	static uint8_t semicounter = 1;
+	if(semicounter && !--semicounter) {
+	    NONATOMIC_BLOCK(NONATOMIC_FORCEOFF) {
+		// code below runs every "semisecond" or
+		// every 1.02 microseconds (0.98 khz)
+		system_semitick();
+		time_semitick();
+		buttons_semitick();
+		alarm_semitick();
+		pizo_semitick();
+		mode_semitick();
+		display_semitick();
+		gps_semitick();
+		usart_semitick();
 
-    if(! --varcounter) varcounter = display_varsemitick();
-
-    sei();  // allow nested interrupts
-
-    // interupt just returns 31 out of 32 times
-    if(! --semicounter) {
-	semicounter = 32;
-
-	// code below runs every "semisecond" or
-	// every 1.02 microseconds (0.98 khz)
-	system_semitick();
-	time_semitick();
-	buttons_semitick();
-	alarm_semitick();
-	pizo_semitick();
-	mode_semitick();
-	display_semitick();
-	gps_semitick();
-	usart_semitick();
-
-	semitick_successful = 1;
+		semitick_successful = 1;
+		semicounter = 32;
+	    }
+	}
     }
 }
 

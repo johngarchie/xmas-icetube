@@ -56,5 +56,8 @@ inline void usart_sleep(void) {};
 inline void usart_tick(void) {};
 inline void usart_semitick(void) {};
 
+#define DUMPINT(VAR)
+#define DUMPSTR(STR)
+
 #endif  // DEBUG || GPS_TIMEKEEPING
 #endif  // USART_H

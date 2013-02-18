@@ -35,8 +35,8 @@ enum {
 };
 
 // duration of each left/right or up/down transiton step
-#define DISPLAY_TRANS_LR_DELAY 20  // (semiticks)
-#define DISPLAY_TRANS_UD_DELAY 50  // (semiticks)
+#define DISPLAY_TRANS_LR_DELAY 16  // (semiticks)
+#define DISPLAY_TRANS_UD_DELAY 48  // (semiticks)
 
 
 typedef struct {

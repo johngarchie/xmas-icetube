@@ -262,7 +262,8 @@ void display_tick(void) {
 uint8_t display_varsemitick(void) {
     static uint8_t digit_idx = DISPLAY_SIZE - 1;
 
-    uint32_t bits = 0;  // bits to send MAX6921 (vfd driver chip)
+    // bits to send MAX6921 (vfd driver chip)
+    uint8_t bits[3] = {0, 0, 0};
 
     // calculate digit contents given transition state
     uint8_t digit = display.postbuf[digit_idx];
@@ -357,13 +358,14 @@ uint8_t display_varsemitick(void) {
     // create the sequence of bits for the calculated digit
     if(!(display.status & DISPLAY_DISABLED)) {
 	// select the digit position to display
-	bits = (uint32_t)1 << pgm_read_byte(&(vfd_digit_pins[digit_idx]));
+	uint8_t bitidx = pgm_read_byte(&(vfd_digit_pins[digit_idx]));
+	bits[bitidx >> 3] |= _BV(bitidx & 0x7);
 
 	// select the segments to display
 	for(uint8_t segment = 0; segment < 8; ++segment) {
 	    if(digit & _BV(segment)) {
-		bits |= (uint32_t)1
-		    << pgm_read_byte(&(vfd_segment_pins[segment]));
+		bitidx = pgm_read_byte(&(vfd_segment_pins[segment]));
+		bits[bitidx >> 3] |= _BV(bitidx & 0x7);
 	    }
 	}
     }
@@ -380,22 +382,28 @@ uint8_t display_varsemitick(void) {
     // Also, the bits could be sent by SPI (they are in the origional
     // Adafruit firmware), but I have found that doing so sometimes
     // results in display flicker.
+    uint8_t bitflag = 0x08;
+    for(int8_t bitidx=2; bitidx >= 0; --bitidx) {
+        uint8_t bitbyte = bits[bitidx];
 
-    for(uint8_t i = 0; i < 20; ++i, bits <<= 1) {
-	if(bits & 0x00080000) {  // if 20th bit set
-	    // output high on MAX6921 DIN pin
-	    PORTB |= _BV(PB3);
-	} else {
-	    // output low on MAX6921 DIN pin
-	    PORTB &= ~_BV(PB3);
-	}
+        for(; bitflag; bitflag >>= 1) {
+            if(bitbyte & bitflag) {
+                // output high on MAX6921 DIN pin
+                PORTB |= _BV(PB3);
+            } else {
+                // output low on MAX6921 DIN pin
+                PORTB &= ~_BV(PB3);
+            }
 
-	// pulse MAX6921 CLK pin:  shifts DIN input into
-	// the 20-bit shift register on rising edge
-	PORTB |=  _BV(PB5);
-	PORTB &= ~_BV(PB5);
+            // pulse MAX6921 CLK pin:  shifts DIN input into
+            // the 20-bit shift register on rising edge
+            PORTB |=  _BV(PB5);
+            PORTB &= ~_BV(PB5);
+        }
+
+	bitflag = 0x80;
     }
-
+    
     // pulse MAX6921 LOAD pin:  transfers shift
     // register to latch when high; latches when low
     PORTC |=  _BV(PC0);
