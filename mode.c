@@ -933,11 +933,7 @@ void mode_semitick(void) {
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
-#ifdef AUTOMATIC_DIMMER
 		    MODE_CFGDISP_SETAUTOOFF_MENU,
-#else
-		    MODE_CFGDISP_SETANIMATED_MENU,
-#endif  // AUTOMATIC_DIMMER
 		    MODE_CFGDISP_SETDIGITBRIGHT_LEVEL,
 		    menu_cfgdisp_setdigitbright_init,
 		    btn, FALSE);
@@ -979,33 +975,44 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
+	case MODE_CFGDISP_SETAUTOOFF_MENU:
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGDISP_SETANIMATED_MENU,
 #ifdef AUTOMATIC_DIMMER
-	case MODE_CFGDISP_SETAUTOOFF_MENU: ;
-	    void menu_cfgdisp_setautooff_init(void) {
+		    MODE_CFGDISP_SETPHOTOOFF_MENU,
+#else
+		    MODE_CFGDISP_SETOFFTIME_MENU,
+#endif
+		    NULL, btn, FALSE);
+	    break;
+#ifdef AUTOMATIC_DIMMER
+	case MODE_CFGDISP_SETPHOTOOFF_MENU: ;
+	    void menu_cfgdisp_setphotooff_init(void) {
 		*mode.tmp = UINT8_MAX - display.off_threshold;
 	    }
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
-		    MODE_CFGDISP_SETANIMATED_MENU,
-		    MODE_CFGDISP_SETAUTOOFF,
-		    menu_cfgdisp_setautooff_init,
+		    MODE_CFGDISP_SETOFFTIME_MENU,
+		    MODE_CFGDISP_SETPHOTOOFF_THRESH,
+		    menu_cfgdisp_setphotooff_init,
 		    btn, FALSE);
 	    break;
-	case MODE_CFGDISP_SETAUTOOFF:
+	case MODE_CFGDISP_SETPHOTOOFF_THRESH:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
 		    display.off_threshold = UINT8_MAX - *mode.tmp;
-		    display_saveoff();
+		    display_savephotooff();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 		    break;
 		case BUTTONS_PLUS:
 		    ++(*mode.tmp);
 		    *mode.tmp %= 51;
-		    mode_update(MODE_CFGDISP_SETAUTOOFF,
+		    mode_update(MODE_CFGDISP_SETPHOTOOFF_THRESH,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
@@ -1013,6 +1020,321 @@ void mode_semitick(void) {
 	    }
 	    break;
 #endif  // AUTOMATIC_DIMMER
+	case MODE_CFGDISP_SETOFFTIME_MENU: ;
+	    void menu_cfgdisp_setofftime_init(void) {
+		*mode.tmp = display.off_hour & _BV(TIME_NODAY);
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGDISP_SETOFFDAYS_MENU,
+		    MODE_CFGDISP_SETOFFTIME_TOGGLE,
+		    menu_cfgdisp_setofftime_init,
+		    btn, FALSE);
+	    break;
+	case MODE_CFGDISP_SETOFFTIME_TOGGLE:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    if(*mode.tmp) {
+			display.off_hour |= *mode.tmp;
+			display_saveofftime();
+			mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    } else {
+			display.off_hour &= ~_BV(TIME_NODAY);
+			mode_update(MODE_CFGDISP_SETOFFTIME_OFFHOUR,
+				    DISPLAY_TRANS_DOWN);
+		    }
+		    break;
+		case BUTTONS_PLUS:
+		    *mode.tmp ^= _BV(TIME_NODAY);
+		    mode_update(MODE_CFGDISP_SETOFFTIME_TOGGLE,
+				DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_CFGDISP_SETOFFTIME_OFFHOUR:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    display_loadofftime();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    mode_update(MODE_CFGDISP_SETOFFTIME_OFFMINUTE,
+				DISPLAY_TRANS_INSTANT);
+		    break;
+		case BUTTONS_PLUS:
+		    ++display.off_hour;
+		    display.off_hour %= 24;
+		    mode_update(MODE_CFGDISP_SETOFFTIME_OFFHOUR,
+				DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			display_loadofftime();
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_CFGDISP_SETOFFTIME_OFFMINUTE:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    display_loadofftime();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    mode_update(MODE_CFGDISP_SETOFFTIME_ONHOUR,
+				DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    ++display.off_minute;
+		    display.off_minute %= 60;
+		    mode_update(MODE_CFGDISP_SETOFFTIME_OFFMINUTE,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			display_loadofftime();
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_CFGDISP_SETOFFTIME_ONHOUR:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    display_loadofftime();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    mode_update(MODE_CFGDISP_SETOFFTIME_ONMINUTE,
+				DISPLAY_TRANS_INSTANT);
+		    break;
+		case BUTTONS_PLUS:
+		    ++display.on_hour;
+		    display.on_hour %= 24;
+		    mode_update(MODE_CFGDISP_SETOFFTIME_ONHOUR,
+				DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			display_loadofftime();
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_CFGDISP_SETOFFTIME_ONMINUTE:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    display_loadofftime();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    display_saveofftime();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    ++display.on_minute;
+		    display.on_minute %= 60;
+		    mode_update(MODE_CFGDISP_SETOFFTIME_ONMINUTE,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			display_loadofftime();
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_CFGDISP_SETOFFDAYS_MENU: ;
+	    void menu_cfgdisp_setoffdays_init(void) {
+		*mode.tmp = display.off_days;
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+		    MODE_CFGDISP_SETONDAYS_MENU,
+		    MODE_CFGDISP_SETOFFDAYS_OPTIONS,
+		    menu_cfgdisp_setoffdays_init,
+		    btn, FALSE);
+	    break;
+	case MODE_CFGDISP_SETOFFDAYS_OPTIONS:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    switch((uint8_t)*mode.tmp) {
+			case TIME_NODAYS:
+			case TIME_ALLDAYS:
+			case TIME_WEEKDAYS:
+			case TIME_WEEKENDS:
+			    display.off_days = *mode.tmp;
+			    display_saveoffdays();
+			    display.on_days &= ~display.off_days;
+			    display_saveondays();
+			    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+			    break;
+			default:
+			    mode.tmp[MODE_TMP_IDX] = TIME_SUN;
+			    *mode.tmp = display.off_days;
+			    if(!*mode.tmp) *mode.tmp = TIME_ALLDAYS;
+			    mode_update(MODE_CFGDISP_SETOFFDAYS_CUSTOM,
+				        DISPLAY_TRANS_UP);
+			    break;
+		    }
+		    break;
+		case BUTTONS_PLUS:
+		    switch((uint8_t)*mode.tmp) {
+			case TIME_NODAYS:
+			    *mode.tmp = TIME_ALLDAYS;
+			    break;
+			case TIME_ALLDAYS:
+			    *mode.tmp = TIME_WEEKDAYS;
+			    break;
+			case TIME_WEEKDAYS:
+			    *mode.tmp = TIME_WEEKENDS;
+			    break;
+			case TIME_WEEKENDS:
+			    *mode.tmp = _BV(TIME_NODAY);
+			    break;
+			default:
+			    *mode.tmp = TIME_NODAYS;
+			    break;
+		    }
+
+		    mode_update(MODE_CFGDISP_SETOFFDAYS_OPTIONS,
+				DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_CFGDISP_SETOFFDAYS_CUSTOM:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    if(mode.tmp[MODE_TMP_IDX] < TIME_SAT) {
+			++mode.tmp[MODE_TMP_IDX];
+			mode_update(MODE_CFGDISP_SETOFFDAYS_CUSTOM,
+				    DISPLAY_TRANS_INSTANT);
+		    } else {
+			display.off_days = *mode.tmp;
+			display_saveoffdays();
+			display.on_days &= ~display.off_days;
+			display_saveondays();
+			mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    }
+		    break;
+		case BUTTONS_PLUS:
+		    *mode.tmp ^= _BV(mode.tmp[MODE_TMP_IDX]);
+		    mode_update(MODE_CFGDISP_SETOFFDAYS_CUSTOM,
+				DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_CFGDISP_SETONDAYS_MENU: ;
+	    void menu_cfgdisp_setondays_init(void) {
+		*mode.tmp = display.on_days;
+	    }
+
+	    mode_menu_process_button(
+		    MODE_TIME_DISPLAY,
+#ifdef AUTOMATIC_DIMMER
+		    MODE_CFGDISP_SETPHOTOOFF_MENU,
+#else
+		    MODE_CFGDISP_SETOFFTIME_MENU,
+#endif  // AUTOMATIC_DIMMER
+		    MODE_CFGDISP_SETONDAYS_OPTIONS,
+		    menu_cfgdisp_setondays_init,
+		    btn, FALSE);
+	    break;
+	case MODE_CFGDISP_SETONDAYS_OPTIONS:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    switch((uint8_t)*mode.tmp) {
+			case TIME_NODAYS:
+			case TIME_ALLDAYS:
+			case TIME_WEEKDAYS:
+			case TIME_WEEKENDS:
+			    display.on_days = *mode.tmp;
+			    display_saveondays();
+			    display.off_days &= ~display.on_days;
+			    display_saveoffdays();
+			    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+			    break;
+			default:
+			    mode.tmp[MODE_TMP_IDX] = TIME_SUN;
+			    *mode.tmp = display.on_days;
+			    if(!*mode.tmp) *mode.tmp = TIME_ALLDAYS;
+			    mode_update(MODE_CFGDISP_SETONDAYS_CUSTOM,
+				        DISPLAY_TRANS_UP);
+			    break;
+		    }
+		    break;
+		case BUTTONS_PLUS:
+		    switch((uint8_t)*mode.tmp) {
+			case TIME_NODAYS:
+			    *mode.tmp = TIME_ALLDAYS;
+			    break;
+			case TIME_ALLDAYS:
+			    *mode.tmp = TIME_WEEKDAYS;
+			    break;
+			case TIME_WEEKDAYS:
+			    *mode.tmp = TIME_WEEKENDS;
+			    break;
+			case TIME_WEEKENDS:
+			    *mode.tmp = _BV(TIME_NODAY);
+			    break;
+			default:
+			    *mode.tmp = TIME_NODAYS;
+			    break;
+		    }
+
+		    mode_update(MODE_CFGDISP_SETONDAYS_OPTIONS,
+				DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case MODE_CFGDISP_SETONDAYS_CUSTOM:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    if(mode.tmp[MODE_TMP_IDX] < TIME_SAT) {
+			++mode.tmp[MODE_TMP_IDX];
+			mode_update(MODE_CFGDISP_SETONDAYS_CUSTOM,
+				    DISPLAY_TRANS_INSTANT);
+		    } else {
+			display.on_days = *mode.tmp;
+			display_saveondays();
+			display.off_days &= ~display.on_days;
+			display_saveoffdays();
+			mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    }
+		    break;
+		case BUTTONS_PLUS:
+		    *mode.tmp ^= _BV(mode.tmp[MODE_TMP_IDX]);
+		    mode_update(MODE_CFGDISP_SETONDAYS_CUSTOM,
+				DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    break;
+	    }
+	    break;
 	case MODE_CFGDISP_SETANIMATED_MENU: ;
 	    void menu_cfgdisp_setanimated_init(void) {
 		*mode.tmp = display.status;
@@ -1876,19 +2198,101 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    }
 
 	    break;
-#ifdef AUTOMATIC_DIMMER
 	case MODE_CFGDISP_SETAUTOOFF_MENU:
 	    display_pstr(0, PSTR("auto off"));
 	    break;
-	case MODE_CFGDISP_SETAUTOOFF:
+#ifdef AUTOMATIC_DIMMER
+	case MODE_CFGDISP_SETPHOTOOFF_MENU:
+	    display_pstr(0, PSTR("off dark"));
+	    break;
+	case MODE_CFGDISP_SETPHOTOOFF_THRESH:
 	    if(*mode.tmp) {
 		mode_textnum_display(PSTR("thrsh"), *mode.tmp);
 	    } else {
-		display_pstr(0, PSTR("alwys on"));
+		display_pstr(0, PSTR("disabled"));
 		display_dotselect(1, 8);
 	    }
 	    break;
 #endif  // AUTOMATIC_DIMMER
+	case MODE_CFGDISP_SETOFFTIME_MENU:
+	    display_pstr(0, PSTR("off time"));
+	    break;
+	case MODE_CFGDISP_SETOFFTIME_TOGGLE:
+	    if(*mode.tmp) {
+		display_pstr(0, PSTR("disabled"));
+	    } else {
+		display_pstr(0, PSTR("enabled "));
+	    }
+	    display_dotselect(1, 8);
+	    break;
+	case MODE_CFGDISP_SETOFFTIME_OFFHOUR:
+	    mode_alarm_display(display.off_hour,
+			       display.off_minute);
+	    if(time.timeformat & TIME_TIMEFORMAT_12HOUR) {
+		display_dotselect(1, 2);
+	    } else {
+		display_dotselect(2, 3);
+	    }
+	    break;
+	case MODE_CFGDISP_SETOFFTIME_OFFMINUTE:
+	    mode_alarm_display(display.off_hour,
+			       display.off_minute);
+	    if(time.timeformat & TIME_TIMEFORMAT_12HOUR) {
+		display_dotselect(4, 5);
+	    } else {
+		display_dotselect(5, 6);
+	    }
+	    break;
+	case MODE_CFGDISP_SETOFFTIME_ONHOUR:
+	    mode_alarm_display(display.on_hour,
+			       display.on_minute);
+	    if(time.timeformat & TIME_TIMEFORMAT_12HOUR) {
+		display_dotselect(1, 2);
+	    } else {
+		display_dotselect(2, 3);
+	    }
+	    break;
+	case MODE_CFGDISP_SETOFFTIME_ONMINUTE:
+	    mode_alarm_display(display.on_hour,
+			       display.on_minute);
+	    if(time.timeformat & TIME_TIMEFORMAT_12HOUR) {
+		display_dotselect(4, 5);
+	    } else {
+		display_dotselect(5, 6);
+	    }
+	    break;
+	case MODE_CFGDISP_SETOFFDAYS_MENU:
+	    display_pstr(0, PSTR("off days"));
+	    break;
+	case MODE_CFGDISP_SETONDAYS_MENU:
+	    display_pstr(0, PSTR("on days "));
+	    break;
+	case MODE_CFGDISP_SETOFFDAYS_OPTIONS:
+	case MODE_CFGDISP_SETONDAYS_OPTIONS:
+	    switch((uint8_t)*mode.tmp) {
+		case TIME_NODAYS:
+		    display_pstr(0, PSTR("disabled"));
+		    break;
+		case TIME_ALLDAYS:
+		    display_pstr(0, PSTR("all days"));
+		    break;
+		case TIME_WEEKDAYS:
+		    display_pstr(0, PSTR("weekdays"));
+		    break;
+		case TIME_WEEKENDS:
+		    display_pstr(0, PSTR("weekends"));
+		    break;
+		default:
+		    display_pstr(0, PSTR(" custom "));
+		    break;
+	    }
+	    display_dotselect(1, 8);
+	    break;
+	case MODE_CFGDISP_SETOFFDAYS_CUSTOM:
+	case MODE_CFGDISP_SETONDAYS_CUSTOM:
+	    mode_daysofweek_display(*mode.tmp);
+	    display_dot(1 + mode.tmp[MODE_TMP_IDX], TRUE);
+	    break;
 	case MODE_CFGDISP_SETANIMATED_MENU:
 	    display_pstr(0, PSTR("animated"));
 	    break;

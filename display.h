@@ -8,7 +8,7 @@
 
 
 #define DISPLAY_SIZE 9
-#define DISPLAY_OFF_TIMEOUT 30
+#define DISPLAY_OFF_TIMEOUT 60
 
 // status flags for display.status
 #define DISPLAY_ANIMATED     0x01  // animated display transitions
@@ -25,6 +25,10 @@
 #define DISPLAY_PULSE_DELAY 8  // (semiticks)
 
 
+// disabled flag for off_hour, off_days, and on_days
+#define DISPLAY_NOOFF 0x80
+
+
 // types of display transitions
 enum {
     DISPLAY_TRANS_NONE,
@@ -35,8 +39,8 @@ enum {
 };
 
 // duration of each left/right or up/down transiton step
-#define DISPLAY_TRANS_LR_DELAY 16  // (semiticks)
-#define DISPLAY_TRANS_UD_DELAY 48  // (semiticks)
+#define DISPLAY_TRANS_LR_DELAY 20  // (semiticks)
+#define DISPLAY_TRANS_UD_DELAY 50  // (semiticks)
 
 
 typedef struct {
@@ -61,7 +65,13 @@ typedef struct {
     int8_t  brightness;             // display brightness
 #endif  // AUTOMATIC_DIMMER
 
-    uint8_t off_timer;             // display-off timer
+    uint8_t off_hour;
+    uint8_t off_minute;
+    uint8_t on_hour;
+    uint8_t on_minute;
+    uint8_t off_days;
+    uint8_t on_days;
+    uint8_t off_timer;  // display-off timer
 
     // length of time to display each digit (32 microsecond units)
     uint8_t digit_times[DISPLAY_SIZE];
@@ -77,6 +87,10 @@ void display_wake(void);
 void display_sleep(void);
 
 void display_tick(void);
+
+void display_off(void);
+void display_on(void);
+
 uint8_t display_varsemitick(void);
 void display_semitick(void);
 
@@ -92,9 +106,18 @@ void display_savedigittimes(void);
 void display_noflicker(void);
 
 #ifdef AUTOMATIC_DIMMER
-void display_loadoff(void);
-void display_saveoff(void);
+void display_loadphotooff(void);
+void display_savephotooff(void);
 #endif  // AUTOMATIC_DIMMER
+
+void display_loadofftime(void);
+void display_saveofftime(void);
+
+void display_loadoffdays(void);
+void display_saveoffdays(void);
+
+void display_loadondays(void);
+void display_saveondays(void);
 
 uint8_t display_onbutton(void);
 

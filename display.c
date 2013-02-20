@@ -24,6 +24,7 @@
 #include "display.h"
 #include "usart.h"    // for debugging output
 #include "system.h"   // for determining system status
+#include "time.h"     // for determing current time
 
 
 // extern'ed data pertaining the display
@@ -42,12 +43,21 @@ uint8_t ee_display_status     EEMEM = DISPLAY_ANIMATED;
 #ifdef AUTOMATIC_DIMMER
 uint8_t ee_display_bright_min EEMEM = 1;
 uint8_t ee_display_bright_max EEMEM = 1;
-uint8_t ee_display_bright_off_threshold EEMEM = UINT8_MAX;
+uint8_t ee_display_off_threshold EEMEM = UINT8_MAX;
 #else
 uint8_t ee_display_brightness EEMEM = 1;
 #endif  // AUTOMATIC_DIMMER
 uint8_t ee_display_digit_times[] EEMEM = {15, 15, 15, 15, 15, 15, 15, 15, 15};
 uint8_t ee_display_gradient EEMEM = 0;
+
+uint8_t ee_display_off_hour   EEMEM = 23 | DISPLAY_NOOFF;
+uint8_t ee_display_off_minute EEMEM = 0;
+uint8_t ee_display_on_hour    EEMEM = 6;
+uint8_t ee_display_on_minute  EEMEM = 0;
+
+uint8_t ee_display_off_days EEMEM = 0;
+uint8_t ee_display_on_days  EEMEM = 0;
+
 
 // display of letters and numbers is coded by 
 // the appropriate segment flags:
@@ -167,11 +177,16 @@ void display_init(void) {
     display.photo_avg = UINT16_MAX;
 
     // load the display-off threshold
-    display_loadoff();
+    display_loadphotooff();
 #endif  // AUTOMATIC_DIMMER
 
     // load the digit display times
     display_loaddigittimes();
+
+    // load the auto off settings
+    display_loadofftime();
+    display_loadoffdays();
+    display_loadondays();
 
     // set the initial transition type to none
     display.trans_type = DISPLAY_TRANS_NONE;
@@ -181,10 +196,15 @@ void display_init(void) {
 }
 
 
-// returns true if display is off during wake mode
+// returns true if display is disabled
 uint8_t display_onbutton(void) {
-    display.off_timer = DISPLAY_OFF_TIMEOUT;
-    return display.status & DISPLAY_DISABLED;
+    uint8_t status_old;
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	status_old = display.status;
+	display_on();
+	display.off_timer = DISPLAY_OFF_TIMEOUT;
+    }
+    return status_old & DISPLAY_DISABLED;
 }
 
 
@@ -253,7 +273,98 @@ void display_sleep(void) {
 
 // decrements display-off timer
 void display_tick(void) {
-    if(display.off_timer) --display.off_timer;
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	if(display.off_timer) {
+	    --display.off_timer;
+	    return;
+	}
+    }
+
+#ifdef AUTOMATIC_DIMMER
+    // disable display if dark
+    if((display.photo_avg >> 8) > display.off_threshold) {
+	display_off();
+	return;
+    }
+#endif  // AUTOMATIC_DIMMER
+
+    // determine day-of-week flag for today
+    uint8_t dowflag = _BV(time_dayofweek(time.year, time.month, time.day));
+
+    // disable display if today is an "off day"
+    if(display.off_days & dowflag) {
+	display_off();
+	return;
+    }
+
+    // consider time only if today is not an "on day"
+    if(!(display.on_days & dowflag) && !(display.on_hour & DISPLAY_NOOFF)) {
+	// if off time period does not span midnight
+	if(display.off_hour < display.on_hour
+		|| (   display.off_hour   == display.on_hour
+		    && display.off_minute <= display.on_minute)) {
+	    // if current time within off time period
+	    if(        (display.off_hour < time.hour
+			|| (   display.off_hour   == time.hour
+			    && display.off_minute <  time.minute))
+		    && (time.hour < display.on_hour
+			|| (   time.hour   == display.on_hour
+			    && time.minute <  display.on_minute))) {
+		display_off();
+		return;
+	    }
+	} else {  // off time period spans midnight
+	    // if current time within off period
+	    if(        (display.off_hour < time.hour
+			|| (   display.off_hour   == time.hour
+			    && display.off_minute <  time.minute))
+		    || (time.hour < display.on_hour
+			|| (   time.hour   == display.on_hour
+			    && time.minute <  display.on_minute))) {
+		display_off();
+		return;
+	    }
+	}
+    }
+
+#ifdef AUTOMATIC_DIMMER
+    // enable display if light or if dimmer threshold disabled;
+    // otherwise maintain current on/off setting
+    if((display.photo_avg >> 8) < display.off_threshold
+	    || display.off_threshold == UINT8_MAX) {
+	display_on();
+    }
+
+#else
+    display_on();
+#endif  // AUTOMATIC_DIMMER
+}
+
+
+// disable display
+void display_off(void) {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	if(!(system.status & SYSTEM_SLEEP)
+		&& !(display.status & DISPLAY_DISABLED)) {
+	    display.status |=  DISPLAY_DISABLED;
+	    TCCR0A = _BV(WGM00) | _BV(WGM01);
+	    PORTD &= ~_BV(PD6);  // boost fet off (pull low)
+	    PORTD |=  _BV(PD3);  // MAX6921 power off (pull high)
+	}
+    }
+}
+
+
+// enable display
+void display_on(void) {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	if(!(system.status & SYSTEM_SLEEP)
+		&& (display.status & DISPLAY_DISABLED)) {
+	    display.status &= ~DISPLAY_DISABLED;
+	    TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
+	    PORTD &= ~_BV(PD3);  // MAX6921 power on (pull low)
+	}
+    }
 }
 
 
@@ -485,35 +596,19 @@ void display_semitick(void) {
     // the running average has a range of [0, 0xFFFF]
     static uint8_t photo_timer = 16;
 
-    if(! --photo_timer) {
+    if(!--photo_timer) {
+	// repeat in 16 semiseconds
+        photo_timer = 16;
+
 	// update adc running average (display.photo_avg)
 	display.photo_avg -= (display.photo_avg >> 6);
 	display.photo_avg += ADC;
 
-	// update brightness from display.photo_avg if not pulsing
-	if(!(display.status & DISPLAY_PULSING)) display_autodim();
-
-	// toggle display status based on brightness
-	if(display.off_timer || (display.photo_avg>>8)<display.off_threshold) {
-	    display.status &= ~DISPLAY_DISABLED;
-	    if(!(system.status & SYSTEM_SLEEP)) {
-		TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
-		PORTD &= ~_BV(PD3);  // MAX6921 power on (pull low)
-	    }
-	} else if((display.photo_avg >> 8) > display.off_threshold) {
-	    display.status |=  DISPLAY_DISABLED;
-	    if(!(system.status & SYSTEM_SLEEP)) {
-		TCCR0A = _BV(WGM00) | _BV(WGM01);
-		PORTD &= ~_BV(PD6);  // boost fet off (pull low)
-		PORTD |=  _BV(PD3);  // MAX6921 power off (pull high)
-	    }
-	}
-
         // begin next analog to digital conversion
         ADCSRA |= _BV(ADSC);
 
-	// repeat in 16 semiseconds
-        photo_timer = 5;
+	// update brightness from display.photo_avg if not pulsing
+	if(!(display.status & DISPLAY_PULSING)) display_autodim();
     }
 #endif  // AUTOMATIC_DIMMER
 
@@ -658,16 +753,58 @@ void display_noflicker(void) {
 
 #ifdef AUTOMATIC_DIMMER
 // load the display-off threshold
-void display_loadoff(void) {
-    display.off_threshold = eeprom_read_byte(&ee_display_bright_off_threshold);
+void display_loadphotooff(void) {
+    display.off_threshold = eeprom_read_byte(&ee_display_off_threshold);
 }
 
 
 // save the display-off threshold
-void display_saveoff(void) {
-    eeprom_write_byte(&ee_display_bright_off_threshold, display.off_threshold);
+void display_savephotooff(void) {
+    eeprom_write_byte(&ee_display_off_threshold, display.off_threshold);
 }
 #endif  // AUTOMATIC_DIMMER
+
+
+// load the display-off time period
+void display_loadofftime(void) {
+    display.off_hour   = eeprom_read_byte(&ee_display_off_hour);
+    display.off_minute = eeprom_read_byte(&ee_display_off_minute);
+    display.on_hour    = eeprom_read_byte(&ee_display_on_hour);
+    display.on_minute  = eeprom_read_byte(&ee_display_on_minute);
+}
+
+
+// save the display-off time period
+void display_saveofftime(void) {
+    eeprom_write_byte(&ee_display_off_hour,   display.off_hour);
+    eeprom_write_byte(&ee_display_off_minute, display.off_minute);
+    eeprom_write_byte(&ee_display_on_hour,    display.on_hour);
+    eeprom_write_byte(&ee_display_on_minute,  display.on_minute);
+}
+
+
+// load the display-off days
+void display_loadoffdays(void) {
+    display.off_days = eeprom_read_byte(&ee_display_off_days);
+}
+
+
+// save the display-off days
+void display_saveoffdays(void) {
+    eeprom_write_byte(&ee_display_off_days, display.off_days);
+}
+
+
+// load the display-on days
+void display_loadondays(void) {
+    display.on_days = eeprom_read_byte(&ee_display_on_days);
+}
+
+
+// save the display-on days
+void display_saveondays(void) {
+    eeprom_write_byte(&ee_display_on_days, display.on_days);
+}
 
 
 // set display brightness from display.bright_min,
