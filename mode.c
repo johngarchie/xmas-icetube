@@ -1039,7 +1039,7 @@ void mode_semitick(void) {
 		    break;
 		case BUTTONS_SET:
 		    if(*mode.tmp) {
-			display.off_hour |= *mode.tmp;
+			display.off_hour |= _BV(TIME_NODAY);
 			display_saveofftime();
 			mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    } else {

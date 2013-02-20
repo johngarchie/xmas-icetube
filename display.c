@@ -298,7 +298,7 @@ void display_tick(void) {
     }
 
     // consider time only if today is not an "on day"
-    if(!(display.on_days & dowflag) && !(display.on_hour & DISPLAY_NOOFF)) {
+    if(!(display.on_days & dowflag) && !(display.off_hour & DISPLAY_NOOFF)) {
 	// if off time period does not span midnight
 	if(display.off_hour < display.on_hour
 		|| (   display.off_hour   == display.on_hour
