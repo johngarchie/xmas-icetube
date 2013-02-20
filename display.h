@@ -21,11 +21,13 @@
 // savable settings in lower nibble of display.status
 #define DISPLAY_SETTINGS_MASK 0x0F
 
-// amount of time required for one step of OCR0A when pulsing
+// time required for one step of OCR0A when pulsing
 #define DISPLAY_PULSE_DELAY 8  // (semiticks)
 
+// time between photoresister voltage samples
+#define DISPLAY_ADC_DELAY 16  // (semiticks)
 
-// disabled flag for off_hour, off_days, and on_days
+// disabled flag for display.off_hour
 #define DISPLAY_NOOFF 0x80
 
 
@@ -65,18 +67,27 @@ typedef struct {
     int8_t  brightness;             // display brightness
 #endif  // AUTOMATIC_DIMMER
 
-    uint8_t off_hour;
-    uint8_t off_minute;
-    uint8_t on_hour;
-    uint8_t on_minute;
-    uint8_t off_days;
-    uint8_t on_days;
-    uint8_t off_timer;  // display-off timer
+    // off time:  disable display after off_hour and off_minute;
+    //            enable display after on_hour and on_minute
+    // off time is disabled when the highest bit, DISPLAY_NOOFF, is set
+    uint8_t off_hour;  uint8_t off_minute;
+    uint8_t on_hour;   uint8_t on_minute;
+
+    // off_days and on_days are bits specifying when the display should
+    // be explicitly enabled or disabled, overriding the usual off time
+    // preferences.  For example, weekends would be specified by
+    //    _BV(TIME_SUN) | _BV(TIME_SAT)
+    uint8_t off_days;  // disable display on given days
+    uint8_t on_days;   // ignore off time on given days
+
+    // when display is disabled, any button press enables the display
+    // for DISPLAY_OFF_TIMEOUT seconds.  off_timer stores the number
+    // of seconds before the display may be disabled after a button press.
+    uint8_t off_timer;
 
     // length of time to display each digit (32 microsecond units)
     uint8_t digit_times[DISPLAY_SIZE];
     uint8_t digit_time_shift;  // flicker reduction adjustment
-    uint8_t gradient;          // display gradient adjustment
 } display_t;
 
 volatile extern display_t display;

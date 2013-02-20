@@ -16,29 +16,31 @@ became a feature-rich reimplementation of the original Adafruit firmware.
 ##############
 
 Many of the features in the xmas-icetube firmware were first implemented in
-other firmware projects; see the CREDITS file for details.  The features of
-this firmware include
+other firmware projects; see the CREDITS file for details.  This firmware
+boasts the following features.
 
-  - multiple time and date formats,
-  - three alarms by time and days of the week,
-  - fine adjustment of alarm volume,
-  - progressive alarm option (gradually increasing volume),
-  - multiple alarm sounds (beeps, Merry Christmas, Big Ben, or Reveille),
-  - adjustable snooze time,
-  - DST support (USA, EU, or manual),
-  - fully automatic correction for time drift,
-  - time-from-GPS support,*
-  - alarm sounds during power outage,**
-  - no beeping or time loss after power failure,
-  - 25-fold increase in battery life,*
-  - per-digit brightness control,
-  - automatic brightness control by ambient light,*
-  - optionally disable display at night (when dark),*
-  - animated display transitions,
-  - display pulsing during alarm and snooze
+  - animated display transitions
+  - multiple time and date formats
+  - optionally pulse display during alarm and snooze
+  - three alarm times for selectable days of the week
+  - adjustable alarm volume (from 0 to 10)
+  - progressive alarm option (gradually increasing volume)
+  - multiple alarm sounds (beeps, Merry Christmas, Big Ben, or Reveille)
+  - adjustable snooze duration
+  - DST support (USA, EU, or manual)
+  - fully automatic correction for time drift
+  - time-from-GPS support*
+  - no beeping or time loss when power fails
+  - 25-fold increase in backup battery life*
+  - functional alarm during power outage**
+  - per-digit brightness adjustment for uneven displays
+  - automatic brightness control by ambient light*
+  - optionally disable display during specified time periods
+  - optionally disable display at night (when dark)*
 
 *  These hacks require hardware modification and support must be enabled by
-   uncommenting macros in config.h .  See config.h for more information.
+   uncommenting macros in config.h.  See the HACKS AND MODS section of
+   this file as well as the comments in config.h for more information.
 
 ** The snooze feature, musical alarm, and progressive alarm, are automatically
    disabled during a power failure.  While on battery power, the buzzer alarm
@@ -59,14 +61,14 @@ For Ice Tube Clock hackers, this firmware has
 ## Installation ##
 ##################
 
-Installation requires GNU Make, avr-libc, avr-gcc, and avrdude;
-the instructions below presume proficiency with these tools.
+Installation requires GNU Make, avr-libc, avr-gcc, and avrdude; the
+instructions below presume proficiency with these tools.
 
-In regard to hardware, this Makefile is setup to build and install the firmware
-for the Adafruit Ice Tube Clock with an ATmega328P.  Unfortunately, this
-firmware is currently too large to work on the ATmega168V.  Programming has
-been tested with the Adafruit USBtinyISP, but other controllers should also
-work (in theory).
+In regard to hardware, this Makefile is setup to build and install the
+firmware for the Adafruit Ice Tube Clock with an ATmega328P.
+Unfortunately, this firmware is currently too large to work on the
+ATmega168V.  Programming has been tested with the Adafruit USBtinyISP,
+but other programmers should also work (in theory).
 
 In regard to software, compilation and installation seems to work under
 
@@ -74,7 +76,9 @@ In regard to software, compilation and installation seems to work under
     (b) Mac OS 10.6 with MacPorts' avr-gcc and avrdude packages, and
     (c) Windows 7 with WinAVR and Cygwin's perl and bash packages.
 
-To compile and install this firmware, edit and use the provided Makefile:
+To compile and install this firmware, first configure compile-time
+options by editing config.h; then, build and install the project using
+the included Makefile:
 
 (1) Edit the Configuration Variables
 
@@ -87,7 +91,7 @@ To compile and install this firmware, edit and use the provided Makefile:
 
 (2) Compile the Firmware
 
-    Build icetube.elf, icetube_eeprom.hex, which contain
+    Build icetube_flash.hex and icetube_eeprom.hex, which contain
     the firmware and initial EEPROM contents:
 
 	% make
@@ -95,10 +99,38 @@ To compile and install this firmware, edit and use the provided Makefile:
 (3) Install the Firmware
 
     Write the new fuse bits, which *do* differ from those in the original
-    Adafruit firmware:
+    Adafruit firmware and other alternative firmware projects:
 
 	% make install-fuse
 
     Finally, upload the compiled firmware and initial EEPROM contents:
 
 	% make install
+
+
+####################
+## HACKS AND MODS ##
+####################
+
+Development of the various hacks and mods supported by this firmware
+have been discussed extensively in the Adafruit discussion board.
+
+::Automatic Dimmer::
+http://forums.adafruit.com/viewtopic.php?f=41&t=12932
+
+::Extended Battery Hack::
+http://forums.adafruit.com/viewtopic.php?f=41&t=36697
+
+::Temperature Compensated Timekeeping::
+http://forums.adafruit.com/viewtopic.php?f=41&t=14941
+
+::GPS Timekeeping::
+http://forums.adafruit.com/viewtopic.php?f=41&t=36873
+http://www.ladyada.net/make/icetube/mods.html
+http://forums.adafruit.com/viewtopic.php?f=41&t=32660
+
+::Drift Correction::
+http://forums.adafruit.com/viewtopic.php?f=41&t=12720
+
+::Per-Digit Brightness Adjustment::
+http://forums.adafruit.com/viewtopic.php?f=41&t=23586

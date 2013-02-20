@@ -47,8 +47,7 @@ uint8_t ee_display_off_threshold EEMEM = UINT8_MAX;
 #else
 uint8_t ee_display_brightness EEMEM = 1;
 #endif  // AUTOMATIC_DIMMER
-uint8_t ee_display_digit_times[] EEMEM = {15, 15, 15, 15, 15, 15, 15, 15, 15};
-uint8_t ee_display_gradient EEMEM = 0;
+uint8_t ee_display_digit_times[] EEMEM = { [0 ... DISPLAY_SIZE - 1] = 15 };
 
 uint8_t ee_display_off_hour   EEMEM = 23 | DISPLAY_NOOFF;
 uint8_t ee_display_off_minute EEMEM = 0;
@@ -373,6 +372,8 @@ void display_on(void) {
 uint8_t display_varsemitick(void) {
     static uint8_t digit_idx = DISPLAY_SIZE - 1;
 
+    if(++digit_idx >= DISPLAY_SIZE) digit_idx = 0;
+
     // bits to send MAX6921 (vfd driver chip)
     uint8_t bits[3] = {0, 0, 0};
 
@@ -520,33 +521,8 @@ uint8_t display_varsemitick(void) {
     PORTC |=  _BV(PC0);
     PORTC &= ~_BV(PC0);
 
-    // amount of time to display current digit
-    uint8_t digit_time = display.digit_times[digit_idx];
-
-    // apply flicker reduction shift
-    digit_time >>= display.digit_time_shift;
-
-    // compute gradient correction scaler
-    static uint16_t gradient_correction;
-    if(digit_idx >= DISPLAY_SIZE - 1) {
-	// set to maximum on first digit
-	gradient_correction = UINT16_MAX;
-    } else {
-	// calculate next step of exponentional decay
-	gradient_correction -= display.gradient * (gradient_correction >> 6);
-    }
-
-    // apply gradient correction scaler to digit_time
-    digit_time = (((gradient_correction >> 8) * digit_time) >> 8);
-
-    // next time, display previous digit
-    if(!digit_idx) {
-	digit_idx = DISPLAY_SIZE - 1;
-    } else {
-	--digit_idx;
-    }
-
-    return digit_time;
+    // return time to display current digit
+    return display.digit_times[digit_idx] >> display.digit_time_shift;
 }
 
 
@@ -594,11 +570,11 @@ void display_semitick(void) {
     // get ambient lighting from photosensor every 16 semiseconds,
     // and update running average of photosensor values; note that
     // the running average has a range of [0, 0xFFFF]
-    static uint8_t photo_timer = 16;
+    static uint8_t photo_timer = DISPLAY_ADC_DELAY;
 
     if(!--photo_timer) {
 	// repeat in 16 semiseconds
-        photo_timer = 16;
+        photo_timer = DISPLAY_ADC_DELAY;
 
 	// update adc running average (display.photo_avg)
 	display.photo_avg -= (display.photo_avg >> 6);
@@ -719,8 +695,6 @@ void display_loaddigittimes(void) {
 	display.digit_times[i] = eeprom_read_byte(&(ee_display_digit_times[i]));
     }
 
-    display.gradient = eeprom_read_byte(&ee_display_gradient);
-
     display_noflicker();
 }
 
@@ -730,8 +704,6 @@ void display_savedigittimes(void) {
     for(uint8_t i = 0; i < DISPLAY_SIZE; ++i) {
 	eeprom_write_byte(&(ee_display_digit_times[i]), display.digit_times[i]);
     }
-
-    eeprom_write_byte(&ee_display_gradient, display.gradient);
 }
 
 
