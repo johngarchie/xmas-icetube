@@ -1851,12 +1851,34 @@ void mode_semitick(void) {
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
-		    display_savestatus();
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    mode_update(MODE_CFGREGN_TEXTFMT_ALTALPHA,
+			        DISPLAY_TRANS_UP);
 		    break;
 		case BUTTONS_PLUS:
 		    display.status ^= DISPLAY_ALTNINE;
 		    mode_update(MODE_CFGREGN_TEXTFMT_ALTNINE,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			display_loadstatus();
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_CFGREGN_TEXTFMT_ALTALPHA:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    display_loadstatus();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    display_savestatus();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    display.status ^= DISPLAY_ALTALPHA;
+		    mode_update(MODE_CFGREGN_TEXTFMT_ALTALPHA,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
@@ -2402,13 +2424,16 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    mode_texttext_display(PSTR("year"), pstr_ptr);
 	    break;
 	case MODE_CFGREGN_TEXTFMT_MENU:
-	    display_pstr(0, PSTR("digt fmt"));
+	    display_pstr(0, PSTR("text fmt"));
 	    break;
 	case MODE_CFGREGN_TEXTFMT_ZEROPAD:
 	    mode_textnum_display(PSTR("zero"), 0);
 	    break;
 	case MODE_CFGREGN_TEXTFMT_ALTNINE:
 	    mode_textnum_display(PSTR("nine"), 9);
+	    break;
+	case MODE_CFGREGN_TEXTFMT_ALTALPHA:
+	    mode_texttext_display(PSTR("char"), PSTR("eg"));
 	    break;
 	default:
 	    display_pstr(0, PSTR("-error-"));

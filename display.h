@@ -14,6 +14,7 @@
 #define DISPLAY_ANIMATED     0x01  // animated display transitions
 #define DISPLAY_ZEROPAD      0x02  // zero-pad all numbers
 #define DISPLAY_ALTNINE      0x04  // alternative display for 9s
+#define DISPLAY_ALTALPHA     0x08  // alternative capital alphabet
 #define DISPLAY_PULSING      0x10  // display brightness pulsing
 #define DISPLAY_PULSE_DOWN   0x20  // display brightness dimming
 #define DISPLAY_DISABLED     0x40  // display disabled

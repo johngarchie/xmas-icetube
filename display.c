@@ -76,7 +76,7 @@ uint8_t ee_display_on_days  EEMEM = 0;
 #define DISPLAY_WILDCARD SEG_A | SEG_G | SEG_D
 
 // codes for vfd letter display
-const uint8_t letter_segments[] PROGMEM = {
+const uint8_t letter_segments_ada[] PROGMEM = {
     SEG_A | SEG_B | SEG_C | SEG_D | SEG_E | SEG_G, // a
     SEG_C | SEG_D | SEG_E | SEG_F | SEG_G,         // b
     SEG_D | SEG_E | SEG_G,                         // c
@@ -104,6 +104,38 @@ const uint8_t letter_segments[] PROGMEM = {
     SEG_B | SEG_C | SEG_D | SEG_F | SEG_G,         // y
     SEG_A | SEG_B | SEG_D | SEG_E | SEG_G,         // z
 };
+
+
+// alternative codes for vfd letter display
+const uint8_t letter_segments_alt[] PROGMEM = {
+    SEG_A | SEG_B | SEG_C | SEG_E | SEG_F | SEG_G, // A
+    SEG_C | SEG_D | SEG_E | SEG_F | SEG_G,         // b
+    SEG_A | SEG_D | SEG_E | SEG_F,                 // C
+    SEG_B | SEG_C | SEG_D | SEG_E | SEG_G,         // d
+    SEG_A | SEG_D | SEG_E | SEG_F | SEG_G,         // E
+    SEG_A | SEG_E | SEG_F | SEG_G,                 // F
+    SEG_A | SEG_C | SEG_D | SEG_E | SEG_F,         // G
+    SEG_B | SEG_C | SEG_E | SEG_F | SEG_G,         // H
+    SEG_B | SEG_C,                                 // I
+    SEG_B | SEG_C | SEG_D | SEG_E,                 // J
+    SEG_A | SEG_C | SEG_E | SEG_F | SEG_G,         // K
+    SEG_D | SEG_E | SEG_F,                         // L
+    SEG_A | SEG_C | SEG_E | SEG_G,                 // M
+    SEG_C | SEG_E | SEG_G,                         // n
+    SEG_A | SEG_B | SEG_C | SEG_D | SEG_E | SEG_F, // O
+    SEG_A | SEG_B | SEG_E | SEG_F | SEG_G,         // P
+    SEG_A | SEG_B | SEG_C | SEG_D | SEG_G,         // q
+    SEG_E | SEG_G,                                 // r
+    SEG_A | SEG_C | SEG_D | SEG_F | SEG_G,         // S
+    SEG_D | SEG_E | SEG_F | SEG_G,                 // t
+    SEG_B | SEG_C | SEG_D | SEG_E | SEG_F,         // U
+    SEG_B | SEG_C | SEG_D | SEG_E | SEG_F,         // V
+    SEG_A | SEG_C | SEG_D | SEG_E,                 // W
+    SEG_B | SEG_C | SEG_E | SEG_F | SEG_G,         // X
+    SEG_B | SEG_C | SEG_D | SEG_F | SEG_G,         // y
+    SEG_A | SEG_B | SEG_D | SEG_E | SEG_G,         // Z
+};
+
 
 const uint8_t number_segments[] PROGMEM = {
     SEG_A | SEG_B | SEG_C | SEG_D | SEG_E | SEG_F,         // 0
@@ -868,9 +900,17 @@ void display_twodigit_zeropad(uint8_t idx, int8_t n) {
 // display character (c) at display position (idx)
 void display_char(uint8_t idx, char c) {
     if('a' <= c && c <= 'z') {
-	display.prebuf[idx] = pgm_read_byte( &(letter_segments[c - 'a']) );
+	if(display.status & DISPLAY_ALTALPHA) {
+	    display.prebuf[idx] = pgm_read_byte(&(letter_segments_alt[c-'a']));
+	} else {
+	    display.prebuf[idx] = pgm_read_byte(&(letter_segments_ada[c-'a']));
+	}
     } else if('A' <= c && c <= 'Z') {
-	display.prebuf[idx] = pgm_read_byte( &(letter_segments[c - 'A']) );
+	if(display.status & DISPLAY_ALTALPHA) {
+	    display.prebuf[idx] = pgm_read_byte(&(letter_segments_alt[c-'A']));
+	} else {
+	    display.prebuf[idx] = pgm_read_byte(&(letter_segments_ada[c-'A']));
+	}
     } else if('0' <= c && c <= '9') {
 	display_digit(idx, c - '0');
     } else {
