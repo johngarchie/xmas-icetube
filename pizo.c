@@ -6,9 +6,10 @@
 //
 
 
-#include <avr/io.h>      // for using avr register names
-#include <avr/power.h>   // for enabling and disabling timer1
-#include <avr/eeprom.h>  // for accessing eeprom
+#include <avr/io.h>       // for using avr register names
+#include <avr/power.h>    // for enabling and disabling timer1
+#include <avr/eeprom.h>   // for accessing eeprom
+#include <util/atomic.h>  // for noninterruptable blocks
 
 #include "pizo.h"
 #include "system.h" // alarm behavior depends on power source
@@ -227,12 +228,6 @@ void pizo_setvolume(uint8_t vol, uint8_t interp) {
 	uint16_t cm_slope = pgm_read_byte(pizo_vol2cm+vol+1) - pizo.cm_factor;
 	pizo.cm_factor   += ((cm_slope * interp) >> 8);
     }
-
-    // if the buzzer is active, adjust volume immediately
-    if(TCCR1A) {
-	OCR1A = (ICR1 >> 8) * pizo.cm_factor;
-	OCR1B = ICR1 - OCR1A;
-    }
 }
 
 
@@ -399,16 +394,35 @@ void pizo_buzzeron(uint16_t sound) {
     // shift counter top from third octave to desired octave
     top_value >>= top_shift;
 
-    if(system.status & SYSTEM_SLEEP) {
-	// compensate frequency for 4x slower clock
-	top_value >>= 2;  // divide by four
+    // determine compare match value for given top
+    uint16_t compare_match;
+    if(top_value > 1920) {
+	// A TOP of 1920 corresponds to 4166 Hz--the resonance
+	// of the pizo.  Going beyond that will only reduce volume.
+	compare_match = (((1920      >> 7) * pizo.cm_factor) >> 1);
+    } else {
+	compare_match = (((top_value >> 7) * pizo.cm_factor) >> 1);
     }
 
-    // determine compare match value for given top
-    uint16_t compare_match = (top_value >> 8) * pizo.cm_factor;
+    if(system.status & SYSTEM_SLEEP) {
+	// compensate frequency for 4x slower clock
+	top_value     >>= 2;
+	compare_match >>= 2;
+    }
 
 
     // configure Timer/Counter1 to generate buzzer sound
+
+    // set TOP for desired frequency
+    ICR1 = top_value;
+
+    // set counter to top so next first clock tick sets pizo pins
+    TCNT1 = 0;
+
+    // set compare match registers for desired volume
+    OCR1A = compare_match;
+    OCR1B = top_value - compare_match;
+
     // COM1A1 = 10, clear OC1A on Compare Match, set OC1A at BOTTOM
     // COM1B1 = 11, set OC1B on Compare Match, clear OC1B at BOTTOM
     TCCR1A = _BV(COM1A1) | _BV(COM1B1) | _BV(COM1B0) | _BV(WGM11);
@@ -416,20 +430,23 @@ void pizo_buzzeron(uint16_t sound) {
     // WGM1 = 1110, fast PWM, TOP is ICR1
     // CS1  = 001,  clock timer with system clock
     TCCR1B = _BV(WGM13) | _BV(WGM12) | _BV(CS10);
-
-    // set TOP for desired frequency
-    ICR1 = top_value;
-
-    // set compare match registers for desired volume
-    OCR1A = compare_match;
-    OCR1B = top_value - compare_match;
 }
 
 
-// disable the buzzer
+// schedule ocr1a interrupt to disable the buzzer
 void pizo_buzzeroff(void) {
-    // disable timer/counter1 (buzzer timer)
-    TCCR1A = 0; TCCR1B = 0;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+	// wait until counter is midway to ensure OC1A and OC2B
+	// are both off at low volumes (prevents clicking noise)
+	if(TCCR1A) {
+	    uint16_t half_ICR1 = (ICR1 >> 1);
+	    while(TCNT1 > half_ICR1);
+	    while(TCNT1 < half_ICR1);
+
+	    // disable timer/counter1 (buzzer timer)
+	    TCCR1A = 0; TCCR1B = 0;
+	}
+    }
 
     // pull speaker pins low
     PORTB &= ~_BV(PB2) & ~_BV(PB1);
