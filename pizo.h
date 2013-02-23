@@ -40,7 +40,7 @@
 
 typedef struct {
     uint8_t  status;
-    uint8_t  cm_factor;
+    uint16_t cm_factor;
     uint16_t timer;
 
     uint8_t  pos;

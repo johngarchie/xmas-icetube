@@ -1898,12 +1898,6 @@ void mode_semitick(void) {
 }
 
 
-// set default mode when waking from sleep
-void mode_wake(void) {
-    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_INSTANT);
-}
-
-
 // called when the alarm switch is turned on
 void mode_alarmset(void) {
     if(mode.state <= MODE_SNOOZEON_DISPLAY) {

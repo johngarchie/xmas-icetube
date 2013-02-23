@@ -135,7 +135,7 @@ void mode_init(void);
 void mode_tick(void);
 void mode_semitick(void);
 
-void mode_wake(void);
+inline void mode_wake(void) {};
 inline void mode_sleep(void) {};
 
 void mode_alarmset(void);

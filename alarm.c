@@ -115,9 +115,6 @@ void alarm_sleep(void) {
 	// disable progressive alarm to save power
 	alarm.volume = alarm.volume_max;
 
-	// compensate for reduced volume from lower-voltage battery
-	if(alarm.volume < 10) ++alarm.volume;
-
 	// finally set the volume
 	pizo_setvolume(alarm.volume, 0);
     }

@@ -221,12 +221,17 @@ void pizo_nextsound(void) {
 // set pizo volume to vol is [0-10]
 // (interpolation between vol and vol+1 using interp)
 void pizo_setvolume(uint8_t vol, uint8_t interp) {
+    // if sleeping, compensate for reduced voltage by increasing volume
+    if((system.status & SYSTEM_SLEEP) && vol < 10) ++vol;
+
     pizo.cm_factor = pgm_read_byte(pizo_vol2cm + vol);
 
     if(vol < 10 && interp) {
-	pizo.cm_factor    = pgm_read_byte(pizo_vol2cm+vol);
 	uint16_t cm_slope = pgm_read_byte(pizo_vol2cm+vol+1) - pizo.cm_factor;
-	pizo.cm_factor   += ((cm_slope * interp) >> 8);
+	pizo.cm_factor <<= 8;
+	pizo.cm_factor += (cm_slope * interp);
+    } else {
+	pizo.cm_factor <<= 8;
     }
 }
 
@@ -399,9 +404,9 @@ void pizo_buzzeron(uint16_t sound) {
     if(top_value > 1920) {
 	// A TOP of 1920 corresponds to 4166 Hz--the resonance
 	// of the pizo.  Going beyond that will only reduce volume.
-	compare_match = (((1920      >> 7) * pizo.cm_factor) >> 1);
+	compare_match = (((uint32_t)1920      * pizo.cm_factor) >> 16);
     } else {
-	compare_match = (((top_value >> 7) * pizo.cm_factor) >> 1);
+	compare_match = (((uint32_t)top_value * pizo.cm_factor) >> 16);
     }
 
     if(system.status & SYSTEM_SLEEP) {
@@ -416,7 +421,7 @@ void pizo_buzzeron(uint16_t sound) {
     // set TOP for desired frequency
     ICR1 = top_value;
 
-    // set counter to top so next first clock tick sets pizo pins
+    // reset counter
     TCNT1 = 0;
 
     // set compare match registers for desired volume
@@ -433,23 +438,28 @@ void pizo_buzzeron(uint16_t sound) {
 }
 
 
-// schedule ocr1a interrupt to disable the buzzer
+// schedule stop-buzzer interrupt on
+// next OCR1A compare match (minimizes
+// clicking noise at low volume)
 void pizo_buzzeroff(void) {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-	// wait until counter is midway to ensure OC1A and OC2B
-	// are both off at low volumes (prevents clicking noise)
-	if(TCCR1A) {
-	    uint16_t half_ICR1 = (ICR1 >> 1);
-	    while(TCNT1 > half_ICR1);
-	    while(TCNT1 < half_ICR1);
-
-	    // disable timer/counter1 (buzzer timer)
-	    TCCR1A = 0; TCCR1B = 0;
-	}
-    }
+    uint16_t counter_low  = (ICR1 >> 1) - 32;
+    uint16_t counter_mid  = (ICR1 >> 1) + 16;
 
     // pull speaker pins low
     PORTB &= ~_BV(PB2) & ~_BV(PB1);
+    
+    while(TCCR1B) {
+	ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	    if(counter_low < TCNT1 && TCNT1 < counter_mid) {
+		// wait until counter is midway to ensure OC1A and OC2B
+		// are both off (reduces clicking noise)
+		while(TCNT1 < counter_mid);
+
+		// disable timer/counter1 (buzzer timer)
+		TCCR1A = 0; TCCR1B = 0;
+	    }
+	}
+    }
 }
 
 

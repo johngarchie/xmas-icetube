@@ -212,7 +212,7 @@ ISR(ANALOG_COMP_vect) {
 
     system_wake();   // does nothing
     pizo_wake();     // adjust buzzer for faster clock
-    mode_wake();     // display time after waking
+    mode_wake();     // does nothing
     buttons_wake();  // enable button pull-ups
     alarm_wake();    // enable alarm switch pull-up
     usart_wake();    // enable and configure usart
