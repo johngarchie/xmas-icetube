@@ -94,6 +94,7 @@ void alarm_wake(void) {
 	if(alarm.status & ALARM_SOUNDING) pizo_alarm_stop();
 	alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING & ~ALARM_SNOOZE;
 	display.status &= ~DISPLAY_PULSING;
+	display_autodim();
     }
 
     if(alarm.status & ALARM_SOUNDING) {
@@ -193,6 +194,7 @@ void alarm_tick(void) {
 	    // silence alarm on alarm timeout
 	    alarm.status &= ~ALARM_SOUNDING;
 	    display.status &= ~DISPLAY_PULSING;
+	    display_autodim();
 	    pizo_alarm_stop();
 	}
 
@@ -248,6 +250,7 @@ void alarm_semitick(void) {
 		if(alarm.status & ALARM_SOUNDING) pizo_alarm_stop();
 		alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING & ~ALARM_SNOOZE;
 		display.status &= ~DISPLAY_PULSING;
+		display_autodim();
 		mode_alarmoff();
 		display_onbutton();
 	    }
@@ -315,6 +318,7 @@ uint8_t alarm_onbutton(void) {
 	alarm.alarm_timer = 0;
 	if(! (alarm.status & ALARM_SNOOZING_PULSE)) {
 	    display.status &= ~DISPLAY_PULSING;
+	    display_autodim();
 	}
 	pizo_alarm_stop();
 	mode_snoozing();

@@ -739,6 +739,7 @@ void mode_semitick(void) {
 		    display.status |=  DISPLAY_PULSING;
 		} else {
 		    display.status &= ~DISPLAY_PULSING;
+		    display_autodim();
 		}
 	    };
 
@@ -757,10 +758,12 @@ void mode_semitick(void) {
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    display.status &= ~DISPLAY_PULSING;
+		    display_autodim();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
 		    display.status &= ~DISPLAY_PULSING;
+		    display_autodim();
 		    if(*mode.tmp & ALARM_SOUNDING_PULSE) {
 			alarm.status |=  ALARM_SOUNDING_PULSE;
 			alarm.status |=  ALARM_SNOOZING_PULSE;
@@ -775,6 +778,7 @@ void mode_semitick(void) {
 		    if(*mode.tmp & ALARM_SOUNDING_PULSE) {
 			*mode.tmp      &= ~ALARM_SOUNDING_PULSE;
 			display.status &= ~DISPLAY_PULSING;
+			display_autodim();
 		    } else {
 			*mode.tmp      |= ALARM_SOUNDING_PULSE;
 			display.status |= DISPLAY_PULSING;
@@ -785,6 +789,7 @@ void mode_semitick(void) {
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
 			display.status &= ~DISPLAY_PULSING;
+			display_autodim();
 		    }
 		    break;
 	    }
