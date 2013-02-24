@@ -14,7 +14,7 @@
 #include "display.h"  // for setting display contents
 #include "time.h"     // for displaying and setting time and date
 #include "alarm.h"    // for setting and displaying alarm status
-#include "pizo.h"     // for making clicks and alarm sounds
+#include "piezo.h"    // for making clicks and alarm sounds
 #include "buttons.h"  // for processing button presses
 #include "gps.h"      // for setting the utc offset
 #include "usart.h"    // for debugging output
@@ -533,8 +533,8 @@ void mode_semitick(void) {
 	    break;
 	case MODE_CFGALARM_SETSOUND_MENU: ;
 	    void menu_cfgalarm_setsound_init(void) {
-		pizo_setvolume((alarm.volume_min + alarm.volume_max) >> 1, 0);
-		pizo_tryalarm_start();
+		piezo_setvolume((alarm.volume_min + alarm.volume_max) >> 1, 0);
+		piezo_tryalarm_start();
 	    }
 
 	    mode_menu_process_button(
@@ -547,24 +547,24 @@ void mode_semitick(void) {
 	case MODE_CFGALARM_SETSOUND:
 	    switch(btn) {
 		case BUTTONS_MENU:
-		    pizo_tryalarm_stop();
-		    pizo_loadsound();
+		    piezo_tryalarm_stop();
+		    piezo_loadsound();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
-		    pizo_savesound();
-		    pizo_tryalarm_stop();
+		    piezo_savesound();
+		    piezo_tryalarm_stop();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 		    break;
 		case BUTTONS_PLUS:
-		    pizo_nextsound();
-		    pizo_tryalarm_start();
+		    piezo_nextsound();
+		    piezo_tryalarm_start();
 		    mode_update(MODE_CFGALARM_SETSOUND, DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
-			pizo_tryalarm_stop();
-			pizo_loadsound();
+			piezo_tryalarm_stop();
+			piezo_loadsound();
 		    }
 		    break;
 	    }
@@ -575,8 +575,8 @@ void mode_semitick(void) {
 		    *mode.tmp = 11;
 		} else {
 		    *mode.tmp = alarm.volume_min;
-		    pizo_setvolume(alarm.volume_min, 0);
-		    pizo_tryalarm_start();
+		    piezo_setvolume(alarm.volume_min, 0);
+		    piezo_tryalarm_start();
 		}
 		mode.tmp[MODE_TMP_MIN] = alarm.volume_min;
 		mode.tmp[MODE_TMP_MAX] = alarm.volume_max;
@@ -592,20 +592,20 @@ void mode_semitick(void) {
 	case MODE_CFGALARM_SETVOL:
 	    switch(btn) {
 		case BUTTONS_MENU:
-		    pizo_tryalarm_stop();
+		    piezo_tryalarm_stop();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
 		    if(*mode.tmp < 11) {
-			pizo_tryalarm_stop();
-			pizo_setvolume(*mode.tmp, 0);
+			piezo_tryalarm_stop();
+			piezo_setvolume(*mode.tmp, 0);
 			alarm.volume_min = *mode.tmp;
 			alarm.volume_max = *mode.tmp;
 			alarm_savevolume();
 			mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 		    } else {
-			pizo_setvolume(mode.tmp[MODE_TMP_MIN], 0);
-			pizo_tryalarm_start();
+			piezo_setvolume(mode.tmp[MODE_TMP_MIN], 0);
+			piezo_tryalarm_start();
 			mode_update(MODE_CFGALARM_SETVOL_MIN, DISPLAY_TRANS_UP);
 		    }
 		    break;
@@ -614,51 +614,51 @@ void mode_semitick(void) {
 		    *mode.tmp %= 12;
 
 		    if(*mode.tmp < 11) {
-			pizo_setvolume(*mode.tmp, 0);
-			pizo_tryalarm_start();
+			piezo_setvolume(*mode.tmp, 0);
+			piezo_tryalarm_start();
 		    } else {
-			pizo_tryalarm_stop();
+			piezo_tryalarm_stop();
 		    }
 
 		    mode_update(MODE_CFGALARM_SETVOL, DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
-		    if(mode.timer == MODE_TIMEOUT) pizo_tryalarm_stop();
+		    if(mode.timer == MODE_TIMEOUT) piezo_tryalarm_stop();
 		    break;
 	    }
 	    break;
 	case MODE_CFGALARM_SETVOL_MIN:
 	    switch(btn) {
 		case BUTTONS_MENU:
-		    pizo_tryalarm_stop();
+		    piezo_tryalarm_stop();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
-		    pizo_setvolume(mode.tmp[MODE_TMP_MAX], 0);
-		    pizo_tryalarm_start();
+		    piezo_setvolume(mode.tmp[MODE_TMP_MAX], 0);
+		    piezo_tryalarm_start();
 		    mode_update(MODE_CFGALARM_SETVOL_MAX, DISPLAY_TRANS_UP);
 		    break;
 		case BUTTONS_PLUS:
 		    ++mode.tmp[MODE_TMP_MIN];
 		    mode.tmp[MODE_TMP_MIN] %= 10;
-		    pizo_setvolume(mode.tmp[MODE_TMP_MIN], 0);
-		    pizo_tryalarm_start();
+		    piezo_setvolume(mode.tmp[MODE_TMP_MIN], 0);
+		    piezo_tryalarm_start();
 		    mode_update(MODE_CFGALARM_SETVOL_MIN,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
-		    if(mode.timer == MODE_TIMEOUT) pizo_tryalarm_stop();
+		    if(mode.timer == MODE_TIMEOUT) piezo_tryalarm_stop();
 		    break;
 	    }
 	    break;
 	case MODE_CFGALARM_SETVOL_MAX:
 	    switch(btn) {
 		case BUTTONS_MENU:
-		    pizo_tryalarm_stop();
+		    piezo_tryalarm_stop();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
-		    pizo_tryalarm_stop();
+		    piezo_tryalarm_stop();
 		    alarm.volume_min = mode.tmp[MODE_TMP_MIN];
 		    alarm.volume_max = mode.tmp[MODE_TMP_MAX];
 		    alarm_savevolume();
@@ -670,13 +670,13 @@ void mode_semitick(void) {
 		    if(mode.tmp[MODE_TMP_MAX] > 10) {
 			mode.tmp[MODE_TMP_MAX] = mode.tmp[MODE_TMP_MIN] + 1;
 		    }
-		    pizo_setvolume(mode.tmp[MODE_TMP_MAX], 0);
-		    pizo_tryalarm_start();
+		    piezo_setvolume(mode.tmp[MODE_TMP_MAX], 0);
+		    piezo_tryalarm_start();
 		    mode_update(MODE_CFGALARM_SETVOL_MAX,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
-		    if(mode.timer == MODE_TIMEOUT) pizo_tryalarm_stop();
+		    if(mode.timer == MODE_TIMEOUT) piezo_tryalarm_stop();
 		    break;
 	    }
 	    break;
@@ -2093,14 +2093,14 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    display_dot(1, TRUE);
 	    break;
 	case MODE_CFGALARM_SETSOUND:
-	    switch(pizo.status & PIZO_SOUND_MASK) {
-		case PIZO_SOUND_MERRY_XMAS:
+	    switch(piezo.status & PIEZO_SOUND_MASK) {
+		case PIEZO_SOUND_MERRY_XMAS:
 		    display_pstr(0, PSTR("mery chr"));
 		    break;
-		case PIZO_SOUND_BIG_BEN:
+		case PIEZO_SOUND_BIG_BEN:
 		    display_pstr(0, PSTR("big ben"));
 		    break;
-		case PIZO_SOUND_REVEILLE:
+		case PIEZO_SOUND_REVEILLE:
 		    display_pstr(0, PSTR("reveille"));
 		    break;
 		default:

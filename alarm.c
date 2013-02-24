@@ -12,7 +12,7 @@
 
 
 #include "alarm.h"
-#include "pizo.h"    // for sounding the alarm
+#include "piezo.h"   // for sounding the alarm
 #include "time.h"    // alarm must sound at appropriate time
 #include "system.h"  // alarm behavior depends on power source
 #include "mode.h"    // mode updated on alarm state changes
@@ -65,7 +65,7 @@ void alarm_init(void) {
 	alarm.volume_min = alarm.volume_min;
     }
 
-    pizo_setvolume((alarm.volume_min + alarm.volume_max) >> 1, 0);
+    piezo_setvolume((alarm.volume_min + alarm.volume_max) >> 1, 0);
 
     // prevents divide-by-zero error later on
     if(!alarm.ramp_time) alarm.ramp_time = 1;
@@ -91,7 +91,7 @@ void alarm_wake(void) {
     if(PIND & _BV(PD2)) {
 	alarm.status |= ALARM_SET;
     } else {
-	if(alarm.status & ALARM_SOUNDING) pizo_alarm_stop();
+	if(alarm.status & ALARM_SOUNDING) piezo_alarm_stop();
 	alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING & ~ALARM_SNOOZE;
 	display.status &= ~DISPLAY_PULSING;
 	display_autodim();
@@ -101,7 +101,7 @@ void alarm_wake(void) {
 	// lower volume which may be raised above
 	// volume_max during sleep mode
 	alarm.volume = alarm.volume_max;
-	pizo_setvolume(alarm.volume, 0);
+	piezo_setvolume(alarm.volume, 0);
     }
 }
 
@@ -117,7 +117,7 @@ void alarm_sleep(void) {
 	alarm.volume = alarm.volume_max;
 
 	// finally set the volume
-	pizo_setvolume(alarm.volume, 0);
+	piezo_setvolume(alarm.volume, 0);
     }
 }
 
@@ -166,8 +166,8 @@ void alarm_tick(void) {
 		alarm.volume = alarm.volume_min;
 	    }
 
-	    pizo_setvolume(alarm.volume, 0);
-	    pizo_alarm_start();
+	    piezo_setvolume(alarm.volume, 0);
+	    piezo_alarm_start();
 
 	    // ensure display is enabled if power present
 	    display_onbutton();
@@ -188,14 +188,14 @@ void alarm_tick(void) {
 		alarm.alarm_timer = 0;
 	    }
 
-	    pizo_setvolume(alarm.volume,
+	    piezo_setvolume(alarm.volume,
 		    	   ((uint32_t)alarm.alarm_timer << 8) / alarm.ramp_int);
 	} else if(alarm.alarm_timer > ALARM_SOUNDING_TIMEOUT) {
 	    // silence alarm on alarm timeout
 	    alarm.status &= ~ALARM_SOUNDING;
 	    display.status &= ~DISPLAY_PULSING;
 	    display_autodim();
-	    pizo_alarm_stop();
+	    piezo_alarm_stop();
 	}
 
 	++alarm.alarm_timer;
@@ -221,9 +221,9 @@ void alarm_tick(void) {
 		alarm.volume = alarm.volume_min;
 	    }
 
-	    pizo_setvolume(alarm.volume, 0);
+	    piezo_setvolume(alarm.volume, 0);
 
-	    pizo_alarm_start();
+	    piezo_alarm_start();
 	}
     }
 }
@@ -247,7 +247,7 @@ void alarm_semitick(void) {
     } else {
 	if(alarm.status & ALARM_SET) {
 	    if(++alarm_debounce >= ALARM_DEBOUNCE_TIME) {
-		if(alarm.status & ALARM_SOUNDING) pizo_alarm_stop();
+		if(alarm.status & ALARM_SOUNDING) piezo_alarm_stop();
 		alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING & ~ALARM_SNOOZE;
 		display.status &= ~DISPLAY_PULSING;
 		display_autodim();
@@ -320,7 +320,7 @@ uint8_t alarm_onbutton(void) {
 	    display.status &= ~DISPLAY_PULSING;
 	    display_autodim();
 	}
-	pizo_alarm_stop();
+	piezo_alarm_stop();
 	mode_snoozing();
 	return TRUE;
     }

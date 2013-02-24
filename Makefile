@@ -12,7 +12,7 @@
 PROJECT ?= icetube
 
 # object files
-OBJECTS ?= icetube.o system.o time.o alarm.o pizo.o \
+OBJECTS ?= icetube.o system.o time.o alarm.o piezo.o \
 	   display.o buttons.o mode.o usart.o gps.o
 
 # avr microcontroller processing unit

@@ -1,4 +1,4 @@
-// pizo.c  --  pizo element control
+// piezo.c  --  piezo element control
 //
 //    PB2 (OC1B)        first  buzzer pin
 //    PB1 (OC1A)        second buzzer pin
@@ -11,12 +11,12 @@
 #include <avr/eeprom.h>   // for accessing eeprom
 #include <util/atomic.h>  // for noninterruptable blocks
 
-#include "pizo.h"
+#include "piezo.h"
 #include "system.h" // alarm behavior depends on power source
 
 
-// extern'ed pizo data
-volatile pizo_t pizo;
+// extern'ed piezo data
+volatile piezo_t piezo;
 
 
 // macros for each note in an octave
@@ -59,7 +59,7 @@ volatile pizo_t pizo;
 // settings.  The values were derived by ear.  With the exception of the
 // first two (2 and 7), perceived volume seems roughly proportional to
 // the log of the values below.  (cm = compare match)
-const uint8_t pizo_vol2cm[] PROGMEM = {2,7,11,15,21,28,38,51,69,93,128};
+const uint8_t piezo_vol2cm[] PROGMEM = {2,7,11,15,21,28,38,51,69,93,128};
 
 
 // timer1 top values for the third octave;
@@ -139,10 +139,10 @@ const uint16_t big_ben[] PROGMEM = {
 0};
 
 
-uint8_t ee_pizo_sound EEMEM = PIZO_DEFAULT_SOUND;
+uint8_t ee_piezo_sound EEMEM = PIEZO_DEFAULT_SOUND;
 
 
-void pizo_init(void) {
+void piezo_init(void) {
     // configure buzzer pins
     DDRB  |=  _BV(PB2) |  _BV(PB1);  // set as outputs
     PORTB &= ~_BV(PB2) & ~_BV(PB1);  // clamp to ground
@@ -151,94 +151,94 @@ void pizo_init(void) {
     // and nondeterministically, so enable timer1 in PRR and leave it alone!
     power_timer1_enable();
 
-    pizo_loadsound();
+    piezo_loadsound();
 }
 
 
 // load alarm sound from eeprom
-void pizo_loadsound(void) {
-    pizo.status = eeprom_read_byte(&ee_pizo_sound) & PIZO_SOUND_MASK;
-    pizo_configsound();
+void piezo_loadsound(void) {
+    piezo.status = eeprom_read_byte(&ee_piezo_sound) & PIEZO_SOUND_MASK;
+    piezo_configsound();
 }
 
 
 // save alarm sound to eeprom
-void pizo_savesound(void) {
-    eeprom_write_byte(&ee_pizo_sound, pizo.status & PIZO_SOUND_MASK);
+void piezo_savesound(void) {
+    eeprom_write_byte(&ee_piezo_sound, piezo.status & PIEZO_SOUND_MASK);
 }
 
 
 // configure needed settings for current sound;
 // also ensures valid current sound
-void pizo_configsound(void) {
-    switch(pizo.status & PIZO_SOUND_MASK) {
-	case PIZO_SOUND_MERRY_XMAS:
-	    pizo.music = merry_xmas;
+void piezo_configsound(void) {
+    switch(piezo.status & PIEZO_SOUND_MASK) {
+	case PIEZO_SOUND_MERRY_XMAS:
+	    piezo.music = merry_xmas;
 	    break;
-	case PIZO_SOUND_BIG_BEN:
-	    pizo.music = big_ben;
+	case PIEZO_SOUND_BIG_BEN:
+	    piezo.music = big_ben;
 	    break;
-	case PIZO_SOUND_REVEILLE:
-	    pizo.music = reveille;
+	case PIEZO_SOUND_REVEILLE:
+	    piezo.music = reveille;
 	    break;
 	default:
-	    pizo.status &= ~PIZO_SOUND_MASK;
-	    pizo.status |=  PIZO_SOUND_BEEPS;
+	    piezo.status &= ~PIEZO_SOUND_MASK;
+	    piezo.status |=  PIEZO_SOUND_BEEPS;
 	    break;
     }
 }
 
 
 // change alarm sound
-void pizo_nextsound(void) {
-    switch(pizo.status & PIZO_SOUND_MASK) {
-	case PIZO_SOUND_BEEPS:
-	    pizo.status &= ~PIZO_SOUND_MASK;
-	    pizo.status |=  PIZO_SOUND_MERRY_XMAS;
+void piezo_nextsound(void) {
+    switch(piezo.status & PIEZO_SOUND_MASK) {
+	case PIEZO_SOUND_BEEPS:
+	    piezo.status &= ~PIEZO_SOUND_MASK;
+	    piezo.status |=  PIEZO_SOUND_MERRY_XMAS;
 	    break;
-	case PIZO_SOUND_MERRY_XMAS:
-	    pizo.status &= ~PIZO_SOUND_MASK;
-	    pizo.status |=  PIZO_SOUND_BIG_BEN;
+	case PIEZO_SOUND_MERRY_XMAS:
+	    piezo.status &= ~PIEZO_SOUND_MASK;
+	    piezo.status |=  PIEZO_SOUND_BIG_BEN;
 	    break;
-	case PIZO_SOUND_BIG_BEN:
-	    pizo.status &= ~PIZO_SOUND_MASK;
-	    pizo.status |=  PIZO_SOUND_REVEILLE;
+	case PIEZO_SOUND_BIG_BEN:
+	    piezo.status &= ~PIEZO_SOUND_MASK;
+	    piezo.status |=  PIEZO_SOUND_REVEILLE;
 	    break;
-	case PIZO_SOUND_REVEILLE:
-	    pizo.status &= ~PIZO_SOUND_MASK;
-	    pizo.status |=  PIZO_SOUND_BEEPS;
+	case PIEZO_SOUND_REVEILLE:
+	    piezo.status &= ~PIEZO_SOUND_MASK;
+	    piezo.status |=  PIEZO_SOUND_BEEPS;
 	    break;
 	default:
-	    pizo.status &= ~PIZO_SOUND_MASK;
-	    pizo.status |=  PIZO_SOUND_BEEPS;
+	    piezo.status &= ~PIEZO_SOUND_MASK;
+	    piezo.status |=  PIEZO_SOUND_BEEPS;
 	    break;
     }
 
-    pizo_configsound();
+    piezo_configsound();
 }
 
 
-// set pizo volume to vol is [0-10]
+// set piezo volume to vol is [0-10]
 // (interpolation between vol and vol+1 using interp)
-void pizo_setvolume(uint8_t vol, uint8_t interp) {
+void piezo_setvolume(uint8_t vol, uint8_t interp) {
     // if sleeping, compensate for reduced voltage by increasing volume
     if((system.status & SYSTEM_SLEEP) && vol < 10) ++vol;
 
-    pizo.cm_factor = pgm_read_byte(pizo_vol2cm + vol);
+    piezo.cm_factor = pgm_read_byte(piezo_vol2cm + vol);
 
     if(vol < 10 && interp) {
-	uint16_t cm_slope = pgm_read_byte(pizo_vol2cm+vol+1) - pizo.cm_factor;
-	pizo.cm_factor <<= 8;
-	pizo.cm_factor += (cm_slope * interp);
+	uint16_t cm_slope = pgm_read_byte(piezo_vol2cm+vol+1) - piezo.cm_factor;
+	piezo.cm_factor <<= 8;
+	piezo.cm_factor += (cm_slope * interp);
     } else {
-	pizo.cm_factor <<= 8;
+	piezo.cm_factor <<= 8;
     }
 }
 
 
-// configure pizo control for full-power mode
-void pizo_wake(void) {
-    if((pizo.status & PIZO_STATE_MASK) == PIZO_ALARM_BEEPS) {
+// configure piezo control for full-power mode
+void piezo_wake(void) {
+    if((piezo.status & PIEZO_STATE_MASK) == PIEZO_ALARM_BEEPS) {
 	if(TCCR1A) {  // if the buzzer is active,
 	    // compensate for 4x faster clock
 	    ICR1  <<= 2;
@@ -250,17 +250,17 @@ void pizo_wake(void) {
 
 
 // silence any nonalarm noises during sleep
-void pizo_sleep(void) {
-    switch(pizo.status & PIZO_STATE_MASK) {
-	case PIZO_ALARM_MUSIC:
+void piezo_sleep(void) {
+    switch(piezo.status & PIEZO_STATE_MASK) {
+	case PIEZO_ALARM_MUSIC:
 	    // switch to beeps to reduce power consumption
-	    pizo.status &= ~PIZO_STATE_MASK;
-	    pizo.status |=  PIZO_ALARM_BEEPS;
-	    pizo.timer   = 0;
-	    pizo_buzzeroff();
+	    piezo.status &= ~PIEZO_STATE_MASK;
+	    piezo.status |=  PIEZO_ALARM_BEEPS;
+	    piezo.timer   = 0;
+	    piezo_buzzeroff();
 	    break;
 
-	case PIZO_ALARM_BEEPS:
+	case PIEZO_ALARM_BEEPS:
 	    if(TCCR1A) {  // if the buzzer is active,
 		// compensate for 4x slower clock
 		ICR1  >>= 2;
@@ -268,27 +268,27 @@ void pizo_sleep(void) {
 		OCR1B = ICR1 - OCR1A;
 	    }
 
-	case PIZO_INACTIVE:
+	case PIEZO_INACTIVE:
 	    break;
 
 	default:
-	    pizo_stop();
+	    piezo_stop();
 	    break;
     }
 }
 
 
 // toggles buzzer each second
-void pizo_tick(void) {
-    switch(pizo.status & PIZO_STATE_MASK) {
-	case PIZO_ALARM_BEEPS:
-	    ++pizo.timer;
+void piezo_tick(void) {
+    switch(piezo.status & PIEZO_STATE_MASK) {
+	case PIEZO_ALARM_BEEPS:
+	    ++piezo.timer;
 
-	    if(pizo.timer & 0x0001) {
-		pizo_buzzeron(BEEP);
+	    if(piezo.timer & 0x0001) {
+		piezo_buzzeron(BEEP);
 		system.status |= SYSTEM_ALARM_SOUNDING;
 	    } else {
-		pizo_buzzeroff();
+		piezo_buzzeroff();
 		system.status &= ~SYSTEM_ALARM_SOUNDING;
 	    }
 	    break;
@@ -299,84 +299,84 @@ void pizo_tick(void) {
 }
 
 
-// controls pizo element depending on current state
-void pizo_semitick(void) {
-    switch(pizo.status & PIZO_STATE_MASK) {
-	case PIZO_BEEP:
+// controls piezo element depending on current state
+void piezo_semitick(void) {
+    switch(piezo.status & PIEZO_STATE_MASK) {
+	case PIEZO_BEEP:
 	    // stop buzzer if beep has timed out
-	    if(!pizo.timer) pizo_stop();
+	    if(!piezo.timer) piezo_stop();
 
-	    --pizo.timer;
+	    --piezo.timer;
 
 	    break;
 
-	case PIZO_CLICK:
-	    if(pizo.timer == PIZO_CLICKTIME / 2) {
-		// flip from +5v to -5v on pizo
+	case PIEZO_CLICK:
+	    if(piezo.timer == PIEZO_CLICKTIME / 2) {
+		// flip from +5v to -5v on piezo
 		PORTB |=  _BV(PB2);
 		PORTB &= ~_BV(PB1);
 	    }
 
-	    if(!pizo.timer) pizo_stop();
+	    if(!piezo.timer) piezo_stop();
 
-	    --pizo.timer;
-
-	    break;
-
-	case PIZO_TRYALARM_BEEPS:
-	    if(!pizo.timer) {
-		pizo_buzzeron(BEEP);
-		pizo.timer = 2020;
-	    }
-
-	    if(pizo.timer == 1010) {
-		pizo_buzzeroff();
-	    }
-
-	    --pizo.timer;
+	    --piezo.timer;
 
 	    break;
 
-	case PIZO_TRYALARM_MUSIC:
-	case PIZO_ALARM_MUSIC:
+	case PIEZO_TRYALARM_BEEPS:
+	    if(!piezo.timer) {
+		piezo_buzzeron(BEEP);
+		piezo.timer = 2020;
+	    }
+
+	    if(piezo.timer == 1010) {
+		piezo_buzzeroff();
+	    }
+
+	    --piezo.timer;
+
+	    break;
+
+	case PIEZO_TRYALARM_MUSIC:
+	case PIEZO_ALARM_MUSIC:
 	    // when timer expires, play next note or pause
-	    if(!pizo.timer) {
-		uint16_t note = pgm_read_word(&(pizo.music[pizo.pos]));
-		pizo.timer = note & TIMING_MASK;
+	    if(!piezo.timer) {
+		uint16_t note = pgm_read_word(&(piezo.music[piezo.pos]));
+		piezo.timer = note & TIMING_MASK;
 
-		if(!pizo.timer) {  // zero indicates end-of-tune,
-		    pizo.pos = 0;  // so repeat from beginning
-		    note = pgm_read_word(&(pizo.music[pizo.pos]));
-		    pizo.timer = note & TIMING_MASK;
+		if(!piezo.timer) {  // zero indicates end-of-tune,
+		    piezo.pos = 0;  // so repeat from beginning
+		    note = pgm_read_word(&(piezo.music[piezo.pos]));
+		    piezo.timer = note & TIMING_MASK;
 		}
 
-		pizo.timer <<= 5;  // 128 semiticks per time unit
+		piezo.timer <<= 5;  // 128 semiticks per time unit
 
 		// play required note
-		pizo_buzzeron(note);
+		piezo_buzzeron(note);
 
-		++pizo.pos; // increment note index
+		++piezo.pos; // increment note index
 	    }
 
 	    // brief pause to make notes distinct
-	    if((pizo.status & PIZO_SOUND_MASK) == PIZO_SOUND_REVEILLE) {
-		if(pizo.timer == 32) pizo_buzzeroff();
+	    if((piezo.status & PIEZO_SOUND_MASK) == PIEZO_SOUND_REVEILLE) {
+		if(piezo.timer == 32) piezo_buzzeroff();
 	    } else {
-		if(pizo.timer == 64) pizo_buzzeroff();
+		if(piezo.timer == 64) piezo_buzzeroff();
 	    }
 
-	    --pizo.timer;
+	    --piezo.timer;
 
 	    break;
 
-	default: // PIZO_INACTIVE or PIZO_ALARM_BEEPS
+	default: // PIEZO_INACTIVE or PIEZO_ALARM_BEEPS
 	    break;
     }
 }
 
 
 // enables buzzer with given sound: PAUSE, BEEP, or N(a,b)
-void pizo_buzzeron(uint16_t sound) {
+void piezo_buzzeron(uint16_t sound) {
     uint16_t top_value;
     uint8_t top_shift;
 
@@ -384,7 +384,7 @@ void pizo_buzzeron(uint16_t sound) {
 	top_value = 2048;
 	top_shift = 0;
     } else if((sound & PAUSE_MASK) == PAUSE_VALUE) {
-	pizo_buzzeroff();
+	piezo_buzzeroff();
 	return;
     } else {
 	// calculate the number of octaves above the third
@@ -403,10 +403,10 @@ void pizo_buzzeron(uint16_t sound) {
     uint16_t compare_match;
     if(top_value > 1920) {
 	// A TOP of 1920 corresponds to 4166 Hz--the resonance
-	// of the pizo.  Going beyond that will only reduce volume.
-	compare_match = (((uint32_t)1920      * pizo.cm_factor) >> 16);
+	// of the piezo.  Going beyond that will only reduce volume.
+	compare_match = (((uint32_t)1920      * piezo.cm_factor) >> 16);
     } else {
-	compare_match = (((uint32_t)top_value * pizo.cm_factor) >> 16);
+	compare_match = (((uint32_t)top_value * piezo.cm_factor) >> 16);
     }
 
     if(system.status & SYSTEM_SLEEP) {
@@ -441,7 +441,7 @@ void pizo_buzzeron(uint16_t sound) {
 // schedule stop-buzzer interrupt on
 // next OCR1A compare match (minimizes
 // clicking noise at low volume)
-void pizo_buzzeroff(void) {
+void piezo_buzzeroff(void) {
     uint16_t counter_low  = (ICR1 >> 1) - 32;
     uint16_t counter_mid  = (ICR1 >> 1) + 16;
 
@@ -464,14 +464,14 @@ void pizo_buzzeroff(void) {
 
 
 // make a clicking sound
-void pizo_click(void) {
-    // only click if pizo inactive
-    if((pizo.status & PIZO_STATE_MASK) == PIZO_INACTIVE) {
+void piezo_click(void) {
+    // only click if piezo inactive
+    if((piezo.status & PIEZO_STATE_MASK) == PIEZO_INACTIVE) {
 	// set state and timer, so click can be completed
-	// in subsequent calls to pizo_semitick()
-	pizo.status &= ~PIZO_STATE_MASK;
-	pizo.status |=  PIZO_CLICK;
-	pizo.timer   =  PIZO_CLICKTIME;
+	// in subsequent calls to piezo_semitick()
+	piezo.status &= ~PIEZO_STATE_MASK;
+	piezo.status |=  PIEZO_CLICK;
+	piezo.timer   =  PIEZO_CLICKTIME;
 
 	// apply +5v to buzzer
 	PORTB |=  _BV(PB1);
@@ -481,56 +481,56 @@ void pizo_click(void) {
 
 
 // beep for the specified duration (semiseconds)
-void pizo_beep(uint16_t duration) {
-    switch(pizo.status & PIZO_STATE_MASK) {
+void piezo_beep(uint16_t duration) {
+    switch(piezo.status & PIEZO_STATE_MASK) {
 	// a beep interrupts anything except alarm sounds
-	case PIZO_ALARM_MUSIC:
-	case PIZO_ALARM_BEEPS:
-	case PIZO_TRYALARM_MUSIC:
-	case PIZO_TRYALARM_BEEPS:
+	case PIEZO_ALARM_MUSIC:
+	case PIEZO_ALARM_BEEPS:
+	case PIEZO_TRYALARM_MUSIC:
+	case PIEZO_TRYALARM_BEEPS:
 	    return;
 
 	default:
 	    // override any existing noise
-	    pizo_buzzeroff();
+	    piezo_buzzeroff();
 
 	    // set timer and flag, so beep routine can be
-	    // completed in subsequent calls to pizo_semitick()
-	    pizo.status &= ~PIZO_STATE_MASK;
-	    pizo.status |=  PIZO_BEEP;
-	    pizo.timer   =  duration;
+	    // completed in subsequent calls to piezo_semitick()
+	    piezo.status &= ~PIEZO_STATE_MASK;
+	    piezo.status |=  PIEZO_BEEP;
+	    piezo.timer   =  duration;
 
-	    pizo_buzzeron(BEEP);
+	    piezo_buzzeron(BEEP);
 	    break;
     }
 }
 
 
 // start alarm sounding
-void pizo_alarm_start(void) {
+void piezo_alarm_start(void) {
     // override any existing noise
-    pizo_buzzeroff();
+    piezo_buzzeroff();
 
     // set state
-    pizo.status &= ~PIZO_STATE_MASK;
-    pizo.status |= ((pizo.status & PIZO_SOUND_MASK) == PIZO_SOUND_BEEPS 
+    piezo.status &= ~PIEZO_STATE_MASK;
+    piezo.status |= ((piezo.status & PIEZO_SOUND_MASK) == PIEZO_SOUND_BEEPS 
 	    	        || system.status & SYSTEM_SLEEP ?
-		    PIZO_ALARM_BEEPS : PIZO_ALARM_MUSIC);
+		    PIEZO_ALARM_BEEPS : PIEZO_ALARM_MUSIC);
 
     // reset music poisition and timer
-    pizo.pos   = 0;
-    pizo.timer = 0;
+    piezo.pos   = 0;
+    piezo.timer = 0;
 }
 
 
 // stop alarm sounding
-void pizo_alarm_stop(void) {
-    switch(pizo.status & PIZO_STATE_MASK) {
+void piezo_alarm_stop(void) {
+    switch(piezo.status & PIEZO_STATE_MASK) {
 	// only stop a tryalarm state
-	case PIZO_ALARM_MUSIC:
-	case PIZO_ALARM_BEEPS:
+	case PIEZO_ALARM_MUSIC:
+	case PIEZO_ALARM_BEEPS:
 	    // override any existing noise
-	    pizo_stop();
+	    piezo_stop();
 	    break;
 
 	default:
@@ -540,24 +540,25 @@ void pizo_alarm_stop(void) {
 
 
 // start alarm sounding demo
-void pizo_tryalarm_start(void) {
-    switch(pizo.status & PIZO_STATE_MASK) {
+void piezo_tryalarm_start(void) {
+    switch(piezo.status & PIEZO_STATE_MASK) {
 	// a tryalarm interrupts anything except an alarm
-	case PIZO_ALARM_MUSIC:
-	case PIZO_ALARM_BEEPS:
+	case PIEZO_ALARM_MUSIC:
+	case PIEZO_ALARM_BEEPS:
 	    return;
 
 	default:
-	    pizo_buzzeroff();
+	    piezo_buzzeroff();
 
 	    // set state
-	    pizo.status &= ~PIZO_STATE_MASK;
-	    pizo.status |= ((pizo.status & PIZO_SOUND_MASK) == PIZO_SOUND_BEEPS
-		            ? PIZO_TRYALARM_BEEPS : PIZO_TRYALARM_MUSIC);
+	    piezo.status &= ~PIEZO_STATE_MASK;
+	    piezo.status |= ((piezo.status & PIEZO_SOUND_MASK)
+		    				== PIEZO_SOUND_BEEPS
+		            ? PIEZO_TRYALARM_BEEPS : PIEZO_TRYALARM_MUSIC);
 
 	    // reset music poisition and timer
-	    pizo.pos   = 0;
-	    pizo.timer = 0;
+	    piezo.pos   = 0;
+	    piezo.timer = 0;
 
 	    break;
     }
@@ -565,13 +566,13 @@ void pizo_tryalarm_start(void) {
 
 
 // stop tryalarm noise
-void pizo_tryalarm_stop(void) {
-    switch(pizo.status & PIZO_STATE_MASK) {
+void piezo_tryalarm_stop(void) {
+    switch(piezo.status & PIEZO_STATE_MASK) {
 	// only stop a tryalarm state
-	case PIZO_TRYALARM_MUSIC:
-	case PIZO_TRYALARM_BEEPS:
+	case PIEZO_TRYALARM_MUSIC:
+	case PIEZO_TRYALARM_BEEPS:
 	    // override any existing noise
-	    pizo_stop();
+	    piezo_stop();
 	    break;
 
 	default:
@@ -580,11 +581,11 @@ void pizo_tryalarm_stop(void) {
 }
 
 
-// silences pizo and changes state to inactive
-void pizo_stop(void) {
+// silences piezo and changes state to inactive
+void piezo_stop(void) {
     // override any existing noise
-    pizo_buzzeroff();
-    pizo.status &= ~PIZO_STATE_MASK;
-    pizo.status |=  PIZO_INACTIVE;
+    piezo_buzzeroff();
+    piezo.status &= ~PIEZO_STATE_MASK;
+    piezo.status |=  PIEZO_INACTIVE;
     system.status &= ~SYSTEM_ALARM_SOUNDING;
 }

@@ -6,7 +6,7 @@
 //    system.c     system management (idle and sleep loops)
 //    time.c       date and time keeping
 //    alarm.c      alarm functionality
-//    pizo.c       pizo element control (music, beeps, clicks)
+//    piezo.c      piezo element control (music, beeps, clicks)
 //    buttons.c    button inputs (menu, set, and plus)
 //    display.c    boost, MAX6921, and VFD
 //    mode.c       clock mode (displayed time, menus, etc.)
@@ -28,7 +28,7 @@
 #include "system.h"
 #include "time.h"
 #include "alarm.h"
-#include "pizo.h"
+#include "piezo.h"
 #include "buttons.h"
 #include "display.h"
 #include "mode.h"
@@ -78,7 +78,7 @@ int main(void) {
     time_init();
     buttons_init();
     alarm_init();
-    pizo_init();
+    piezo_init();
     display_init();
     mode_init();
     gps_init();
@@ -99,14 +99,14 @@ int main(void) {
     time_wake();
     buttons_wake();
     alarm_wake();
-    pizo_wake();
+    piezo_wake();
     display_wake();
     mode_wake();
     gps_wake();
     
     // half-second beep on system reset
-    pizo_setvolume(3, 0);
-    pizo_beep(500);
+    piezo_setvolume(3, 0);
+    piezo_beep(500);
 
     // clock function is entirelly interrupt-driven after
     // this point, so let the system idle indefinetly
@@ -122,14 +122,14 @@ ISR(TIMER2_COMPB_vect) {
 	system_tick();
 	time_tick();
 	alarm_tick();
-	pizo_tick();
+	piezo_tick();
 	wdt_reset();
     } else {
 	system_tick();
 	time_tick();
 	buttons_tick();
 	alarm_tick();
-	pizo_tick();
+	piezo_tick();
 	mode_tick();
 	display_tick();
 	gps_tick();
@@ -162,7 +162,7 @@ ISR(TIMER0_OVF_vect) {
 		time_semitick();
 		buttons_semitick();
 		alarm_semitick();
-		pizo_semitick();
+		piezo_semitick();
 		mode_semitick();
 		display_semitick();
 		gps_semitick();
@@ -195,7 +195,7 @@ ISR(ANALOG_COMP_vect) {
     mode_sleep();     // does nothing
     gps_sleep();      // disable usart rx interrupt
     usart_sleep();    // disable usart
-    pizo_sleep();     // adjust buzzer timer for slower clock
+    piezo_sleep();    // adjust buzzer timer for slower clock
     system_sleep();   // does nothing
 
     // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
@@ -211,7 +211,7 @@ ISR(ANALOG_COMP_vect) {
     sei();  // allow interrupts
 
     system_wake();   // does nothing
-    pizo_wake();     // adjust buzzer for faster clock
+    piezo_wake();    // adjust buzzer for faster clock
     mode_wake();     // does nothing
     buttons_wake();  // enable button pull-ups
     alarm_wake();    // enable alarm switch pull-up
