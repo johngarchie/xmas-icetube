@@ -1724,7 +1724,7 @@ void mode_semitick(void) {
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
-		    MODE_CFGREGN_TEXTFMT_MENU,
+		    MODE_CFGREGN_MISCFMT_MENU,
 		    MODE_CFGREGN_DATEFMT_SHOWWDAY,
 		    menu_cfgregn_datefmt, btn, FALSE);
 	    break;
@@ -1815,7 +1815,7 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_CFGREGN_TEXTFMT_MENU: ;
+	case MODE_CFGREGN_MISCFMT_MENU: ;
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
 #ifdef ADAFRUIT_BUTTONS
@@ -1823,23 +1823,23 @@ void mode_semitick(void) {
 #else
 		    MODE_CFGREGN_SETDST_MENU,
 #endif
-		    MODE_CFGREGN_TEXTFMT_ZEROPAD,
+		    MODE_CFGREGN_MISCFMT_ZEROPAD,
 		    NULL,
 		    btn, TRUE);
 	    break;
-	case MODE_CFGREGN_TEXTFMT_ZEROPAD:
+	case MODE_CFGREGN_MISCFMT_ZEROPAD:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    display_loadstatus();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
-		    mode_update(MODE_CFGREGN_TEXTFMT_ALTNINE,
+		    mode_update(MODE_CFGREGN_MISCFMT_ALTNINE,
 			        DISPLAY_TRANS_UP);
 		    break;
 		case BUTTONS_PLUS:
 		    display.status ^= DISPLAY_ZEROPAD;
-		    mode_update(MODE_CFGREGN_TEXTFMT_ZEROPAD,
+		    mode_update(MODE_CFGREGN_MISCFMT_ZEROPAD,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
@@ -1849,19 +1849,19 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_CFGREGN_TEXTFMT_ALTNINE:
+	case MODE_CFGREGN_MISCFMT_ALTNINE:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    display_loadstatus();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
-		    mode_update(MODE_CFGREGN_TEXTFMT_ALTALPHA,
+		    mode_update(MODE_CFGREGN_MISCFMT_ALTALPHA,
 			        DISPLAY_TRANS_UP);
 		    break;
 		case BUTTONS_PLUS:
 		    display.status ^= DISPLAY_ALTNINE;
-		    mode_update(MODE_CFGREGN_TEXTFMT_ALTNINE,
+		    mode_update(MODE_CFGREGN_MISCFMT_ALTNINE,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
@@ -1871,7 +1871,7 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
-	case MODE_CFGREGN_TEXTFMT_ALTALPHA:
+	case MODE_CFGREGN_MISCFMT_ALTALPHA:
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    display_loadstatus();
@@ -1883,7 +1883,7 @@ void mode_semitick(void) {
 		    break;
 		case BUTTONS_PLUS:
 		    display.status ^= DISPLAY_ALTALPHA;
-		    mode_update(MODE_CFGREGN_TEXTFMT_ALTALPHA,
+		    mode_update(MODE_CFGREGN_MISCFMT_ALTALPHA,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
@@ -2422,16 +2422,16 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 
 	    mode_texttext_display(PSTR("year"), pstr_ptr);
 	    break;
-	case MODE_CFGREGN_TEXTFMT_MENU:
-	    display_pstr(0, PSTR("text fmt"));
+	case MODE_CFGREGN_MISCFMT_MENU:
+	    display_pstr(0, PSTR("misc fmt"));
 	    break;
-	case MODE_CFGREGN_TEXTFMT_ZEROPAD:
+	case MODE_CFGREGN_MISCFMT_ZEROPAD:
 	    mode_textnum_display(PSTR("zero"), 0);
 	    break;
-	case MODE_CFGREGN_TEXTFMT_ALTNINE:
+	case MODE_CFGREGN_MISCFMT_ALTNINE:
 	    mode_textnum_display(PSTR("nine"), 9);
 	    break;
-	case MODE_CFGREGN_TEXTFMT_ALTALPHA:
+	case MODE_CFGREGN_MISCFMT_ALTALPHA:
 	    mode_texttext_display(PSTR("char"), PSTR("eg"));
 	    break;
 	default:
