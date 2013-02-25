@@ -12,7 +12,7 @@ became a feature-rich reimplementation of the original Adafruit firmware.
 
 
 ##############
-## Features ##
+## FEATURES ##
 ##############
 
 Many of the features in the xmas-icetube firmware were first implemented in
@@ -51,24 +51,29 @@ boasts the following features.
 
 For Ice Tube Clock hackers, this firmware has
 
-    (1) compatibility with the atmega328p,
+    (1) compatibility with the atmega328P,
     (2) a pseudo object-oriented design,
     (3) reasonably good commenting, and
     (4) display/menus by finite state machine.
 
 
 ##################
-## Installation ##
+## INSTALLATION ##
 ##################
 
 Installation requires GNU Make, avr-libc, avr-gcc, and avrdude; the
 instructions below presume proficiency with these tools.
 
-In regard to hardware, this Makefile is setup to build and install the
-firmware for the Adafruit Ice Tube Clock with an ATmega328P.
-Unfortunately, this firmware is currently too large to work on the
-ATmega168V.  Programming has been tested with the Adafruit USBtinyISP,
-but other programmers should also work (in theory).
+*** IMPORTANT ***
+This firmware requires the ATmega328P--*not* the ATmega168V included
+with the Ice Tube Clock kit.  Due to all the features, this firmware
+currently requires ~25 kb of flash, but the ATmega168v only has 16 kb.
+Also, if your ATmega328P has an Arduino bootloader installed, it will
+not work without reconfiguration.  See the section entitled USING AN
+ARDUINO CHIP.
+
+Programming has been tested with the Adafruit USBtinyISP, but other
+programmers should also work (in theory).
 
 In regard to software, compilation and installation seems to work under
 
@@ -96,7 +101,17 @@ the included Makefile:
 
 	% make
 
-(3) Install the Firmware
+(3) Connect the Programmer
+
+    Ensure the clock has an ATmega328P installed and not an
+    ATmega168V.  Unplug and disassemble the clock.  Most users report
+    that the clock cannot be programmed without removing the side
+    PCB with VFD tube, so remove that.  Reconnect the power adaptor.
+    Connect the AVR programmer to the clock's ISP header, ensuring
+    that pin one on the cable (red wire) and the marked pin on the
+    clock's ISP header match.
+
+(4) Install the Firmware
 
     Write the new fuse bits, which *do* differ from those in the original
     Adafruit firmware and other alternative firmware projects:
@@ -106,6 +121,26 @@ the included Makefile:
     Finally, upload the compiled firmware and initial EEPROM contents:
 
 	% make install
+
+
+###########################
+## USING AN ARDUINO CHIP ##
+###########################
+
+The Arduino Uno chip is an ATmega328P, but will not work in an Ice
+Tube Clock without reconfiguration.  Arduino chips have their fuse
+settings configured to use an external 16 MHz oscillator for the
+system clock.  The Ice Tube Clock does not provide a suitable external
+oscillator, and without an external oscillator, an Arduino chip will
+not function--not even to be reconfigured.
+
+To provide an external oscillator for reconfiguration, insert the
+Arduino chip into an Arduino board.  Next, connect a programmer to the
+ISP on the Arduino board and reprogram the fuses with the xmas-icetube
+Makefile:  "make install-fuse".  The ATmega328P's fuse settings are
+now configured to use the 8 MHz internal oscillator.  The chip may now
+be installed in an Ice Tube Clock clock for programming; see the
+INSTALL section.
 
 
 ####################
@@ -118,9 +153,6 @@ have been discussed extensively in the Adafruit discussion board.
 ::Automatic Dimmer::
 http://forums.adafruit.com/viewtopic.php?f=41&t=12932
 
-::Extended Battery Hack::
-http://forums.adafruit.com/viewtopic.php?f=41&t=36697
-
 ::Temperature Compensated Timekeeping::
 http://forums.adafruit.com/viewtopic.php?f=41&t=14941
 
@@ -128,6 +160,12 @@ http://forums.adafruit.com/viewtopic.php?f=41&t=14941
 http://forums.adafruit.com/viewtopic.php?f=41&t=36873
 http://www.ladyada.net/make/icetube/mods.html
 http://forums.adafruit.com/viewtopic.php?f=41&t=32660
+
+::Extended Battery Hack::
+http://forums.adafruit.com/viewtopic.php?f=41&t=36697
+
+::Sleep During Power Failure::
+http://forums.adafruit.com/viewtopic.php?f=41&t=22515
 
 ::Drift Correction::
 http://forums.adafruit.com/viewtopic.php?f=41&t=12720

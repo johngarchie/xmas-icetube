@@ -12,15 +12,15 @@
   * Ray Ramirez contributed code, made useful suggestions, and provided
     helpful advice.
 
+  * Jens Gutsche suggested implementing alternative date formats and
+    disabling the display at scheduled times to extend the IV-18 tube
+    lifetime.
+
   * Jeremy Fitzhardinge's iceclock was the inspiration for the display
     transitions and display pulsing during alarm and snooze.
 
   * William Phelps's firmware was the inspiration for the progressive
     alarm functionality.
-
-  * Jens Gutsche suggested implementing alternative date formats and
-    disabling the display at scheduled times to extend the IV-18 tube
-    lifetime.
 
 
 #############################

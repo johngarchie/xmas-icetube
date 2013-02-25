@@ -21,8 +21,9 @@
 //
 // Defining the following macro enables support for Automatic dimming
 // when a 10-20k resister and CdS photoresistor are installed in R3 and
-// CT1, adjacent to the ATmega's PC5 pin.  For more details, visit the
-// Adafruit Clocks forum:
+// CT1, adjacent to the ATmega's PC5 pin.  This hack also allows for the
+// clock to be disabled at night (when dark).  For more details, visit
+// the Adafruit Clocks forum:
 //
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=12932
 //
