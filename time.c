@@ -357,51 +357,60 @@ uint8_t time_dayofweek(uint8_t year, uint8_t month, uint8_t day) {
 }
 
 
+// returns given day-of-week as a program memory string
+PGM_P time_wday2pstr(uint8_t wday) {
+    switch(wday) {
+	case TIME_SUN:
+	    return PSTR(" sunday");
+	case TIME_MON:
+	    return PSTR(" monday");
+	case TIME_TUE:
+	    return PSTR("tuesday");
+	case TIME_WED:
+	    return PSTR("wednsday");
+	case TIME_THU:
+	    return PSTR("thursday");
+	case TIME_FRI:
+	    return PSTR(" friday");
+	case TIME_SAT:
+	    return PSTR("saturday");
+	default:
+	    return PSTR("-error-");
+    }
+}
+
+
 // returns given month as program memory string
 PGM_P time_month2pstr(uint8_t month) {
     switch(month) {
 	case TIME_JAN:
 	    return PSTR("jan");
-	    break;
 	case TIME_FEB:
 	    return PSTR("feb");
-	    break;
 	case TIME_MAR:
 	    return PSTR("mar");
-	    break;
 	case TIME_APR:
 	    return PSTR("apr");
-	    break;
 	case TIME_MAY:
 	    return PSTR("may");
-	    break;
 	case TIME_JUN:
 	    return PSTR("jun");
-	    break;
 	case TIME_JUL:
 	    return PSTR("jul");
-	    break;
 	case TIME_AUG:
 	    return PSTR("aug");
-	    break;
 	case TIME_SEP:
 	    return PSTR("sep");
-	    break;
 	case TIME_OCT:
 	    return PSTR("oct");
-	    break;
 	case TIME_NOV:
 	    return PSTR("nov");
-	    break;
 	case TIME_DEC:
 	    return PSTR("dec");
-	    break;
 	default:
-	    return NULL;
-	    break;
+	    return PSTR("-error-");
     }
 }
-
 
 
 // if autodst is enabled, set dst accordingly; if adj_time is

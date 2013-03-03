@@ -13,6 +13,7 @@
 
 #include "piezo.h"
 #include "system.h" // alarm behavior depends on power source
+#include "usart.h"  // for debugging macros
 
 
 // extern'ed piezo data
@@ -39,20 +40,24 @@ volatile piezo_t piezo;
 #define Bn 11  // B  (B normal)
 
 
-// macro for placing each note in an octave: a note
-// is stored in the lower nibble; an octave, the upper
+// notes are specified with 16 bits
+// the octave:    high nibble, high byte
+// the note:      low nibble,  high byte
+// the duration:  low byte
 #define N(note, octave, timing) ((octave << 12) | (note << 8) | timing)
 #define NOTE_MASK   0x0F00
 #define OCTAVE_MASK 0xF000
 #define TIMING_MASK 0x00FF
 
-// other possible "sounds"
-// (since a note must have an octave of at least three,
-// any value, less than 48 (3 * 2^8) is not a valid note)
-#define PAUSE(timing) (timing)  // silence instead of note
-#define PAUSE_MASK  0xFF00      // mask to determine pauses
-#define PAUSE_VALUE 0           // mask to determine pauses
-#define BEEP        1           // arbitrary beep sound
+// other "sounds" are defined within octave zero
+// which otherwise does not exits
+#define PAUSE(timing)     N(0,0,timing)  // silence
+
+#define BEEP_HIGH(timing) N(1,0,timing)  // 4100 Hz beep
+#define BEEP_HIGH_TOP     1951
+
+#define BEEP_LOW(timing)  N(3,0,timing)  // 1367 Hz beep
+#define BEEP_LOW_TOP      5854
 
 
 // The table below is used to convert alarm volume (0 to 10) into timer
@@ -81,6 +86,28 @@ const uint16_t third_octave[] PROGMEM = {
 };
 
 
+// notes and timing of high frequency pulse alarm
+const uint16_t pulse_high[] PROGMEM = {
+    BEEP_HIGH(3),
+    PAUSE(3),
+    BEEP_HIGH(3),
+    PAUSE(3),
+    BEEP_HIGH(3),
+    PAUSE(21),
+0};
+
+
+// notes and timing of low frequency pulse alarm
+const uint16_t pulse_low[] PROGMEM = {
+    BEEP_LOW(3),
+    PAUSE(3),
+    BEEP_LOW(3),
+    PAUSE(3),
+    BEEP_LOW(3),
+    PAUSE(21),
+0};
+
+
 // the notes and timing of "merry christmas"
 const uint16_t merry_xmas[] PROGMEM = {
     N(Dn,6,16),
@@ -105,7 +132,35 @@ const uint16_t merry_xmas[] PROGMEM = {
 0};
 
 
-// reville
+// notes and timing of "for he's a jolly good fellow"
+const uint16_t jolly_good[] PROGMEM = {
+    N(Dn,7,8),
+    N(Bn,6,16), N(Bn,6,8),  N(Bn,6,8), N(An,6,8),  N(Bn,6,8),
+    N(Cn,7,24), N(Bn,6,16), N(Bn,6,8),
+    N(An,6,16), N(An,6,8),  N(An,6,8), N(Gn,6,8),  N(An,6,8),
+    N(Bn,6,24), N(Gn,6,16), N(An,6,8),
+    N(Bn,6,16), N(Bn,6,8),  N(Bn,6,8), N(An,6,8),  N(Bn,6,8),
+    N(Cn,7,24), N(En,7,16), N(En,7,8),
+    N(Dn,7,8),  N(En,7,8),  N(Dn,7,8), N(Cn,7,8),  N(Bn,6,8), N(An,6,8),
+    N(Gn,6,24), N(Gn,6,16), N(Bn,6,8),
+    N(Dn,7,8),  N(Dn,7,8),  N(Dn,7,8), N(En,7,16), N(En,7,8),
+
+    N(Dn,7,24), N(Dn,7,16), N(Dn,7,8),
+    N(Bn,6,8),  N(Bn,6,8),  N(Bn,6,8),  N(Cn,7,16), N(Cn,7,8),
+    N(Bn,6,24), N(Bn,6,8),  N(Gn,6,8),  N(An,6,8),
+    N(Bn,6,16), N(Bn,6,8),  N(Bn,6,8),  N(An,6,8),  N(Bn,6,8),
+    N(Cn,7,24), N(Bn,6,16), N(Bn,6,8),
+    N(An,6,16), N(An,6,8),  N(An,6,8),  N(Gn,6,8),  N(An,6,8),
+    N(Bn,6,24), N(Gn,6,16), N(An,6,8),
+    N(Bn,6,16), N(Bn,6,8),  N(Bn,6,8),  N(An,6,8),  N(Bn,6,8),
+    N(Cn,7,16), N(Dn,7,8),  N(En,7,16), N(En,7,8),
+    N(Dn,7,8),  N(En,7,8),  N(Dn,7,8),  N(Cn,7,16), N(An,6,8),
+    N(Gn,6,24), N(Gn,6,16), PAUSE(8),
+    PAUSE(48),
+0};
+
+
+// the notes and timing of "reville" (military roll call)
 const uint16_t reveille[] PROGMEM = {
     N(Gn,6,4),
     N(Cn,7,8), N(En,7,4), N(Cn,7,4), N(Gn,6,8), N(En,7,8),
@@ -128,7 +183,7 @@ const uint16_t reveille[] PROGMEM = {
 0};
 
 
-// big ben chime
+// notes and timing of the big ben chime
 const uint16_t big_ben[] PROGMEM = {
     N(Bn,5,32), N(Gn,5,32), N(An,5,32), N(Dn,5,32),
     N(Gn,5,32), N(An,5,32), N(Bn,5,32), N(Gn,5,32),
@@ -181,9 +236,21 @@ void piezo_configsound(void) {
 	case PIEZO_SOUND_REVEILLE:
 	    piezo.music = reveille;
 	    break;
+	case PIEZO_SOUND_JOLLY_GOOD:
+	    piezo.music = jolly_good;
+	    break;
+	case PIEZO_SOUND_PULSE_HIGH:
+	    piezo.music = pulse_high;
+	    break;
+	case PIEZO_SOUND_PULSE_LOW:
+	    piezo.music = pulse_low;
+	    break;
+	case PIEZO_SOUND_BEEPS_LOW:
+	case PIEZO_SOUND_BEEPS_HIGH:
+	    break;
 	default:
 	    piezo.status &= ~PIEZO_SOUND_MASK;
-	    piezo.status |=  PIEZO_SOUND_BEEPS;
+	    piezo.status |=  PIEZO_SOUND_BEEPS_HIGH;
 	    break;
     }
 }
@@ -191,28 +258,11 @@ void piezo_configsound(void) {
 
 // change alarm sound
 void piezo_nextsound(void) {
-    switch(piezo.status & PIEZO_SOUND_MASK) {
-	case PIEZO_SOUND_BEEPS:
-	    piezo.status &= ~PIEZO_SOUND_MASK;
-	    piezo.status |=  PIEZO_SOUND_MERRY_XMAS;
-	    break;
-	case PIEZO_SOUND_MERRY_XMAS:
-	    piezo.status &= ~PIEZO_SOUND_MASK;
-	    piezo.status |=  PIEZO_SOUND_BIG_BEN;
-	    break;
-	case PIEZO_SOUND_BIG_BEN:
-	    piezo.status &= ~PIEZO_SOUND_MASK;
-	    piezo.status |=  PIEZO_SOUND_REVEILLE;
-	    break;
-	case PIEZO_SOUND_REVEILLE:
-	    piezo.status &= ~PIEZO_SOUND_MASK;
-	    piezo.status |=  PIEZO_SOUND_BEEPS;
-	    break;
-	default:
-	    piezo.status &= ~PIEZO_SOUND_MASK;
-	    piezo.status |=  PIEZO_SOUND_BEEPS;
-	    break;
-    }
+    uint8_t next_sound = (piezo.status & PIEZO_SOUND_MASK) + 0x10;
+    if(next_sound > PIEZO_SOUND_MAX) next_sound = 0;
+
+    piezo.status &= ~PIEZO_SOUND_MASK;
+    piezo.status |= next_sound;
 
     piezo_configsound();
 }
@@ -224,15 +274,14 @@ void piezo_setvolume(uint8_t vol, uint8_t interp) {
     // if sleeping, compensate for reduced voltage by increasing volume
     if((system.status & SYSTEM_SLEEP) && vol < 10) ++vol;
 
-    piezo.cm_factor = pgm_read_byte(piezo_vol2cm + vol);
+    piezo.cm_max = pgm_read_byte(&(piezo_vol2cm[vol]));
 
     if(vol < 10 && interp) {
-	uint16_t cm_slope = pgm_read_byte(piezo_vol2cm+vol+1) - piezo.cm_factor;
-	piezo.cm_factor <<= 8;
-	piezo.cm_factor += (cm_slope * interp);
-    } else {
-	piezo.cm_factor <<= 8;
+	uint16_t cm_slope = pgm_read_byte(&(piezo_vol2cm[vol+1]))-piezo.cm_max;
+	piezo.cm_max += ((cm_slope * interp) >> 8);
     }
+
+    piezo.cm_max <<= 3;
 }
 
 
@@ -285,7 +334,20 @@ void piezo_tick(void) {
 	    ++piezo.timer;
 
 	    if(piezo.timer & 0x0001) {
-		piezo_buzzeron(BEEP);
+		uint16_t sound;
+		if(system.status & SYSTEM_SLEEP) {
+		    sound = BEEP_HIGH(0);
+		} else {
+		    switch(piezo.status & PIEZO_SOUND_MASK) {
+			case PIEZO_SOUND_BEEPS_LOW:
+			    sound = BEEP_LOW(0);
+			    break;
+			default:
+			    sound = BEEP_HIGH(0);
+			    break;
+		    }
+		}
+		piezo_buzzeron(sound);
 		system.status |= SYSTEM_ALARM_SOUNDING;
 	    } else {
 		piezo_buzzeroff();
@@ -323,13 +385,22 @@ void piezo_semitick(void) {
 
 	    break;
 
-	case PIEZO_TRYALARM_BEEPS:
+	case PIEZO_TRYALARM_BEEPS:;
+            uint16_t sound;
 	    if(!piezo.timer) {
-		piezo_buzzeron(BEEP);
-		piezo.timer = 2020;
+		switch(piezo.status & PIEZO_SOUND_MASK) {
+		    case PIEZO_SOUND_BEEPS_LOW:
+			sound = BEEP_LOW(0);
+			break;
+		    default:
+			sound = BEEP_HIGH(0);
+			break;
+		}
+		piezo_buzzeron(sound);
+		piezo.timer = 1600;
 	    }
 
-	    if(piezo.timer == 1010) {
+	    if(piezo.timer == 800) {
 		piezo_buzzeroff();
 	    }
 
@@ -359,10 +430,17 @@ void piezo_semitick(void) {
 	    }
 
 	    // brief pause to make notes distinct
-	    if((piezo.status & PIEZO_SOUND_MASK) == PIEZO_SOUND_REVEILLE) {
-		if(piezo.timer == 32) piezo_buzzeroff();
-	    } else {
-		if(piezo.timer == 64) piezo_buzzeroff();
+
+	    switch(piezo.status & PIEZO_SOUND_MASK) {
+		case PIEZO_SOUND_REVEILLE:
+		    if(piezo.timer == 32) piezo_buzzeroff();
+		    break;
+		case PIEZO_SOUND_PULSE_HIGH:
+		case PIEZO_SOUND_PULSE_LOW:
+		    break;
+		default:
+		    if(piezo.timer == 64) piezo_buzzeroff();
+		    break;
 	    }
 
 	    --piezo.timer;
@@ -380,34 +458,37 @@ void piezo_buzzeron(uint16_t sound) {
     uint16_t top_value;
     uint8_t top_shift;
 
-    if(sound == BEEP) {
-	top_value = 2048;
-	top_shift = 0;
-    } else if((sound & PAUSE_MASK) == PAUSE_VALUE) {
-	piezo_buzzeroff();
-	return;
-    } else {
-	// calculate the number of octaves above the third
-	// (the upper nibble of a note specifies the octave)
-	top_shift = ((sound & OCTAVE_MASK) >> 12) - 3;
+    switch(sound & ~TIMING_MASK) {
+	case PAUSE(0):
+	    piezo_buzzeroff();
+	    return;
+	case BEEP_HIGH(0):
+	    top_value = BEEP_HIGH_TOP;
+	    top_shift = 0;
+	    break;
+	case BEEP_LOW(0):
+	    top_value = BEEP_LOW_TOP;
+	    top_shift = 0;
+	    break;
+	default:
+	    // calculate the number of octaves above the third
+	    // (the upper nibble of a note specifies the octave)
+	    top_shift = ((sound & OCTAVE_MASK) >> 12) - 3;
 
-	// find TOP for desired note in the third octave
-	// (the lower nibble of a note specifies the index)
-	top_value = pgm_read_word(&(third_octave[(sound & NOTE_MASK) >> 8]));
+	    // find TOP for desired note in the third octave
+	    // (the lower nibble of a note specifies the index)
+	    top_value = pgm_read_word(&(third_octave[(sound&NOTE_MASK)>>8]));
+	    break;
     }
 
     // shift counter top from third octave to desired octave
     top_value >>= top_shift;
 
     // determine compare match value for given top
-    uint16_t compare_match;
-    if(top_value > 1920) {
-	// A TOP of 1920 corresponds to 4166 Hz--the resonance
-	// of the piezo.  Going beyond that will only reduce volume.
-	compare_match = (((uint32_t)1920      * piezo.cm_factor) >> 16);
-    } else {
-	compare_match = (((uint32_t)top_value * piezo.cm_factor) >> 16);
-    }
+    uint16_t compare_match = (top_value >> 1);
+
+    // reduce compare_match to control volume, when possible
+    if(compare_match > piezo.cm_max) compare_match = piezo.cm_max;
 
     if(system.status & SYSTEM_SLEEP) {
 	// compensate frequency for 4x slower clock
@@ -500,7 +581,7 @@ void piezo_beep(uint16_t duration) {
 	    piezo.status |=  PIEZO_BEEP;
 	    piezo.timer   =  duration;
 
-	    piezo_buzzeron(BEEP);
+	    piezo_buzzeron(BEEP_HIGH(0));
 	    break;
     }
 }
@@ -513,9 +594,17 @@ void piezo_alarm_start(void) {
 
     // set state
     piezo.status &= ~PIEZO_STATE_MASK;
-    piezo.status |= ((piezo.status & PIEZO_SOUND_MASK) == PIEZO_SOUND_BEEPS 
-	    	        || system.status & SYSTEM_SLEEP ?
-		    PIEZO_ALARM_BEEPS : PIEZO_ALARM_MUSIC);
+    
+    switch(piezo.status & PIEZO_SOUND_MASK) {
+	case PIEZO_SOUND_BEEPS_HIGH:
+	case PIEZO_SOUND_BEEPS_LOW:
+	   piezo.status |= PIEZO_ALARM_BEEPS;
+	   break;
+
+	default:
+	   piezo.status |= PIEZO_ALARM_MUSIC;
+	   break;
+    }
 
     // reset music poisition and timer
     piezo.pos   = 0;
@@ -552,9 +641,17 @@ void piezo_tryalarm_start(void) {
 
 	    // set state
 	    piezo.status &= ~PIEZO_STATE_MASK;
-	    piezo.status |= ((piezo.status & PIEZO_SOUND_MASK)
-		    				== PIEZO_SOUND_BEEPS
-		            ? PIEZO_TRYALARM_BEEPS : PIEZO_TRYALARM_MUSIC);
+
+	    switch(piezo.status & PIEZO_SOUND_MASK) {
+		case PIEZO_SOUND_BEEPS_HIGH:
+		case PIEZO_SOUND_BEEPS_LOW:
+		   piezo.status |= PIEZO_TRYALARM_BEEPS;
+		   break;
+
+		default:
+		   piezo.status |= PIEZO_TRYALARM_MUSIC;
+		   break;
+	    }
 
 	    // reset music poisition and timer
 	    piezo.pos   = 0;
@@ -585,7 +682,32 @@ void piezo_tryalarm_stop(void) {
 void piezo_stop(void) {
     // override any existing noise
     piezo_buzzeroff();
-    piezo.status &= ~PIEZO_STATE_MASK;
-    piezo.status |=  PIEZO_INACTIVE;
+    piezo.status  &= ~PIEZO_STATE_MASK;
+    piezo.status  |=  PIEZO_INACTIVE;
     system.status &= ~SYSTEM_ALARM_SOUNDING;
+}
+
+
+// returns the name of the current sound as a program memory string
+PGM_P piezo_pstr(void) {
+    switch(piezo.status & PIEZO_SOUND_MASK) {
+	case PIEZO_SOUND_BEEPS_HIGH:
+	    return PSTR("beeps hi");
+	case PIEZO_SOUND_BEEPS_LOW:
+	    return PSTR("beeps lo");
+	case PIEZO_SOUND_PULSE_HIGH:
+	    return PSTR("pulse hi");
+	case PIEZO_SOUND_PULSE_LOW:
+	    return PSTR("pulse lo");
+	case PIEZO_SOUND_MERRY_XMAS:
+	    return PSTR("mery chr");
+	case PIEZO_SOUND_BIG_BEN:
+	    return PSTR("big ben");
+	case PIEZO_SOUND_REVEILLE:
+	    return PSTR("reveille");
+	case PIEZO_SOUND_JOLLY_GOOD:
+	    return PSTR("jly good");
+	default:
+	    return PSTR("-error-");
+    }
 }

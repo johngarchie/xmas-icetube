@@ -30,17 +30,22 @@
 
 
 // piezo.status alarm type (higher nibble)
-#define PIEZO_SOUND_BEEPS      0x00
-#define PIEZO_SOUND_MERRY_XMAS 0x10
-#define PIEZO_SOUND_BIG_BEN    0x20
-#define PIEZO_SOUND_REVEILLE   0x30
+#define PIEZO_SOUND_BEEPS_HIGH 0x00
+#define PIEZO_SOUND_BEEPS_LOW  0x10
+#define PIEZO_SOUND_PULSE_HIGH 0x20
+#define PIEZO_SOUND_PULSE_LOW  0x30
+#define PIEZO_SOUND_MERRY_XMAS 0x40
+#define PIEZO_SOUND_BIG_BEN    0x50
+#define PIEZO_SOUND_REVEILLE   0x60
+#define PIEZO_SOUND_JOLLY_GOOD 0x70
+#define PIEZO_SOUND_MAX        0x70
 
-#define PIEZO_DEFAULT_SOUND PIEZO_SOUND_BEEPS
+#define PIEZO_DEFAULT_SOUND PIEZO_SOUND_BEEPS_HIGH
 
 
 typedef struct {
     uint8_t  status;
-    uint16_t cm_factor;
+    uint16_t cm_max;
     uint16_t timer;
 
     uint8_t  pos;
@@ -79,5 +84,7 @@ void piezo_tryalarm_start(void);
 void piezo_tryalarm_stop(void);
 
 void piezo_stop(void);
+
+PGM_P piezo_pstr(void);
 
 #endif

@@ -8,7 +8,7 @@
 // the "+" button means "next menu item," "next selected option",
 // or "increment selected number."
 //
-// The following macro enables an Adafruit-style buttons where
+// The following macro enables Adafruit-style buttons where
 // the "menu" button means "enter menu," "next menu item", or
 // "exit menu." Meanwhile the "+" button can mean "exit menu,"
 // "next selected option," or "increment selected number."
@@ -38,6 +38,7 @@
 // compatibility with the Adafruit Ultimate GPS Module.  For more
 // information, check out the following sites:
 //
+//   http://forums.adafruit.com/viewtopic.php?f=41&t=36873
 //   http://www.ladyada.net/make/icetube/mods.html
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=32660
 //
@@ -86,7 +87,7 @@
 // where brightness is 0-10 as set through the configuration menu.
 // The grid/segment voltage can be estimated by
 //
-//   voltage = OCR0A / 4 + 6
+//   voltage [approximately equals] OCR0A / 4 + 6
 //
 // The IV-18 display has a maximum of 60 volts, and voltage at the
 // highest brightness should be well below that.  So if you change

@@ -168,6 +168,8 @@ void time_setdate(uint8_t year, uint8_t month, uint8_t day);
 
 uint8_t time_dayofweek(uint8_t year, uint8_t month, uint8_t day);
 uint8_t time_daysinmonth(uint8_t year, uint8_t month);
+
+PGM_P time_wday2pstr(uint8_t wday);
 PGM_P time_month2pstr(uint8_t month);
 
 void time_autodst(uint8_t);

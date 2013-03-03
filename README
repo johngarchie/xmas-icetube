@@ -65,7 +65,7 @@ Installation requires GNU Make, avr-libc, avr-gcc, and avrdude; the
 instructions below presume proficiency with these tools.
 
 *** IMPORTANT ***
-This firmware requires the ATmega328P--*not* the ATmega168V included
+This firmware requires the ATmega328P--not the ATmega168V included
 with the Ice Tube Clock kit.  Due to all the features, this firmware
 currently requires ~25 kb of flash, but the ATmega168v only has 16 kb.
 Also, if your ATmega328P has an Arduino bootloader installed, it will
@@ -91,8 +91,8 @@ the included Makefile:
     definitions as needed to enable support for various hardware hacks.
 
     Next, review the Makefile to ensure that configuration variables
-    are reasonable given your hardware.  In particular, AVRMCU, AVRISP,
-    and AVRDUDEOPT seem most likely to require attention.
+    are reasonable given your hardware.  In particular, AVRISP and
+    AVRDUDEOPT seem most likely to require attention.
 
 (2) Compile the Firmware
 
@@ -138,9 +138,9 @@ To provide an external oscillator for reconfiguration, insert the
 Arduino chip into an Arduino board.  Next, connect a programmer to the
 ISP on the Arduino board and reprogram the fuses with the xmas-icetube
 Makefile:  "make install-fuse".  The ATmega328P's fuse settings are
-now configured to use the 8 MHz internal oscillator.  The chip may now
-be installed in an Ice Tube Clock clock for programming; see the
-INSTALL section.
+now configured to use the 8 MHz internal oscillator.  The chip may be
+installed in an Ice Tube Clock clock and programmed as described in
+the INSTALLATION section.
 
 
 ####################

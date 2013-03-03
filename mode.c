@@ -27,12 +27,11 @@ volatile mode_t mode;
 // private function declarations
 void mode_update(uint8_t new_state, uint8_t disp_trans);
 void mode_zone_display(void);
-void mode_time_display(uint8_t hour, uint8_t minute, uint8_t second);
+void mode_time_display(void);
 void mode_settime_display(uint8_t hour, uint8_t minute, uint8_t second);
 void mode_alarm_display(uint8_t hour, uint8_t minute);
 void mode_textnum_display(PGM_P pstr, int8_t num);
 void mode_texttext_display(PGM_P txt, PGM_P opt);
-void mode_dayofweek_display(void);
 void mode_monthday_display(void);
 void mode_daysofweek_display(uint8_t days);
 void mode_menu_process_button(uint8_t up, uint8_t next, uint8_t down,
@@ -1651,8 +1650,7 @@ void mode_semitick(void) {
 			    display_clearall();
 			    display_transition(DISPLAY_TRANS_INSTANT);
 			} else {
-			    mode_time_display(time.hour, time.minute,
-					      time.second);
+			    mode_time_display();
 			    display_transition(DISPLAY_TRANS_INSTANT);
 			}
 		    }
@@ -1939,10 +1937,12 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
     switch(mode.state) {
 	case MODE_TIME_DISPLAY:
 	    // display current time
-	    mode_time_display(time.hour, time.minute, time.second);
+	    mode_time_display();
 	    break;
 	case MODE_DAYOFWEEK_DISPLAY:
-	    mode_dayofweek_display();
+	    display_pstr(0, time_wday2pstr(
+			        time_dayofweek(time.year, time.month,
+					       time.day)));
 	    break;
 	case MODE_MONTHDAY_DISPLAY:
 	    mode_monthday_display();
@@ -2093,20 +2093,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    display_dot(1, TRUE);
 	    break;
 	case MODE_CFGALARM_SETSOUND:
-	    switch(piezo.status & PIEZO_SOUND_MASK) {
-		case PIEZO_SOUND_MERRY_XMAS:
-		    display_pstr(0, PSTR("mery chr"));
-		    break;
-		case PIEZO_SOUND_BIG_BEN:
-		    display_pstr(0, PSTR("big ben"));
-		    break;
-		case PIEZO_SOUND_REVEILLE:
-		    display_pstr(0, PSTR("reveille"));
-		    break;
-		default:
-		    display_pstr(0, PSTR(" beeps"));
-		    break;
-	    }
+	    display_pstr(0, piezo_pstr());
 	    display_dotselect(1, 8);
 	    break;
 	case MODE_CFGALARM_SETVOL_MENU:
@@ -2379,7 +2366,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		    (*mode.tmp & TIME_TIMEFORMAT_12HOUR ? 12 : 24));
 	    break;
 	case MODE_CFGREGN_TIMEFMT_FORMAT:
-	    mode_time_display(time.hour, time.minute, time.second);
+	    mode_time_display();
 	    break;
 	case MODE_CFGREGN_TIMEFMT_SHOWDST:
 	    pstr_ptr = PSTR("dst");
@@ -2447,8 +2434,8 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 
 
 // updates the time display every second
-void mode_time_display(uint8_t hour, uint8_t minute, uint8_t second) {
-    uint8_t hour_to_display = hour;
+void mode_time_display(void) {
+    uint8_t hour_to_display = time.hour;
     uint8_t hour_idx = 1;
 
     display_clearall();
@@ -2467,28 +2454,28 @@ void mode_time_display(uint8_t hour, uint8_t minute, uint8_t second) {
 
     switch(time.timeformat & TIME_TIMEFORMAT_MASK) {
 	case TIME_TIMEFORMAT_HH_MM_SS:
-	    display_twodigit_zeropad(4, minute);
-	    display_twodigit_zeropad(7, second);
+	    display_twodigit_zeropad(4, time.minute);
+	    display_twodigit_zeropad(7, time.second);
 	    break;
 	case TIME_TIMEFORMAT_HH_MM_dial:
-	    display_twodigit_zeropad(4, minute);
-	    display_dial(7, second);
+	    display_twodigit_zeropad(4, time.minute);
+	    display_dial(7, time.second);
 	    break;
 	case TIME_TIMEFORMAT_HH_MM:
-	    display_twodigit_zeropad(5, minute);
+	    display_twodigit_zeropad(5, time.minute);
 	    break;
 	case TIME_TIMEFORMAT_HH_MM_PM:
-	    display_twodigit_zeropad(4, minute);
-	    display_char(7, (hour < 12 ? 'a' : 'p'));
+	    display_twodigit_zeropad(4, time.minute);
+	    display_char(7, (time.hour < 12 ? 'a' : 'p'));
 	    display_char(8, 'm');
 	    break;
 	case TIME_TIMEFORMAT_HHMMSSPM:
 	    display_dot(2, TRUE);
-	    display_twodigit_zeropad(3, minute);
+	    display_twodigit_zeropad(3, time.minute);
 	    display_dot(4, TRUE);
-	    display_twodigit_zeropad(5, second);
+	    display_twodigit_zeropad(5, time.second);
 	    display_dot(6, TRUE);
-	    display_char(7, (hour < 12 ? 'a' : 'p'));
+	    display_char(7, (time.hour < 12 ? 'a' : 'p'));
 	    display_char(8, 'm');
 	    break;
 	default:
@@ -2498,7 +2485,7 @@ void mode_time_display(uint8_t hour, uint8_t minute, uint8_t second) {
     // set or clear am or pm indicator
     if(time.timeformat & TIME_TIMEFORMAT_SHOWAMPM) {
 	// show leftmost circle if pm
-	display_dot(0, hour >= 12);
+	display_dot(0, time.hour >= 12);
 	if(time.timeformat & TIME_TIMEFORMAT_SHOWDST) {
 	    // show rightmost decimal if dst
 	    display_dot(8, time.status & TIME_DST);
@@ -2527,7 +2514,7 @@ void mode_time_display(uint8_t hour, uint8_t minute, uint8_t second) {
 
     // show alarm status with leftmost dash
     display_dash(0, alarm.status & ALARM_SET
-		    && ( !(alarm.status & ALARM_SNOOZE)
+		    && ( !(alarm.status & (ALARM_SOUNDING | ALARM_SNOOZE))
 		    || time.second % 2));
 }
 
@@ -2618,36 +2605,6 @@ void mode_texttext_display(PGM_P label, PGM_P opt) {
     uint8_t opt_idx = DISPLAY_SIZE - strlen_P(opt);
     display_pstr(opt_idx, opt);
     display_dotselect(opt_idx, 8);
-}
-
-
-// displays current day of the week
-void mode_dayofweek_display(void) {
-    switch(time_dayofweek(time.year, time.month, time.day)) {
-	case TIME_SUN:
-	    display_pstr(0, PSTR(" sunday"));
-	    break;
-	case TIME_MON:
-	    display_pstr(0, PSTR(" monday"));
-	    break;
-	case TIME_TUE:
-	    display_pstr(0, PSTR("tuesday"));
-	    break;
-	case TIME_WED:
-	    display_pstr(0, PSTR("wednsday"));
-	    break;
-	case TIME_THU:
-	    display_pstr(0, PSTR("thursday"));
-	    break;
-	case TIME_FRI:
-	    display_pstr(0, PSTR(" friday"));
-	    break;
-	case TIME_SAT:
-	    display_pstr(0, PSTR("saturday"));
-	    break;
-	default:
-	    break;
-    }
 }
 
 

@@ -183,7 +183,7 @@ void alarm_tick(void) {
     if(alarm.status & ALARM_SOUNDING) {
 	if(alarm.volume < alarm.volume_max) {
 	    // gradually increase volume (progressive alarm)
-	    if(alarm.alarm_timer > alarm.ramp_int) {
+	    if(alarm.alarm_timer >= alarm.ramp_int) {
 		++alarm.volume;
 		alarm.alarm_timer = 0;
 	    }
