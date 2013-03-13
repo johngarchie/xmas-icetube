@@ -629,13 +629,13 @@ void display_semitick(void) {
 	    pulse_timer = DISPLAY_PULSE_DELAY;
 
 	    if(display.status & DISPLAY_PULSE_DOWN) {
-		if(OCR0A <= 20) {
+		if(OCR0A <= OCR0A_MIN) {
 		    display.status &= ~DISPLAY_PULSE_DOWN;
 		} else {
 		    --OCR0A;
 		}
 	    } else {
-		if(OCR0A >= 90) {
+		if(OCR0A >= OCR0A_MAX) {
 		    display.status |=  DISPLAY_PULSE_DOWN;
 		} else {
 		    ++OCR0A;
@@ -826,8 +826,8 @@ void display_autodim(void) {
     // ensure display will not be too dim or too bright:
     // if too dim, low voltage may not light digit segments;
     // if too bright, excessive voltage may damage display.
-    if(new_OCR0A < 20) new_OCR0A = OCR0A_MIN;
-    if(new_OCR0A > 90) new_OCR0A = OCR0A_MIN + OCR0A_SCALE * 10;
+    if(new_OCR0A < OCR0A_MIN) new_OCR0A = OCR0A_MIN;
+    if(new_OCR0A > OCR0A_MAX) new_OCR0A = OCR0A_MAX;
 
     // set new brightness
     OCR0A = new_OCR0A;
