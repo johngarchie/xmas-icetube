@@ -20,7 +20,7 @@
 
 // alarm volume ramps from min to max during alarm
 #define ALARM_DEFAULT_VOLUME_MIN 0  // range [0, 10]
-#define ALARM_DEFAULT_VOLUME_MAX 5  // range [0, 10]
+#define ALARM_DEFAULT_VOLUME_MAX 10 // range [0, 10]
 
 // during alarm, this value gives the amount of time
 // required to move from the minimum to maximum volume

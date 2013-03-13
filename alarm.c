@@ -55,14 +55,15 @@ void alarm_init(void) {
 			 & ALARM_SETTINGS_MASK;
     alarm.snooze_time  = eeprom_read_byte(&ee_alarm_snooze_time) % 31;
     alarm.ramp_time    = eeprom_read_byte(&ee_alarm_ramp_time )  % 61;
-    alarm.volume_max   = eeprom_read_byte(&ee_alarm_volume_max)  % 10;
+    alarm.volume_max   = eeprom_read_byte(&ee_alarm_volume_max)  % 11;
     alarm.volume_min   = eeprom_read_byte(&ee_alarm_volume_min);
 
     // convert snooze time from minutes to seconds
     alarm.snooze_time *= 60;
 
+    // ensure alarm.volume_min is in the correct range
     if(alarm.volume_min > alarm.volume_max) {
-	alarm.volume_min = alarm.volume_min;
+	alarm.volume_min = alarm.volume_max;
     }
 
     piezo_setvolume((alarm.volume_min + alarm.volume_max) >> 1, 0);

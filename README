@@ -25,7 +25,9 @@ boasts the following features.
   - three alarm times for selectable days of the week
   - adjustable alarm volume (from 0 to 10)
   - progressive alarm option (gradually increasing volume)
-  - multiple alarm sounds (beeps, Merry Christmas, Big Ben, or Reveille)
+  - selectable alarm sound (high frequency beeps, low frequency beeps,
+    high frequency three beep pulse, low frequency three beep pulse,
+    Merry Christmas, Big Ben, Reveille, or For He's a Jolly Good Fellow)
   - adjustable snooze duration
   - DST support (USA, EU, or manual)
   - fully automatic correction for time drift
@@ -51,7 +53,7 @@ boasts the following features.
 
 For Ice Tube Clock hackers, this firmware has
 
-    (1) compatibility with the atmega328P,
+    (1) compatibility with the ATMEGA328P-PU,
     (2) a pseudo object-oriented design,
     (3) reasonably good commenting, and
     (4) display/menus by finite state machine.
@@ -65,15 +67,15 @@ Installation requires GNU Make, avr-libc, avr-gcc, and avrdude; the
 instructions below presume proficiency with these tools.
 
 *** IMPORTANT ***
-This firmware requires the ATmega328P--not the ATmega168V included
+This firmware requires the ATMEGA328P-PU:  not the ATMEGA168V included
 with the Ice Tube Clock kit.  Due to all the features, this firmware
-currently requires ~25 kb of flash, but the ATmega168v only has 16 kb.
-Also, if your ATmega328P has an Arduino bootloader installed, it will
-not work without reconfiguration.  See the section entitled USING AN
-ARDUINO CHIP.
+currently requires ~25 kb of flash, but the ATMEGA168V only has 16 kb.
+Also, if your ATMEGA328P-PU has an Arduino bootloader installed, it
+will not work without reconfiguration.  See the section entitled
+USING AN ARDUINO CHIP.
 
-Programming has been tested with the Adafruit USBtinyISP, but other
-programmers should also work (in theory).
+Programming has been tested with the Adafruit USBtinyISP and the Atmel
+AVR Dragon, but other avrdude-supported ISP programmers should work.
 
 In regard to software, compilation and installation seems to work under
 
@@ -103,13 +105,14 @@ the included Makefile:
 
 (3) Connect the Programmer
 
-    Ensure the clock has an ATmega328P installed and not an
-    ATmega168V.  Unplug and disassemble the clock.  Most users report
-    that the clock cannot be programmed without removing the side
-    PCB with VFD tube, so remove that.  Reconnect the power adaptor.
-    Connect the AVR programmer to the clock's ISP header, ensuring
-    that pin one on the cable (red wire) and the marked pin on the
-    clock's ISP header match.
+    Before unplugging the clock, reduce the display brightness to the
+    minimum.  Ensure the clock has an ATMEGA328P-PU installed and not
+    an ATMEGA168V.  Unplug and disassemble the clock.  Most users
+    report that the clock cannot be programmed without removing the
+    side PCB with VFD tube, so remove that.  Reconnect the power
+    adaptor.  Connect the AVR programmer to the clock's ISP header,
+    ensuring that pin one on the cable (red wire) and the marked pin
+    on the clock's ISP header match.
 
 (4) Install the Firmware
 
@@ -127,7 +130,7 @@ the included Makefile:
 ## USING AN ARDUINO CHIP ##
 ###########################
 
-The Arduino Uno chip is an ATmega328P, but will not work in an Ice
+The Arduino Uno chip is an ATMEGA328P-PU, but will not work in an Ice
 Tube Clock without reconfiguration.  Arduino chips have their fuse
 settings configured to use an external 16 MHz oscillator for the
 system clock.  The Ice Tube Clock does not provide a suitable external
@@ -137,7 +140,7 @@ not function--not even to be reconfigured.
 To provide an external oscillator for reconfiguration, insert the
 Arduino chip into an Arduino board.  Next, connect a programmer to the
 ISP on the Arduino board and reprogram the fuses with the xmas-icetube
-Makefile:  "make install-fuse".  The ATmega328P's fuse settings are
+Makefile:  "make install-fuse".  The ATMEGA328P-PU's fuse settings are
 now configured to use the 8 MHz internal oscillator.  The chip may be
 installed in an Ice Tube Clock clock and programmed as described in
 the INSTALLATION section.

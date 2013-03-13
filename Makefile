@@ -33,7 +33,7 @@ AVROBJCOPY ?= avr-objcopy
 
 # options for avr programming utilities
 AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK)
-# AVRCPPFLAGS for assembler listings:  -gstabs -Wa,-ahlmsd=$*.lst
+#AVRCPPFLAGS   += -gstabs -Wa,-ahlmsd=$*.lst  # for assembler listings
 AVRSIZEOPT    ?= -A
 AVRDUDEOPT    ?= -p $(AVRMCU) -c $(AVRISP) -P usb -B 4
 AVROBJCOPYOPT ?=
@@ -47,7 +47,9 @@ all: $(addprefix $(PROJECT),.elf _flash.hex _eeprom.hex)
 	-@$(AVRSIZE) $(AVRSIZEOPT) $<
 
 # install flash and eeprom
-install: install-flash install-eeprom
+install: $(PROJECT)_flash.hex $(PROJECT)_eeprom.hex
+	$(AVRDUDE) $(AVRDUDEOPT) -U flash:w:$(PROJECT)_flash.hex:i \
+				 -U eeprom:w:$(PROJECT)_eeprom.hex:i
 
 # make program binary by linking object files
 $(PROJECT).elf: $(OBJECTS)
@@ -102,7 +104,7 @@ install-eeprom: $(PROJECT)_eeprom.hex
 clean:
 	-rm -f $(addprefix $(PROJECT),.elf _flash.hex _eeprom.hex \
 	    				   _fuse.hex _lock.hex) \
-	       $(OBJECTS) $(OBJECTS:.o=.d)
+	       $(OBJECTS) $(OBJECTS:.o=.d) $(OBJECTS:.o=.lst)
 
 # include auto-generated source code dependencies
 -include $(OBJECTS:.o=.d)

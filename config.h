@@ -21,7 +21,7 @@
 //
 // Defining the following macro enables support for Automatic dimming
 // when a 10-20k resister and CdS photoresistor are installed in R3 and
-// CT1, adjacent to the ATmega's PC5 pin.  This hack also allows for the
+// CT1, adjacent to the ATMEGA's PC5 pin.  This hack also allows for the
 // clock to be disabled at night (when dark).  For more details, visit
 // the Adafruit Clocks forum:
 //
@@ -33,7 +33,7 @@
 
 // GPS TIMEKEEPING
 //
-// Defining the following macro enables GPS detection on the ATmega's
+// Defining the following macro enables GPS detection on the ATMEGA's
 // RX pin.  The connection speed is 9600 baud by default for
 // compatibility with the Adafruit Ultimate GPS Module.  For more
 // information, check out the following sites:
@@ -68,6 +68,10 @@
 // That this hack is compatible with the DS32kHz hack above, but
 // sleep current will only fall to 7 uA--about 7 months of sleep.
 //
+// Note that this hack does change the required fuse settings, so
+// after enabling or disabling this option, be sure to do both
+// "make install-fuse" and "make install".
+//
 // Form more information see the Adafruit Clocks forum:
 //
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=36697
@@ -89,16 +93,31 @@
 //
 //   voltage [approximately equals] OCR0A / 4 + 6
 //
-// The IV-18 display has a maximum of 60 volts, and voltage at the
-// highest brightness should be well below that.  So if you change
-// the values below to increase display brightness, please ensure
-// the following or you may damage your VFD tube.
+// The IV-18 display has an absolute maximum grid/segment voltage of
+// 70 volts, but on the Ice Tube Clock, a Zener diode prevents this
+// from exceeding 60 volts.  And the clock's fuse will probably kick
+// in well before that point.  Thus the hardware will ensure that
+// the grid/segment voltage maximum is never exceeded.
 //
-//   OCR0A_MIN + OCR0A_SCALE * 10 [is much less than] 200
+// With a dim display, it might also be necessary to increase current
+// across the VFD tube filament.  Current can be increased slightly by
+// replacing R3 with a jumper:
 //
+//   http://forums.adafruit.com/viewtopic.php?f=41&t=23586&start=30
+//
+// To further increase filament current, replace Q3 with a PNP transister
+// with a 200 ohm resistor at the base.  Current can be adjusted by
+// replacing R3 with a 100 ohm potentiometer:
+//
+//   http://forums.adafruit.com/viewtopic.php?f=41&t=23586&start=43
+//
+// For a dim display, I suggest setting OCR0A_MIN to 30 and
+// OCR0A_SCALE to 14.  If the fuse becomes warm during operation,
+// reduce OCR0A_SCALE or install a higher power fuse.
 //
 #define OCR0A_MIN   20
 #define OCR0A_SCALE  7
+#define OCR0A_MAX OCR0A_MIN + 10 * OCR0A_SCALE
 
 
 // DEBUGGING FEATURES
