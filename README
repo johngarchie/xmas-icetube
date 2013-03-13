@@ -25,7 +25,9 @@ boasts the following features.
   - three alarm times for selectable days of the week
   - adjustable alarm volume (from 0 to 10)
   - progressive alarm option (gradually increasing volume)
-  - multiple alarm sounds (beeps, Merry Christmas, Big Ben, or Reveille)
+  - selectable alarm sound (high frequency beeps, low frequency beeps,
+    high frequency three beep pulse, low frequency three beep pulse,
+    Merry Christmas, Big Ben, Reveille, or For He's a Jolly Good Fellow)
   - adjustable snooze duration
   - DST support (USA, EU, or manual)
   - fully automatic correction for time drift
