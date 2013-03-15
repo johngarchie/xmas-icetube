@@ -115,6 +115,7 @@
 // OCR0A_SCALE to 14.  If the fuse becomes warm during operation,
 // reduce OCR0A_SCALE or install a higher power fuse.
 //
+//
 #define OCR0A_MIN   20
 #define OCR0A_SCALE  7
 #define OCR0A_MAX OCR0A_MIN + 10 * OCR0A_SCALE

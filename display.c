@@ -514,6 +514,8 @@ uint8_t display_varsemitick(void) {
 	}
     }
 
+    // blank display to prevent ghosting
+    PORTC |= _BV(PC3);  // push MAX6921 BLANK pin high
 
     // send bits to the MAX6921 (vfd driver chip)
 
@@ -552,6 +554,9 @@ uint8_t display_varsemitick(void) {
     // register to latch when high; latches when low
     PORTC |=  _BV(PC0);
     PORTC &= ~_BV(PC0);
+
+    // unblank display to prevent ghosting
+    PORTC &= ~_BV(PC3);  // pull MAX6921 BLANK pin low
 
     // return time to display current digit
     return display.digit_times[digit_idx] >> display.digit_time_shift;
