@@ -74,10 +74,11 @@ Also, if your ATMEGA328P-PU has an Arduino bootloader installed, it
 will not work without reconfiguration.  See the section entitled
 USING AN ARDUINO CHIP.
 
-Programming has been tested with the Adafruit USBtinyISP and the Atmel
-AVR Dragon, but other avrdude-supported ISP programmers should work.
+To program the chip, any avrdude-compatible ISP programmer should work,
+but programming has been tested with the Adafruit USBtinyISP, the Atmel
+AVR Dragon, and an Arduino programed with the AduinoISP sketch.
 
-In regard to software, compilation and installation seems to work under
+Compilation and installation has been tested under
 
     (a) Ubuntu Linux 12.04 with the avr-gcc and avrdude packages,
     (b) Mac OS 10.6 with MacPorts' avr-gcc and avrdude packages, and
