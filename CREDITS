@@ -20,7 +20,7 @@
     transitions and display pulsing during alarm and snooze.
 
   * William Phelps's firmware was the inspiration for the progressive
-    alarm functionality.
+    alarm functionality, although his project uses a different approach.
 
 
 #############################
@@ -30,7 +30,11 @@
 Many of the improvements in the xmas-icetube were first implemented in
 other alternative firmware.  Although I have not personally tried all
 those mentioned below, I have heard they all provide wonderful
-improvements over the original firmware.
+improvements over the original software.  Note that some of these
+require code modification to compile on recent versions of avr-gcc:
+
+  http://forums.adafruit.com/viewtopic.php?p=187282#p187282
+
 
 ::William Phelps (wbp)::
 https://github.com/wbphelps/Ice-Tube-Clock
