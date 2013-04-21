@@ -32,8 +32,8 @@ boasts the following improvements over the official Adafruit firmware.
   - DST support (USA, EU, or manual)
   - fully automatic correction for time drift
   - time-from-GPS support*
-  - no beeping or time loss when power fails
-  - 25-fold increase in backup battery life*
+  - no beeping or time loss after external power failure
+  - 2-fold or 25-fold* increase in backup battery life
   - functional alarm during power outage**
   - per-digit brightness adjustment for uneven displays
   - automatic brightness control by ambient light*
@@ -44,7 +44,7 @@ boasts the following improvements over the official Adafruit firmware.
    uncommenting macros in config.h.  See the HACKS AND MODS section of
    this file as well as the comments in config.h for more information.
 
-** The snooze feature, musical alarm, and progressive alarm, are automatically
+** The snooze feature, musical alarm, and progressive alarm are automatically
    disabled during a power failure.  While on battery power, the buzzer alarm
    sounds at the menu-settable maximum volume and the alarm can only be enabled
    or disabled via the alarm on/off switch.  All other inputs are ignored until
@@ -121,9 +121,17 @@ the included Makefile:
 
 	% make install-fuse
 
-    Finally, upload the compiled firmware and initial EEPROM contents:
+    Next, upload the compiled firmware and initial EEPROM contents:
 
 	% make install
+
+(5) Set lock bits
+
+    Since this firmware does not need self-programming capabilities,
+    lock bits should be set to prevent self-programming; this provides
+    an added measure of security against program memory corruption:
+
+        % make install-lock
 
 
 ####################
