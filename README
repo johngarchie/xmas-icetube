@@ -67,7 +67,7 @@ Installation requires GNU Make, avr-libc, avr-gcc, and avrdude; the
 instructions below presume proficiency with these tools.
 
 This firmware requires the ATMEGA328P:  not the ATMEGA168V included
-with the Ice Tube Clock kit.  Due to all the features, this firmware
+with the Ice Tube Clock kit.  Due to the many features, this firmware
 currently requires ~25 kb of flash, but the ATMEGA168V only has 16 kb.
 Also, if your ATMEGA328P has an Arduino bootloader installed, it will
 not work without reconfiguration.  See the TROUBLESHOOTING section for
@@ -75,7 +75,7 @@ reconfiguration instructions.
 
 To program the chip, any avrdude-compatible ISP programmer should work,
 but programming has been tested with the Adafruit USBtinyISP, the Atmel
-AVR Dragon, and an Arduino programed with the AduinoISP sketch.
+AVR Dragon, and an Arduino programed with the ArduinoISP sketch.
 
 Compilation and installation has been tested under
 
@@ -132,6 +132,14 @@ the included Makefile:
     an added measure of security against program memory corruption:
 
         % make install-lock
+
+
+###########
+## USAGE ##
+###########
+
+Clock usage is largely undocumented, but a draft description of the
+configuration menu layout is in the MENUS text file.
 
 
 ####################
@@ -215,6 +223,25 @@ most straightforward way to increase filament current is to replace
 R3 with a jumper:
 
   http://forums.adafruit.com/viewtopic.php?p=179107#p179107
+
+
+:: Nonfunctional Drift Correction ::
+
+Initially the clock will not perform drift correction.  Use the clock
+normally and the automatic drift correction will eventually enable
+itself.  Accuracy will improve over time.
+
+The clock estimates time drift when users change the time by more than
+15 seconds.  The fastest way to enable drift correction is to (1) set
+the correct time, (2) wait for the clock to drift by more than 15
+seconds, and (3) set the correct time.
+
+Occasionally setting an incorrect time will not have much affect on
+drift correction, and changing time for different timezones or
+daylight saving is similarly unproblematic.  The automatic drift
+correction method is quite robust:
+
+    http://forums.adafruit.com/viewtopic.php?p=178611#p178611
 
 
 :: Unstable Crystal Oscillator ::
