@@ -38,7 +38,8 @@
 
 // define ATmega328p lock bits
 #ifdef __AVR_ATmega328P__
-LOCKBITS = 0xFF;  // no restrictions on memory access
+// disable self-programming to prevent flash corruption
+LOCKBITS = BLB0_MODE_2 & BLB1_MODE_2;
 #else
 #error LOCKBITS not defined for MCU
 #endif  // __AVR_ATmega328P__
