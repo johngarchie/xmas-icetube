@@ -120,6 +120,11 @@ int main(void) {
 // counter0 is clocked by the clock crystal
 ISR(TIMER2_COMPB_vect) {
     if(system.status & SYSTEM_SLEEP) {
+#ifndef PICO_POWER
+	// enable analog comparater at the beginning of the once-per-second
+	// interrupt because it needs a few microseconds of startup time
+	ACSR = _BV(ACBG);
+#endif // PICO_POWER
 	system_tick();
 	time_tick();
 	alarm_tick();
