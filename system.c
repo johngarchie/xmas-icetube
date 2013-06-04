@@ -38,11 +38,8 @@ void system_init(void) {
 
     // enable pull-up resistors on unused pins to ensure a defined value
     PORTB |= _BV(PB4);
-#ifdef PICO_POWER
-    PORTC |= _BV(PC2);
-#else
-    PORTC |= _BV(PC2) | _BV(PC1);
-#endif  // PICO_POWER
+    PORTC |= _BV(PC2);  // leave PC1 tri-stated in case clock is wired for
+                        // the depricated exteneded battery hack
 
     // use internal bandgap as reference for analog comparator
     // and enable analog comparator interrupt on falling edge
@@ -93,30 +90,6 @@ void system_sleep_loop(void) {
 			  | _BV(OCR2AUB) | _BV(OCR2BUB)
 			  | _BV(TCR2AUB) | _BV(TCR2BUB) ));
 
-
-#ifdef PICO_POWER
-	    // enable sleep mode
-	    sei();
-	    sleep_cpu();
-	    cli();
-
-	    // disable analog comparator if comparator enabled
-	    // and voltage absent at voltage regulator
-	    if(!(ACSR & _BV(ACD)) && !(PINC & _BV(PC1))) {
-		// disable analog comparator
-		ACSR = _BV(ACD);
-	    }
-
-	    // enable analog comparator if comparator disabled
-	    // and digital input on comparator pin is true
-	    if((ACSR & _BV(ACD)) && (PINC & _BV(PC1))) {
-		// enable analog comparator to bandgap
-		ACSR = _BV(ACBG);
-
-		_delay_us(100);  // bandgap startup time
-	    }
-	} while((ACSR & _BV(ACD)) || system_power() == SYSTEM_BATTERY);
-#else
 	    // disable analog comparator
 	    ACSR = _BV(ACD);
 
@@ -133,7 +106,7 @@ void system_sleep_loop(void) {
 	    // analog comparator will have already been enabled
 	    // in the TIMER2_COMPB_vect interrupt (icetube.c)
 	} while(system_power() == SYSTEM_BATTERY);
-#endif  // PICO_POWER
+
 	// debounce power-restored signal; delay is actually 100 ms
 	_delay_ms(25);  // because system clock is divided by four
     } while(system_power() == SYSTEM_BATTERY);

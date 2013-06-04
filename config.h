@@ -58,28 +58,6 @@
 // #define EXTERNAL_CLOCK
 
 
-// EXTENDED BATTERY HACK
-//
-// Normally, the Ice Tube Clock uses 47 uA during sleep, so the clock
-// can keep time for about five weeks on a typical 40 mAh CR1220 battery.
-// With a hardware and software modification, sleep current can be
-// reduced to 1.7 uA.  That's around two and a half years of sleep!
-//
-// That this hack is compatible with the DS32kHz hack above, but
-// sleep current will only fall to 7 uA--about 7 months of sleep.
-//
-// Note that this hack does change the required fuse settings, so
-// after enabling or disabling this option, be sure to do both
-// "make install-fuse" and "make install".
-//
-// Form more information see the Adafruit Clocks forum:
-//
-//   http://forums.adafruit.com/viewtopic.php?f=41&t=36697
-//
-//
-// #define PICO_POWER
-
-
 // DISPLAY BRIGHTNESS / BOOST CONFIGURATION
 //
 // VFD displays lose brightness as they age, but increasing the

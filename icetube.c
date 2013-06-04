@@ -49,15 +49,11 @@ LOCKBITS = BLB0_MODE_2 & BLB1_MODE_2;
 FUSES = {
     .low      = 0x62,
     .high     = 0xD1,
-#ifdef PICO_POWER
-    .extended = 0xFF,  // disable bod to save power
-#else
 #ifdef EXTERNAL_CLOCK
     .extended = 0xFD,  // bod at 2.7 volts, when DS32kHz fails
 #else
     .extended = 0xFE,  // bod at 1.8 volts, when battery dead
 #endif  // EXTERNAL_CLOCK
-#endif  // PICO_POWER
 };
 #else
 #error FUSES not defined for MCU
@@ -120,11 +116,10 @@ int main(void) {
 // counter0 is clocked by the clock crystal
 ISR(TIMER2_COMPB_vect) {
     if(system.status & SYSTEM_SLEEP) {
-#ifndef PICO_POWER
 	// enable analog comparater at the beginning of the once-per-second
 	// interrupt because it needs a few microseconds of startup time
 	ACSR = _BV(ACBG);
-#endif // PICO_POWER
+
 	system_tick();
 	time_tick();
 	alarm_tick();
