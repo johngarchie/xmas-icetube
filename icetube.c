@@ -21,6 +21,7 @@
 #include <avr/power.h>      // for controlling system clock speed
 #include <avr/wdt.h>        // for using the watchdog timer
 #include <util/atomic.h>    // for noninterruptable code blocks
+#include <avr/eeprom.h>     // for storing data in eeprom memory
 
 
 // headers for this project
@@ -58,6 +59,11 @@ FUSES = {
 #else
 #error FUSES not defined for MCU
 #endif  // __AVR_ATmega328P__
+
+
+// according to some reports, the first byte of EEPROM memory is
+// unreliable, so allocate the first byte and never use it
+uint8_t ee_unreliable_byte EEMEM = 0;
 
 
 // set to 1 every ~1 millisecond or so
