@@ -718,6 +718,7 @@ void time_newdrift(void) {
 	    || time.drift_delta_seconds > TIME_MAX_DRIFT_TIME) {
 	// reset drift monitor variables
 	time.drift_total_seconds = 0;
+	time.drift_frac_seconds  = 0;
 	time.drift_delta_seconds = 0;
 	return;
     }
@@ -736,6 +737,8 @@ void time_newdrift(void) {
 	int32_t adj_sec = (time.drift_total_seconds / time.drift_adjust) >> 7;
 	time.drift_total_seconds -= adj_sec;
 	time.drift_delta_seconds += adj_sec;
+
+	if(!time.drift_delta_seconds) return;
     }
 
     // calculate new drift adjustment

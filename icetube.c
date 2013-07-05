@@ -21,6 +21,7 @@
 #include <avr/power.h>      // for controlling system clock speed
 #include <avr/wdt.h>        // for using the watchdog timer
 #include <util/atomic.h>    // for noninterruptable code blocks
+#include <avr/eeprom.h>     // for storing data in eeprom memory
 
 
 // headers for this project
@@ -49,19 +50,20 @@ LOCKBITS = BLB0_MODE_2 & BLB1_MODE_2;
 FUSES = {
     .low      = 0x62,
     .high     = 0xD1,
-#ifdef PICO_POWER
-    .extended = 0xFF,  // disable bod to save power
-#else
 #ifdef EXTERNAL_CLOCK
     .extended = 0xFD,  // bod at 2.7 volts, when DS32kHz fails
 #else
     .extended = 0xFE,  // bod at 1.8 volts, when battery dead
 #endif  // EXTERNAL_CLOCK
-#endif  // PICO_POWER
 };
 #else
 #error FUSES not defined for MCU
 #endif  // __AVR_ATmega328P__
+
+
+// according to some reports, the first byte of EEPROM memory is
+// unreliable, so allocate the first byte and never use it
+uint8_t ee_unreliable_byte EEMEM = 0;
 
 
 // set to 1 every ~1 millisecond or so
@@ -120,6 +122,10 @@ int main(void) {
 // counter0 is clocked by the clock crystal
 ISR(TIMER2_COMPB_vect) {
     if(system.status & SYSTEM_SLEEP) {
+	// enable analog comparater at the beginning of the once-per-second
+	// interrupt because it needs a few microseconds of startup time
+	ACSR = _BV(ACBG);
+
 	system_tick();
 	time_tick();
 	alarm_tick();

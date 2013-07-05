@@ -1,0 +1,112 @@
+#########################
+## CONFIGURATION MENUS ##
+#########################
+
+
+"cfg alar"  --  Configure Alarm
+  "a. sound"
+    Change the alarm sound.  Choices are high frequency beeps ("beeps hi"),
+    low frequency beeps ("beeps lo"), high frequency three beep pulse
+    ("pulse hi"), low frequency three beep pulse ("pulse lo",
+    Merry Christmas ("mery chr"), Big Ben ("big ben "), Reveille ("reveille"),
+    or For He's a Jolly Good Fellow ("jly good").
+
+  "a. volume"  
+    Set the alarm volume or progressive alarm ("vol prog").  With the
+    progressive alarm option, the user is prompted for the minimum volume
+    ("v.  min"), maximum volume ("v. max XX"), and ramp time ("time XX"), and
+    the alarm will start at the minimum volume and gradually reach the maximum
+    volume over the specified ramp time.
+
+  "a. snooze"
+    Change the snooze time (minutes).
+
+  "a. pulse"
+    Enable or disable display brightness pulsing during alarm and snooze.
+
+
+"cfg disp"  --  Configure the Display
+
+  "disp bri"
+    Set display brightness or enable automatic dimming ("bri auto").  With
+    automatic dimming the user is prompted for the minimum ("b. min XX") and
+    maximum ("b. max XX") brightness.
+
+    The autodim minimum and maximum values may range from -5 to
+    20---beyond the allowed brightness range of 0 to 10.  The actual
+    display brightness, however, will never be brighter or dimmer than
+    allowed to ensure that the display will always be visible and prevent
+    display damage.
+
+    With the autodim feature, display brightness is calculated from
+    photoresistor voltage.  In the dark, voltage is highest and decreases
+    as the ambient light increases.  The minimum and maximum autodim
+    values set the brightness at 5 volts and ground level.  Display
+    brightness is linearly interpolated from the photoresistor voltage.
+    If the interpolation yields a value above or below the allowed
+    brightness, display brightness is changed to the minimum or maximum
+    allowed brightness, respectively.
+
+    In normal clock use, photoresistor voltages change over only part of
+    the 0 to 5 volt range.  So setting the autodim thresholds below and
+    above the minimum and maximum provides more flexibility when
+    configuring autodimming.
+
+
+  "digt bri"
+    Adjust the brightness of each individual digit to compensate for
+    inconsistent digit brightness.
+
+  "auto off" -- Automatic Display Off
+    Some users may wish to inactivate the display when no one is around, as
+    doing so will extend VFD lifetime.  Other users may wish to inactivate the
+    display at night, as extra light can interfere with sleep.  When the
+    display is inactive, pressing any button will enable the display on for
+    one minute.
+
+    "off dark"
+      Enable or disable automatic inactivation at night (when dark).
+
+    "off time"
+      Enable or disable automatic inactivation during certain hours.
+      For example, if the clock is at the workplace of someone with a 9-to-5
+      schedule, the display may be disabled from 5:00pm to 9:00am.
+
+    "off days"
+      Enable or disable automatic inactivation during certain days.
+      For example, if the clock is at the workplace of someone with a
+      Monday-through-Friday schedule, the display may be disabled during
+      weekends.
+
+    "on days "
+      Force the display to be active on certain days (overrides off time).
+      For example, if the clock is at the home of a person with a 9-to-5
+      Monday-through-Friday schedule, they might set the "off time" to 9:00am
+      to 5:00 pm and set the "on days" to weekends, so the display would be
+      enabled whenever the person is home.  Note that "on days" does not
+      override the "off dark" settings.
+
+  "animated" 
+    Enable or disable animated display transitions.
+
+
+"cfg regn" -- Configure Regional Preferences
+
+  "set dst"
+    Configure daylight saving time.  The user may manually enable ("dst on")
+    or disable ("dst off") daylight saving time.  Alternatively, the user
+    may configure automatic enabling and disabling of DST by US ("dst usa") or
+    EU ("dst eu") rules.
+
+  "set zone"
+    Configure the timezone relative to GMT.
+    (So GPS timekeeping can calculate the local time.)
+
+  "time fmt"
+    Configure the time format.
+
+  "date fmt"
+    Configure the date format.
+
+  "misc fmt"
+    Configure how numbers and letters are displayed.

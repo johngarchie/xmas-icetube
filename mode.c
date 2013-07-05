@@ -2184,11 +2184,13 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		display_autodim();
 	    }
 	    mode_textnum_display(PSTR("b min"), *mode.tmp);
+	    display_dot(1, TRUE);
 	    break;
 	case MODE_CFGDISP_SETBRIGHT_MAX:
 	    display.bright_min = display.bright_max = *mode.tmp;
 	    display_autodim();
 	    mode_textnum_display(PSTR("b max"), *mode.tmp);
+	    display_dot(1, TRUE);
 	    break;
 #endif  // AUTOMATIC_DIMMER
 	case MODE_CFGDISP_SETDIGITBRIGHT_MENU:

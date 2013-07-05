@@ -38,11 +38,8 @@ void system_init(void) {
 
     // enable pull-up resistors on unused pins to ensure a defined value
     PORTB |= _BV(PB4);
-#ifdef PICO_POWER
-    PORTC |= _BV(PC2);
-#else
-    PORTC |= _BV(PC2) | _BV(PC1);
-#endif  // PICO_POWER
+    PORTC |= _BV(PC2);  // leave PC1 tri-stated in case clock is wired for
+                        // the depricated exteneded battery hack
 
     // use internal bandgap as reference for analog comparator
     // and enable analog comparator interrupt on falling edge
@@ -72,13 +69,10 @@ void system_idle_loop(void) {
 
 // repeatedly enter power save mode until power restored
 void system_sleep_loop(void) {
-    sleep_enable();  // permit sleep mode
-
-    system.status |= SYSTEM_SLEEP; // set sleep flag
-
-#ifdef PICO_POWER
-    wdt_disable();
-#endif  // PICO_POWER
+    sleep_enable();                 // permit sleep mode
+    system.status |= SYSTEM_SLEEP;  // set sleep flag
+    wdt_disable();                  // disable watchdog
+    ACSR = _BV(ACD) | _BV(ACI);     // disable analog comparator
 
     do {
 	do {
@@ -96,43 +90,32 @@ void system_sleep_loop(void) {
 			  | _BV(OCR2AUB) | _BV(OCR2BUB)
 			  | _BV(TCR2AUB) | _BV(TCR2BUB) ));
 
+	    // disable analog comparator
+	    ACSR = _BV(ACD);
+
+	    // save power during sleep:
+	    // disable analog comparator and bod which
+	    // indirectly disables the internal bandgap
+	    sleep_bod_disable();
+
+	    // enter sleep mode
 	    sei();
-
 	    sleep_cpu();
-
 	    cli();
 
-#ifdef PICO_POWER
-	    // disable analog comparator if comparator enabled
-	    // and voltage absent at voltage regulator
-	    if(!(ACSR & _BV(ACD)) && !(PINC & _BV(PC1))) {
-		// disable analog comparator
-		ACSR = _BV(ACD) | _BV(ACI);
-	    }
-
-	    // enable analog comparator if comparator disabled
-	    // and digital input on comparator pin is true
-	    if((ACSR & _BV(ACD)) && (PINC & _BV(PC1))) {
-		// enable analog comparator to bandgap
-		ACSR = _BV(ACBG) | _BV(ACIE) | _BV(ACI);
-
-		_delay_us(100);  // bandgap startup time
-
-		// clear analog comparator interrupt
-		ACSR = _BV(ACBG) | _BV(ACIE) | _BV(ACI);
-	    }
-	} while((ACSR & _BV(ACD)) || system_power() == SYSTEM_BATTERY);
-#else
+	    // analog comparator will have already been enabled
+	    // in the TIMER2_COMPB_vect interrupt (icetube.c)
 	} while(system_power() == SYSTEM_BATTERY);
-#endif  // PICO_POWER
+
 	// debounce power-restored signal; delay is actually 100 ms
 	_delay_ms(25);  // because system clock is divided by four
     } while(system_power() == SYSTEM_BATTERY);
 
-#ifdef PICO_POWER
     wdt_enable(WDTO_8S);
     wdt_reset();
-#endif  // PICO_POWER
+
+    // enable analog comparator interrupt
+    ACSR = _BV(ACBG) | _BV(ACIE) | _BV(ACI);
 
     system.status &= ~SYSTEM_SLEEP; // clear sleep flag
 }
