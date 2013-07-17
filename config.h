@@ -58,6 +58,16 @@
 // #define EXTERNAL_CLOCK
 
 
+// IV-18 TO-SPEC HACK
+//
+// The following macros enable the software portion of the IV-18 
+// to-spec hack.  This hack will be described in detail on the
+// Adafruit Clocks forum.
+//
+// #define OCR0A_VALUE 128
+// #define VFD_TO_SPEC
+
+
 // DISPLAY BRIGHTNESS / BOOST CONFIGURATION
 //
 // VFD displays lose brightness as they age, but increasing the
@@ -94,9 +104,11 @@
 // reduce OCR0A_SCALE or install a higher power fuse.
 //
 //
-#define OCR0A_MIN   20
-#define OCR0A_SCALE  7
+#ifndef VFD_TO_SPEC
+#define OCR0A_MIN   30
+#define OCR0A_SCALE 14
 #define OCR0A_MAX OCR0A_MIN + 10 * OCR0A_SCALE
+#endif  //  !VFD_TO_SPEC
 
 
 // DEBUGGING FEATURES

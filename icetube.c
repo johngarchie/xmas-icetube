@@ -159,6 +159,8 @@ ISR(TIMER0_OVF_vect) {
     }
 
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	display_semisemitick();
+
 	// interupt just returns 31 out of 32 times
 	static uint8_t semicounter = 1;
 	if(semicounter && !--semicounter) {

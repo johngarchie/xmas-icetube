@@ -59,7 +59,7 @@ void mode_tick(void) {
 	   } else if(system.initial_mcusr & _BV(PORF)) {
 	       display_pstr(0, PSTR("pwr rset"));
 	   } else {
-	       display_pstr(0, PSTR(""));
+	       display_pstr(0, PSTR("oth rset"));
 	   }
 	   display_transition(DISPLAY_TRANS_INSTANT);
 #ifdef GPS_TIMEKEEPING

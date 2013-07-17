@@ -1,6 +1,6 @@
 // system.c  --  system functions (idle, sleep, interrupts)
 //
-//    PB4 (MISO)           unused pin
+//    PB4 (MISO)           unused pin (unless anode-grid to-spec hack)
 //    PC2                  unused pin
 //    PC1                  power from voltage regulator or unused pin
 //    AIN1 (PD7)           divided system voltage
@@ -37,9 +37,14 @@ void system_init(void) {
     system.status &= ~SYSTEM_SLEEP;
 
     // enable pull-up resistors on unused pins to ensure a defined value
+#ifndef VFD_ANODE_GRID_TO_SPEC
     PORTB |= _BV(PB4);
-    PORTC |= _BV(PC2);  // leave PC1 tri-stated in case clock is wired for
-                        // the depricated exteneded battery hack
+#endif  // ~VFD_ANODE_GRID_TO_SPEC
+    // leave PC1 tri-stated in case clock is wired
+    // for the depricated exteneded battery hack
+#ifndef VFD_CATHODE_TO_SPEC
+    PORTC |= _BV(PC2);
+#endif  // ~VFD_CATHODE_TO_SPEC
 
     // use internal bandgap as reference for analog comparator
     // and enable analog comparator interrupt on falling edge

@@ -5,12 +5,15 @@
 //    PB3 (MOSI)                     MAX6921 DIN pin
 //    PC5                            photoresistor pull-up
 //    PC4 (ADC4)                     photoresistor voltage
-//    PC3                            MAX6921 BLANK pin
+//    PC3*                           MAX6921 BLANK pin
 //    PC0                            MAX6921 LOAD pin
 //    PD6                            boost transistor
 //    PD3                            vfd power transistor
 //    counter/timer0                 boost (PD6) and semiticks
 //    analog to digital converter    photoresistor (ADC4) voltage
+//
+// * PD5--not PC3--is used to control the BLANK pin if and only if
+//   the anode-grid to-spec hack is enabled.
 //
 
 
@@ -19,6 +22,7 @@
 #include <avr/eeprom.h>   // for accessing data in eeprom memory
 #include <avr/power.h>    // for enabling/disabling chip features
 #include <util/atomic.h>  // for using atomic blocks
+#include <util/delay.h>   // for enabling delays
 
 
 #include "display.h"
@@ -176,6 +180,19 @@ const uint8_t vfd_segment_pins[] PROGMEM = {
 };
 
 
+#ifdef VFD_TO_SPEC
+// magic values for converting brightness to OCR2B values
+#define OCR0B_GRADIENT_MAX 80
+const uint8_t ocr0b_gradient[] PROGMEM =
+  { 8, 8, 8, 9, 9, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 13, 13, 14, 15, 16,
+    17, 18, 20, 21, 23, 24, 26, 27, 28, 30, 31, 33, 34, 36, 37, 39, 40, 42,
+    43, 45, 46, 48, 50, 51, 53, 55, 57, 59, 61, 63, 65, 68, 70, 73, 76, 79,
+    83, 86, 90, 94, 98, 102, 105, 109, 112, 116, 120, 123, 128, 132, 138,
+    144, 151, 159, 169, 179, 191, 205, 220, 236, 255 };
+#endif  // VFD_TO_SPEC
+    
+
+
 // initialize display after system reset
 void display_init(void) {
     // if any timer is disabled during sleep, the system locks up sporadically
@@ -187,9 +204,17 @@ void display_init(void) {
     PORTD &= ~_BV(PD6); // boost fet off (pull low)
     PORTD |=  _BV(PD3); // MAX6921 power off (push high)
 
+#ifdef VFD_TO_SPEC
+    // configure MAX6921 load and blank pins
+    DDRC  |=  _BV(PC0); // set blank pin to output
+    PORTC &= ~_BV(PC0); // clamp blank pin to ground
+    DDRD  |=  _BV(PD5); // set load pin to output
+    PORTD &= ~_BV(PD5); // clamp load pin to ground
+#else
     // configure MAX6921 load and blank pins
     DDRC  |=  _BV(PC0) |  _BV(PC3); // set to output
     PORTC &= ~_BV(PC0) & ~_BV(PC3); // clamp to ground
+#endif  // VFD_TO_SPEC
 
     // configure spi sck and mosi pins as floating inputs
     // (these pins seem to use less power when configured
@@ -224,6 +249,11 @@ void display_init(void) {
 
     // load display status
     display_loadstatus();
+
+#ifdef VFD_TO_SPEC
+    DDRC |= _BV(PC2);
+    DDRC |= _BV(PC3);
+#endif  // VFD_TO_SPEC
 }
 
 
@@ -261,18 +291,35 @@ void display_wake(void) {
     // configure spi sck and mosi pins as outputs
     DDRB |= _BV(PB5) | _BV(PB3);
 
+
+#ifdef VFD_TO_SPEC
+    // configure and start Timer/Counter0
+    // COM0A1:0 = 10: clear OC0A on compare match; set at BOTTOM
+    // COM0B1:0 = 11: clear OC0B at bottom; set on compare match
+    // WGM02:0 = 011: clear timer on compare match; TOP = 0xFF
+    TCCR0A = _BV(COM0A1) | _BV(COM0B0) | _BV(COM0B1) | _BV(WGM00) | _BV(WGM01);
+    TCCR0B = _BV(CS00);   // clock counter0 with system clock
+    TIMSK0 = _BV(TOIE0);  // enable counter0 overflow interrupt
+#else
     // configure and start Timer/Counter0
     // COM0A1:0 = 10: clear OC0A on compare match; set at BOTTOM
     // WGM02:0 = 011: clear timer on compare match; TOP = 0xFF
     TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
     TCCR0B = _BV(CS00);   // clock counter0 with system clock
     TIMSK0 = _BV(TOIE0);  // enable counter0 overflow interrupt
+#endif  // VFD_TO_SPEC
 
     // set OCR0A for desired display brightness
     display_loadbright();
 
     // MAX6921 power on (pull low)
     PORTD &= ~_BV(PD3);
+
+#ifdef VFD_TO_SPEC
+    // power fillament
+    PORTC |=  _BV(PC2);
+    PORTC &= ~_BV(PC3);
+#endif  // VFD_TO_SPEC
 }
 
 
@@ -291,14 +338,25 @@ void display_sleep(void) {
     ADCSRA = 0;  // disable ADC before power_adc_disable()
     power_adc_disable();
 
+#ifdef VFD_TO_SPEC
+    // configure MAX6921 LOAD and BLANK pins
+    PORTC &= ~_BV(PC0); // clamp to ground
+    PORTD &= ~_BV(PD5); // clamp to ground
+#else
     // configure MAX6921 LOAD and BLANK pins
     PORTC &= ~_BV(PC0) & ~_BV(PC3); // clamp to ground
+#endif  // VFD_TO_SPEC
 
     // configure MAX6921 CLK and DIN pins
     // (these pins seem to use less power when configured
     // as inputs *without* pull-ups!?!?)
     DDRB  &= ~_BV(PB5) & ~_BV(PB3);  // set as input
     PORTB &= ~_BV(PB5) & ~_BV(PB3);  // disable pull-ups
+
+#ifdef VFD_TO_SPEC
+    // remove power from fillament
+    PORTC &= ~_BV(PC2) & ~_BV(PC3);
+#endif  // VFD_TO_SPEC
 }
 
 
@@ -381,6 +439,11 @@ void display_off(void) {
 	    TCCR0A = _BV(WGM00) | _BV(WGM01);
 	    PORTD &= ~_BV(PD6);  // boost fet off (pull low)
 	    PORTD |=  _BV(PD3);  // MAX6921 power off (pull high)
+#ifdef VFD_TO_SPEC
+	    // disable fillament power
+	    PORTC &= ~_BV(PC2);
+	    PORTC &= ~_BV(PC3);
+#endif  // VFD_TO_SPEC
 	}
     }
 }
@@ -392,7 +455,17 @@ void display_on(void) {
 	if(!(system.status & SYSTEM_SLEEP)
 		&& (display.status & DISPLAY_DISABLED)) {
 	    display.status &= ~DISPLAY_DISABLED;
+#ifdef VFD_TO_SPEC
+	    // enable boost and blank pwm
+	    TCCR0A =   _BV(COM0A1) | _BV(COM0B0) | _BV(COM0B1)
+		     | _BV(WGM00) | _BV(WGM01);
+
+	    // power fillament
+	    PORTC |=  _BV(PC2);
+	    PORTC &= ~_BV(PC3);
+#else
 	    TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
+#endif  // VFD_TO_SPEC
 	    PORTD &= ~_BV(PD3);  // MAX6921 power on (pull low)
 	}
     }
@@ -514,8 +587,15 @@ uint8_t display_varsemitick(void) {
 	}
     }
 
+
     // blank display to prevent ghosting
+#ifdef VFD_TO_SPEC
+    // disable pwm on blank pin
+    TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
+    PORTD |= _BV(PD5);  // push MAX6921 BLANK pin high
+#else
     PORTC |= _BV(PC3);  // push MAX6921 BLANK pin high
+#endif  // VFD_TO_SPEC
 
     // send bits to the MAX6921 (vfd driver chip)
 
@@ -556,7 +636,13 @@ uint8_t display_varsemitick(void) {
     PORTC &= ~_BV(PC0);
 
     // unblank display to prevent ghosting
+#ifdef VFD_TO_SPEC
+    // enable pwm on blank pin
+    TCCR0A = _BV(COM0A1) | _BV(COM0B0) | _BV(COM0B1) | _BV(WGM00) | _BV(WGM01);
+    TCNT0  = 0xFF;  // set counter to max
+#else
     PORTC &= ~_BV(PC3);  // pull MAX6921 BLANK pin low
+#endif  // VFD_TO_SPEC
 
     // return time to display current digit
     return display.digit_times[digit_idx] >> display.digit_time_shift;
@@ -633,6 +719,23 @@ void display_semitick(void) {
 	if(! --pulse_timer) {
 	    pulse_timer = DISPLAY_PULSE_DELAY;
 
+#ifdef VFD_TO_SPEC
+	    static uint8_t grad_idx = 0;
+
+	    if(display.status & DISPLAY_PULSE_DOWN) {
+		if(grad_idx == 0x00) {
+		    display.status &= ~DISPLAY_PULSE_DOWN;
+		} else {
+		    OCR0B = pgm_read_byte(&(ocr0b_gradient[--grad_idx]));
+		}
+	    } else {
+		if(grad_idx == OCR0B_GRADIENT_MAX) {
+		    display.status |=  DISPLAY_PULSE_DOWN;
+		} else {
+		    OCR0B = pgm_read_byte(&(ocr0b_gradient[++grad_idx]));
+		}
+	    }
+#else  // ! VFD_TO_SPEC
 	    if(display.status & DISPLAY_PULSE_DOWN) {
 		if(OCR0A <= OCR0A_MIN) {
 		    display.status &= ~DISPLAY_PULSE_DOWN;
@@ -646,6 +749,7 @@ void display_semitick(void) {
 		    ++OCR0A;
 		}
 	    }
+#endif  // VFD_TO_SPEC
 	}
     }
 }
@@ -819,6 +923,24 @@ void display_saveondays(void) {
 // set display brightness from display.bright_min,
 // display.bright_max, and display.photo_avg
 void display_autodim(void) {
+#ifdef VFD_TO_SPEC
+    OCR0A = OCR0A_VALUE;  // set fixed boost value
+
+#ifdef AUTOMATIC_DIMMER
+    // convert photoresistor value to 0-255 for OCR0B
+    int16_t grad_idx = (display.bright_max << 3) - (((display.photo_avg >> 8)
+		       * ((display.bright_max - display.bright_min) << 3)) >> 8);
+#else
+    int16_t grad_idx = (display.brightness < 0 ? 0 : display.brightness << 3);
+#endif  // AUTOMATIC_DIMMER
+
+    // force grad_idx in appropriate bounds
+    if(grad_idx < 0 ) grad_idx = 0;
+    if(grad_idx > OCR0B_GRADIENT_MAX) grad_idx = OCR0B_GRADIENT_MAX;
+
+    OCR0B = pgm_read_byte(&(ocr0b_gradient[grad_idx]));
+
+#else  // ~VFD_TO_SPEC
 #ifdef AUTOMATIC_DIMMER
     // convert photoresistor value to 20-90 for OCR0A
     int16_t new_OCR0A = OCR0A_MIN + OCR0A_SCALE * display.bright_max
@@ -836,6 +958,7 @@ void display_autodim(void) {
 
     // set new brightness
     OCR0A = new_OCR0A;
+#endif  // VFD_TO_SPEC
 }
 
 
