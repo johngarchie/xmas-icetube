@@ -60,12 +60,17 @@
 
 // IV-18 TO-SPEC HACK
 //
-// The following macros enable the software portion of the IV-18 
-// to-spec hack.  This hack will be described in detail on the
-// Adafruit Clocks forum.
+// The Ice Tube Clock does not drive the IV-18 VFD tube to
+// specifications, but with some rewiring and additional circuitry,
+// enabling the following macros will drive the IV-18 tube as it was
+// designed.  The following thread on the Adafruit Clocks forum
+// describes the required hardware modifications:
 //
-// #define OCR0A_VALUE 128
+//   http://forums.adafruit.com/viewtopic.php?f=41&t=41811
+//
+//
 // #define VFD_TO_SPEC
+// #define OCR0A_VALUE 128
 
 
 // DISPLAY BRIGHTNESS / BOOST CONFIGURATION
