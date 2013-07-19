@@ -110,8 +110,8 @@
 //
 //
 #ifndef VFD_TO_SPEC
-#define OCR0A_MIN   30
-#define OCR0A_SCALE 14
+#define OCR0A_MIN   20
+#define OCR0A_SCALE 7
 #define OCR0A_MAX OCR0A_MIN + 10 * OCR0A_SCALE
 #endif  //  !VFD_TO_SPEC
 
