@@ -944,8 +944,8 @@ void display_autodim(void) {
 #ifdef AUTOMATIC_DIMMER
     // convert photoresistor value to 20-90 for OCR0A
     int16_t new_OCR0A = OCR0A_MIN + OCR0A_SCALE * display.bright_max
-			 - ( (display.photo_avg >> 8) * 7
-                             * (display.bright_max - display.bright_min) >> 8);
+			 - ( (((display.photo_avg >> 8) * OCR0A_SCALE) >> 2)
+                             * (display.bright_max - display.bright_min) >> 6);
 #else
     int16_t new_OCR0A = OCR0A_MIN + OCR0A_SCALE * display.brightness;
 #endif  // AUTOMATIC_DIMMER
