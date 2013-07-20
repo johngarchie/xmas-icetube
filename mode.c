@@ -52,12 +52,12 @@ void mode_tick(void) {
 	if(time.status & TIME_UNSET && time.second % 2) {
 	   if(system.initial_mcusr & _BV(WDRF)) {
 	       display_pstr(0, PSTR("wdt rset"));
-	   } else if(system.initial_mcusr & _BV(BORF)) {
-	       display_pstr(0, PSTR("bod rset"));
 	   } else if(system.initial_mcusr & _BV(EXTRF)) {
 	       display_pstr(0, PSTR("ext rset"));
 	   } else if(system.initial_mcusr & _BV(PORF)) {
 	       display_pstr(0, PSTR("pwr rset"));
+	   } else if(system.initial_mcusr & _BV(BORF)) {
+	       display_pstr(0, PSTR("bod rset"));
 	   } else {
 	       display_pstr(0, PSTR("oth rset"));
 	   }
