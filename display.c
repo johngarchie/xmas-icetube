@@ -47,7 +47,7 @@ uint8_t ee_display_status     EEMEM = DISPLAY_ANIMATED;
 #ifdef AUTOMATIC_DIMMER
 uint8_t ee_display_bright_min EEMEM = 1;
 uint8_t ee_display_bright_max EEMEM = 1;
-uint8_t ee_display_off_threshold EEMEM = UINT8_MAX;
+uint8_t ee_display_off_threshold EEMEM = 0;
 #else
 uint8_t ee_display_brightness EEMEM = 1;
 #endif  // AUTOMATIC_DIMMER
@@ -320,6 +320,9 @@ void display_wake(void) {
     PORTC |=  _BV(PC2);
     PORTC &= ~_BV(PC3);
 #endif  // VFD_TO_SPEC
+
+    display.off_timer = DISPLAY_OFF_TIMEOUT;
+    display_on();
 }
 
 
@@ -371,7 +374,7 @@ void display_tick(void) {
 
 #ifdef AUTOMATIC_DIMMER
     // disable display if dark
-    if((display.photo_avg >> 8) > display.off_threshold) {
+    if((display.photo_avg >> 7) + display.off_threshold > 0x0200) {
 	display_off();
 	return;
     }
@@ -419,7 +422,7 @@ void display_tick(void) {
 #ifdef AUTOMATIC_DIMMER
     // enable display if light or if dimmer threshold disabled;
     // otherwise maintain current on/off setting
-    if((display.photo_avg >> 8) < display.off_threshold
+    if((display.photo_avg >> 7) + display.off_threshold < 0x0200
 	    || display.off_threshold == UINT8_MAX) {
 	display_on();
     }
