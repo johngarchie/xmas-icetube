@@ -50,11 +50,7 @@ LOCKBITS = BLB0_MODE_2 & BLB1_MODE_2;
 FUSES = {
     .low      = 0x62,
     .high     = 0xD1,
-#ifdef EXTERNAL_CLOCK
-    .extended = 0xFD,  // bod at 2.7 volts, when DS32kHz fails
-#else
-    .extended = 0xFE,  // bod at 1.8 volts, when battery dead
-#endif  // EXTERNAL_CLOCK
+    .extended = 0xFE,
 };
 #else
 #error FUSES not defined for MCU
