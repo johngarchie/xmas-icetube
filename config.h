@@ -58,6 +58,21 @@
 // #define EXTERNAL_CLOCK
 
 
+// IV-18 TO-SPEC HACK
+//
+// The Ice Tube Clock does not drive the IV-18 VFD tube to
+// specifications, but with some rewiring and additional circuitry,
+// enabling the following macros will drive the IV-18 tube as it was
+// designed.  The following thread on the Adafruit Clocks forum
+// describes the required hardware modifications:
+//
+//   http://forums.adafruit.com/viewtopic.php?f=41&t=41811
+//
+//
+// #define VFD_TO_SPEC
+// #define OCR0A_VALUE 128
+
+
 // DISPLAY BRIGHTNESS / BOOST CONFIGURATION
 //
 // VFD displays lose brightness as they age, but increasing the
@@ -94,9 +109,11 @@
 // reduce OCR0A_SCALE or install a higher power fuse.
 //
 //
+#ifndef VFD_TO_SPEC
 #define OCR0A_MIN   20
-#define OCR0A_SCALE  7
+#define OCR0A_SCALE 7
 #define OCR0A_MAX OCR0A_MIN + 10 * OCR0A_SCALE
+#endif  //  !VFD_TO_SPEC
 
 
 // DEBUGGING FEATURES

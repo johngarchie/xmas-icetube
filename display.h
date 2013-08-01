@@ -22,8 +22,13 @@
 // savable settings in lower nibble of display.status
 #define DISPLAY_SETTINGS_MASK 0x0F
 
+#ifdef VFD_TO_SPEC
+// time required for one step of OCR0B when pulsing
+#define DISPLAY_PULSE_DELAY 750 / 81  // (semiticks)
+#else  // ~VFD_TO_SPEC
 // time required for one step of OCR0A when pulsing
-#define DISPLAY_PULSE_DELAY 8  // (semiticks)
+#define DISPLAY_PULSE_DELAY 750 / (OCR0A_MAX - OCR0A_MIN)  // (semiticks)
+#endif  // VFD_TO_SPEC
 
 // time between photoresister voltage samples
 #define DISPLAY_ADC_DELAY 16  // (semiticks)
@@ -105,6 +110,13 @@ void display_on(void);
 
 uint8_t display_varsemitick(void);
 void display_semitick(void);
+
+// toggle push-pull outputs to generate alternating current on vfd fillament
+inline void display_semisemitick(void) {
+#ifdef VFD_TO_SPEC
+    if(!(display.status & DISPLAY_DISABLED)) PORTC ^= _BV(PC2) | _BV(PC3);
+#endif
+}
 
 void display_savestatus(void);
 void display_loadstatus(void);

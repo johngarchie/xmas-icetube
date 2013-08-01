@@ -33,12 +33,13 @@ boasts the following improvements over the official Adafruit firmware.
   - fully automatic correction for time drift
   - time-from-GPS support*
   - no beeping or time loss after external power failure
-  - 2-fold or 25-fold* increase in backup battery life
+  - 4-fold or 25-fold* increase in backup battery life
   - functional alarm during power outage**
   - per-digit brightness adjustment for uneven displays
   - automatic brightness control by ambient light*
   - optionally disable display during specified time periods
   - optionally disable display at night (when dark)*
+  - IV-18 VFD tube driven to specifications*
 
 *  These hacks require hardware modification and support must be enabled by
    uncommenting macros in config.h.  See the HACKS AND MODS section of
@@ -152,27 +153,30 @@ Options requiring hardware changes can be enabled by uncommenting
 macros in the config.h file.  Comments in the config.h describe each
 optional feature in detail.
 
-::Automatic Dimmer::
+:: Automatic Display Dimming ::
 http://forums.adafruit.com/viewtopic.php?f=41&t=12932
 
-::Temperature Compensated Timekeeping::
+:: Temperature Compensated Timekeeping ::
 http://forums.adafruit.com/viewtopic.php?f=41&t=14941
 
-::GPS Timekeeping::
+:: GPS Timekeeping ::
 http://forums.adafruit.com/viewtopic.php?f=41&t=36873
 http://www.ladyada.net/make/icetube/mods.html
 http://forums.adafruit.com/viewtopic.php?f=41&t=32660
 
-::Extended Battery Hack::
+:: Extended Battery Life ::
 http://forums.adafruit.com/viewtopic.php?f=41&t=36697
 
-::Sleep During Power Failure::
+:: IV-18 To-Spec Hack ::
+http://forums.adafruit.com/viewtopic.php?f=41&t=41811
+
+:: Reliably Sleeping During Power Failure ::
 http://forums.adafruit.com/viewtopic.php?f=41&t=22515
 
-::Drift Correction::
+:: Automatic Drift Correction ::
 http://forums.adafruit.com/viewtopic.php?f=41&t=12720
 
-::Per-Digit Brightness Adjustment::
+:: Per-Digit Brightness Adjustment ::
 http://forums.adafruit.com/viewtopic.php?f=41&t=23586
 
 
@@ -252,7 +256,7 @@ When the time is periodically corrected, the automatic drift
 correction detects that the clock is running slow and compensates
 timekeeping accordingly.
 
-In some cases, the quartz oscillator will not function--or much
+Much less commonly, the quartz oscillator will not function--or much
 worse--operate intermittently.  Faulty operation causes time loss
 and/or clock resets.  After such a reset, the clock will periodically
 display "wdt rset" to warn of time loss.  This message indicates that

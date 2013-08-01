@@ -52,14 +52,14 @@ void mode_tick(void) {
 	if(time.status & TIME_UNSET && time.second % 2) {
 	   if(system.initial_mcusr & _BV(WDRF)) {
 	       display_pstr(0, PSTR("wdt rset"));
-	   } else if(system.initial_mcusr & _BV(BORF)) {
-	       display_pstr(0, PSTR("bod rset"));
 	   } else if(system.initial_mcusr & _BV(EXTRF)) {
 	       display_pstr(0, PSTR("ext rset"));
 	   } else if(system.initial_mcusr & _BV(PORF)) {
 	       display_pstr(0, PSTR("pwr rset"));
+	   } else if(system.initial_mcusr & _BV(BORF)) {
+	       display_pstr(0, PSTR("bod rset"));
 	   } else {
-	       display_pstr(0, PSTR(""));
+	       display_pstr(0, PSTR("oth rset"));
 	   }
 	   display_transition(DISPLAY_TRANS_INSTANT);
 #ifdef GPS_TIMEKEEPING
@@ -990,7 +990,8 @@ void mode_semitick(void) {
 #ifdef AUTOMATIC_DIMMER
 	case MODE_CFGDISP_SETPHOTOOFF_MENU: ;
 	    void menu_cfgdisp_setphotooff_init(void) {
-		*mode.tmp = UINT8_MAX - display.off_threshold;
+		uint8_t off_thr = display.off_threshold;
+		for(*mode.tmp = 0; off_thr; off_thr >>= 1) ++(*mode.tmp);
 	    }
 
 	    mode_menu_process_button(
@@ -1006,13 +1007,13 @@ void mode_semitick(void) {
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
-		    display.off_threshold = UINT8_MAX - *mode.tmp;
+		    display.off_threshold = (*mode.tmp ? (1<<(*mode.tmp-1)) : 0);
 		    display_savephotooff();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 		    break;
 		case BUTTONS_PLUS:
 		    ++(*mode.tmp);
-		    *mode.tmp %= 51;
+		    if(*mode.tmp > 8) *mode.tmp = 0;
 		    mode_update(MODE_CFGDISP_SETPHOTOOFF_THRESH,
 			        DISPLAY_TRANS_INSTANT);
 		    break;

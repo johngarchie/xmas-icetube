@@ -7,16 +7,16 @@
   "a. sound"
     Change the alarm sound.  Choices are high frequency beeps ("beeps hi"),
     low frequency beeps ("beeps lo"), high frequency three beep pulse
-    ("pulse hi"), low frequency three beep pulse ("pulse lo",
+    ("pulse hi"), low frequency three beep pulse ("pulse lo"),
     Merry Christmas ("mery chr"), Big Ben ("big ben "), Reveille ("reveille"),
     or For He's a Jolly Good Fellow ("jly good").
 
   "a. volume"  
-    Set the alarm volume or progressive alarm ("vol prog").  With the
+    Set the alarm volume or enable progressive alarm ("vol prog").  With the
     progressive alarm option, the user is prompted for the minimum volume
-    ("v.  min"), maximum volume ("v. max XX"), and ramp time ("time XX"), and
-    the alarm will start at the minimum volume and gradually reach the maximum
-    volume over the specified ramp time.
+    ("v. min XX"), maximum volume ("v. max XX"), and ramp time in minutes
+    ("time XX").  The alarm will start at the minimum volume and gradually
+    reach the maximum volume over the specified ramp time.
 
   "a. snooze"
     Change the snooze time (minutes).
@@ -66,6 +66,8 @@
 
     "off dark"
       Enable or disable automatic inactivation at night (when dark).
+      This option is only available if the automatic dimmer is enabled,
+      which requires a photoresistor and 10k pull-up.
 
     "off time"
       Enable or disable automatic inactivation during certain hours.
@@ -83,8 +85,7 @@
       For example, if the clock is at the home of a person with a 9-to-5
       Monday-through-Friday schedule, they might set the "off time" to 9:00am
       to 5:00 pm and set the "on days" to weekends, so the display would be
-      enabled whenever the person is home.  Note that "on days" does not
-      override the "off dark" settings.
+      enabled whenever the person is home.
 
   "animated" 
     Enable or disable animated display transitions.
@@ -95,12 +96,13 @@
   "set dst"
     Configure daylight saving time.  The user may manually enable ("dst on")
     or disable ("dst off") daylight saving time.  Alternatively, the user
-    may configure automatic enabling and disabling of DST by US ("dst usa") or
-    EU ("dst eu") rules.
+    may configure automatic enabling and disabling of DST by United States
+    ("dst usa") or European Union ("dst eu") rules.
 
   "set zone"
-    Configure the timezone relative to GMT.
-    (So GPS timekeeping can calculate the local time.)
+    Configure the timezone relative to UTC/GMT.  This option is only available
+    with the GPS timekeeping mod and is used to convert UTC/GMT time from the
+    GPS to local time.
 
   "time fmt"
     Configure the time format.
