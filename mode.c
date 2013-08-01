@@ -1583,7 +1583,7 @@ void mode_semitick(void) {
 		    MODE_CFGREGN_DATEFMT_MENU,
 		    MODE_CFGREGN_TIMEFMT_12HOUR,
 		    menu_cfgregn_set12hour_init,
-		    btn, TRUE);
+		    btn, FALSE);
 	    break;
 	case MODE_CFGREGN_TIMEFMT_12HOUR:
 	    switch(btn) {
