@@ -153,7 +153,7 @@ void gps_settime(void) {
 	    ++day;
 	}
 
-	if(day < 0) {
+	if(day < 1) {
 	    --month;
 	    if(month < TIME_JAN) {
 		month = TIME_DEC;
