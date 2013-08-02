@@ -1,10 +1,13 @@
 // system.c  --  system functions (idle, sleep, interrupts)
 //
 //    PB4 (MISO)           unused pin (unless anode-grid to-spec hack)
-//    PC2                  unused pin
+//    PC2*                 unused pin
 //    PC1                  power from voltage regulator or unused pin
 //    AIN1 (PD7)           divided system voltage
 //    analog comparator    detects low voltage (AIN1)
+//
+// * PC2 is unused and configured with the pull-up resistor unless the
+//   IV-18 to-spec hack has been configured.
 //
 // system_init() disables all modules in PRR register: TWI, timer2, timer1,
 // timer0, SPI, USART, and ADC.  These modules are and disabled as-needed in
@@ -16,7 +19,7 @@
 #include <avr/power.h>     // for disabling microcontroller modules
 #include <avr/sleep.h>     // for entering low-power modes
 #include <avr/wdt.h>       // for using the watchdog timer
-#include <util/atomic.h>   // for non-interruptable blocks
+#include <util/atomic.h>   // for non-interruptible blocks
 #include <util/delay.h>    // for enabling delays
 
 

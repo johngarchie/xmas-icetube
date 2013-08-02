@@ -9,7 +9,7 @@
 //    PB0    set button
 //
 // * PB4--not PD5--is used to control the BLANK pin if and only if
-//   the anode-grid to-spec hack is enabled.
+//   the IV-18 to-spec hack is enabled.
 //
 
 

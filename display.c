@@ -6,14 +6,20 @@
 //    PC5                            photoresistor pull-up
 //    PC4 (ADC4)                     photoresistor voltage
 //    PC3*                           MAX6921 BLANK pin
+//    PC3**			     alternating current signal pin
+//    PC2**			     alternating current signal pin
 //    PC0                            MAX6921 LOAD pin
 //    PD6                            boost transistor
 //    PD3                            vfd power transistor
 //    counter/timer0                 boost (PD6) and semiticks
 //    analog to digital converter    photoresistor (ADC4) voltage
 //
-// * PD5--not PC3--is used to control the BLANK pin if and only if
-//   the anode-grid to-spec hack is enabled.
+//  * PD5--not PC3--is used to control the BLANK pin if and only if
+//    the IV-18 to-spec hack is enabled.
+//
+// ** PC3 and PC2 are used to generate an alternating current signal
+//    to power the IV-18 filament if and only if the IV-18 to-spec 
+//    hack is enabled.
 //
 
 
