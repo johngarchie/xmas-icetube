@@ -77,17 +77,13 @@ void system_sleep_loop(void) {
     sleep_enable();                 // permit sleep mode
     system.status |= SYSTEM_SLEEP;  // set sleep flag
     wdt_disable();                  // disable watchdog
-    ACSR = _BV(ACD) | _BV(ACI);     // disable analog comparator
-
+    ACSR = _BV(ACD) | _BV(ACI);     // disable analog comparator and
+    				    // clear analog comparator interrupt
     do {
 	do {
-	    // if the alarm buzzer is going, remain in idle mode
-	    // to keep buzzer active for the next second
-	    if(system.status & SYSTEM_ALARM_SOUNDING) {
-		set_sleep_mode(SLEEP_MODE_IDLE);
-	    } else {
-		set_sleep_mode(SLEEP_MODE_PWR_SAVE);
-	    }
+	    // disable analog comparator to save power; analog comparator
+	    // will be enabled in system_tick() or system_wake()
+	    ACSR = _BV(ACD);
 
 	    // wait until asynchronous updates are complete
 	    // or system might fail to wake from sleep
@@ -95,13 +91,15 @@ void system_sleep_loop(void) {
 			  | _BV(OCR2AUB) | _BV(OCR2BUB)
 			  | _BV(TCR2AUB) | _BV(TCR2BUB) ));
 
-	    // disable analog comparator
-	    ACSR = _BV(ACD);
-
-	    // save power during sleep:
-	    // disable analog comparator and bod which
-	    // indirectly disables the internal bandgap
-	    sleep_bod_disable();
+	    if(system.status & SYSTEM_ALARM_SOUNDING) {
+		// if the alarm buzzer is active, remain in idle mode
+		// so buzzer continues sounding for next second
+		set_sleep_mode(SLEEP_MODE_IDLE);
+	    } else {
+		// otherwise, sleep with BOD disabled to save power
+		set_sleep_mode(SLEEP_MODE_PWR_SAVE);
+		sleep_bod_disable();
+	    }
 
 	    // enter sleep mode
 	    sei();

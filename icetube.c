@@ -118,10 +118,6 @@ int main(void) {
 // counter0 is clocked by the clock crystal
 ISR(TIMER2_COMPB_vect) {
     if(system.status & SYSTEM_SLEEP) {
-	// enable analog comparater at the beginning of the once-per-second
-	// interrupt because it needs a few microseconds of startup time
-	ACSR = _BV(ACBG);
-
 	system_tick();
 	time_tick();
 	alarm_tick();
