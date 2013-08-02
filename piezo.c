@@ -330,24 +330,19 @@ void piezo_sleep(void) {
 // toggles buzzer each second
 void piezo_tick(void) {
     switch(piezo.status & PIEZO_STATE_MASK) {
+	case PIEZO_ALARM_MUSIC:
+	    if(!(system.status & SYSTEM_SLEEP)) break;
 	case PIEZO_ALARM_BEEPS:
-	    ++piezo.timer;
-
-	    if(piezo.timer & 0x0001) {
-		uint16_t sound;
-		if(system.status & SYSTEM_SLEEP) {
-		    sound = BEEP_HIGH(0);
-		} else {
-		    switch(piezo.status & PIEZO_SOUND_MASK) {
-			case PIEZO_SOUND_BEEPS_LOW:
-			    sound = BEEP_LOW(0);
-			    break;
-			default:
-			    sound = BEEP_HIGH(0);
-			    break;
-		    }
+	    if(++piezo.timer & 0x0001) {
+		switch(piezo.status & PIEZO_SOUND_MASK) {
+		    case PIEZO_SOUND_BEEPS_LOW:
+		    case PIEZO_SOUND_PULSE_LOW:
+			piezo_buzzeron(BEEP_LOW(0));
+			break;
+		    default:
+			piezo_buzzeron(BEEP_HIGH(0));
+			break;
 		}
-		piezo_buzzeron(sound);
 		system.status |= SYSTEM_ALARM_SOUNDING;
 	    } else {
 		piezo_buzzeroff();
