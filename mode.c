@@ -1594,10 +1594,11 @@ void mode_semitick(void) {
 		    if(*mode.tmp & TIME_TIMEFORMAT_12HOUR) {
 			*mode.tmp |= TIME_TIMEFORMAT_SHOWAMPM;
 
-			if(*mode.tmp <= TIME_TIMEFORMAT_HH_MM) {
-			    time.timeformat |= TIME_TIMEFORMAT_SHOWAMPM;
+			if((*mode.tmp & TIME_TIMEFORMAT_MASK)
+					<= TIME_TIMEFORMAT_HH_MM) {
+			    *mode.tmp |= TIME_TIMEFORMAT_SHOWAMPM;
 			} else {
-			    time.timeformat &= ~TIME_TIMEFORMAT_SHOWAMPM;
+			    *mode.tmp &= ~TIME_TIMEFORMAT_SHOWAMPM;
 			}
 		    } else {
 			*mode.tmp &= ~TIME_TIMEFORMAT_SHOWAMPM;
@@ -1631,7 +1632,7 @@ void mode_semitick(void) {
 		    break;
 		case BUTTONS_PLUS:
 		    if(time.timeformat & TIME_TIMEFORMAT_12HOUR) {
-			if(++(*mode.tmp) >= TIME_TIMEFORMAT_HHMMSSPM + 1) {
+			if(++(*mode.tmp) > TIME_TIMEFORMAT_HHMMSSPM) {
 			    *mode.tmp = TIME_TIMEFORMAT_HH_MM_SS;
 			}
 
