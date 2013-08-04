@@ -99,8 +99,9 @@ the included Makefile:
 
 (2) Compile the Firmware
 
-    Build icetube_flash.hex and icetube_eeprom.hex, which contain
-    the firmware and initial EEPROM contents:
+    Build icetube_fuse.hex, icetube_flash.hex, icetube_eeprom.hex, and
+    icetube_lock.hex which contain the fuse bits, program memory (flash),
+    EEPROM data, and lock bits:
 
 	% make
 
@@ -117,29 +118,25 @@ the included Makefile:
 
 (4) Install the Firmware
 
-    Write the new fuse bits, which *do* differ from those in the original
-    Adafruit firmware and other alternative firmware projects:
+    Install this firmware to an ATMEGA328P by setting the fuse bits,
+    writing the flash program, writing the EEPROM data, and setting
+    the lock bits:
 
-	% make install-fuse
+        % make install-all
 
-    Next, upload the compiled firmware and initial EEPROM contents:
+    Alternatively, this firmware may be installed in separate steps:
 
-	% make install
-
-(5) Set lock bits
-
-    Since this firmware does not need self-programming capabilities,
-    lock bits should be set to prevent self-programming; this provides
-    an added measure of security against program memory corruption:
-
+        % make install-fuse
+        % make install-flash
+        % make install-eeprom
         % make install-lock
 
 
-###########
-## USAGE ##
-###########
+#####################
+## USING THE CLOCK ##
+#####################
 
-Clock usage is largely undocumented, but a draft description of the
+Clock usage is largely undocumented, but a description of the
 configuration menu layout is in the MENUS text file.
 
 
