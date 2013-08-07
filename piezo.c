@@ -14,6 +14,7 @@
 #include "piezo.h"
 #include "system.h" // alarm behavior depends on power source
 #include "usart.h"  // for debugging macros
+#include "time.h"   // for determining the date
 
 
 // extern'ed piezo data
@@ -586,9 +587,22 @@ void piezo_beep(uint16_t duration) {
 void piezo_alarm_start(void) {
     // override any existing noise
     piezo_buzzeroff();
+    piezo.status          &= ~PIEZO_STATE_MASK;
+    piezo.prealarm_status  = piezo.status;
 
-    // set state
-    piezo.status &= ~PIEZO_STATE_MASK;
+#if defined(XMAS_ALARM_MONTH) && defined(XMAS_ALARM_DAY)
+    if(time.month == XMAS_ALARM_MONTH && time.day == XMAS_ALARM_DAY) {
+	piezo.status = XMAS_ALARM_SOUND;
+	piezo_configsound();
+    }
+#endif
+
+#if defined(BDAY_ALARM_MONTH) && defined(BDAY_ALARM_DAY)
+    if(time.month == BDAY_ALARM_MONTH && time.day == BDAY_ALARM_DAY) {
+	piezo.status = BDAY_ALARM_SOUND;
+	piezo_configsound();
+    }
+#endif
     
     switch(piezo.status & PIEZO_SOUND_MASK) {
 	case PIEZO_SOUND_BEEPS_HIGH:
@@ -613,7 +627,8 @@ void piezo_alarm_stop(void) {
 	// only stop a tryalarm state
 	case PIEZO_ALARM_MUSIC:
 	case PIEZO_ALARM_BEEPS:
-	    // override any existing noise
+	    piezo.status = piezo.prealarm_status;
+	    piezo_configsound();
 	    piezo_stop();
 	    break;
 

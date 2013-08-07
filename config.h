@@ -116,6 +116,17 @@
 #endif  //  !VFD_TO_SPEC
 
 
+// BIRTHDAY ALARM
+//
+// If BDAY_ALARM_MONTH and BDAY_ALARM_DAY are defined, the alarm sound
+// on that day will always be "For He's a Jolly Good Fellow,"
+// regardless of the alarm sound set in the menus.
+//
+//
+// #define BDAY_ALARM_MONTH 5
+// #define BDAY_ALARM_DAY   1
+
+
 // DEBUGGING FEATURES
 //
 // The following macro enables debugging.  When enabled, debugging

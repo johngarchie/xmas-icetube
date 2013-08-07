@@ -124,4 +124,5 @@ clean:
 # include auto-generated source code dependencies
 -include $(OBJECTS:.o=.d)
 
-.PHONY: all install install-fuse install-flash install-eeprom install-lock
+.PHONY: all install install-all \
+        install-fuse install-flash install-eeprom install-lock

@@ -42,9 +42,18 @@
 
 #define PIEZO_DEFAULT_SOUND PIEZO_SOUND_BEEPS_HIGH
 
+// the day to play the christmas alarm
+#define XMAS_ALARM_MONTH 12
+#define XMAS_ALARM_DAY   25
+
+// alarm sound to play on...
+#define BDAY_ALARM_SOUND PIEZO_SOUND_JOLLY_GOOD  // birthdays and
+#define XMAS_ALARM_SOUND PIEZO_SOUND_MERRY_XMAS  // Christmas
+
 
 typedef struct {
     uint8_t  status;
+    uint8_t  prealarm_status;
     uint16_t cm_max;
     uint16_t timer;
 
