@@ -21,6 +21,27 @@
 #include "usart.h"  // for debugging output
 
 
+#ifdef XMAS_DESIGN
+// menu button bit and registers
+#define MENU_BIT  PB0
+#define MENU_PORT PORTB
+#define MENU_DDR  DDRB
+#define MENU_PIN  PINB
+
+// set button bit and registers
+#define SET_BIT  PD4
+#define SET_PORT PORTD
+#define SET_DDR  DDRD
+#define SET_PIN  PIND
+
+// plus button bit and registers
+#define PLUS_BIT  PD3
+#define PLUS_PORT PORTD
+#define PLUS_DDR  DDRD
+#define PLUS_PIN  PIND
+
+#else
+
 // menu button bit and registers
 #ifdef VFD_TO_SPEC
 #define MENU_BIT  PB4
@@ -45,6 +66,8 @@
 #define PLUS_PORT PORTD
 #define PLUS_DDR  DDRD
 #define PLUS_PIN  PIND
+
+#endif  // XMAS_DESIGN
 
 
 // extern'ed button input data

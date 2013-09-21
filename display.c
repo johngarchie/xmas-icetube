@@ -3,23 +3,27 @@
 //
 //    PB5 (SCK)                      MAX6921 CLK pin
 //    PB3 (MOSI)                     MAX6921 DIN pin
-//    PC5                            photoresistor pull-up
+//    PC5*                           photoresistor pull-up
 //    PC4 (ADC4)                     photoresistor voltage
-//    PC3*                           MAX6921 BLANK pin
-//    PC3**			     alternating current signal pin
-//    PC2**			     alternating current signal pin
+//    PC3**                          MAX6921 BLANK pin
+//    PC3***			     alternating current signal pin
+//    PC2***			     alternating current signal pin
 //    PC0                            MAX6921 LOAD pin
 //    PD6                            boost transistor
-//    PD3                            vfd power transistor
+//    PD3*                           vfd power transistor
 //    counter/timer0                 boost (PD6) and semiticks
 //    analog to digital converter    photoresistor (ADC4) voltage
 //
-//  * PD5--not PC3--is used to control the BLANK pin if and only if
-//    the IV-18 to-spec hack is enabled.
+//   * PC5 is used to directly power the photoresistor, vfd power, and
+//     temperature sensor pull-up if configured for the xmas-icetube
+//     hardware design.
 //
-// ** PC3 and PC2 are used to generate an alternating current signal
-//    to power the IV-18 filament if and only if the IV-18 to-spec 
-//    hack is enabled.
+//  ** PD5--not PC3--is used to control the BLANK pin if and only if
+//     the IV-18 to-spec hack is enabled.
+//
+// *** PC3 and PC2 are used to generate an alternating current signal
+//     to power the IV-18 filament if and only if the IV-18 to-spec 
+//     hack is enabled.
 //
 
 
@@ -206,9 +210,12 @@ void display_init(void) {
     power_timer0_enable();
 
     // disable boost and vfd
-    DDRD  |= _BV(PD6) | _BV(PD3); // enable boost fet and vfd transistor
+#ifndef XMAS_DESIGN
+    DDRD  |= _BV(PD3); // enable boost fet and vfd transistor
+    PORTD |= _BV(PD3); // MAX6921 power off (push high)
+#endif  // !XMAS_DESIGN
+    DDRD  |=  _BV(PD6); // enable boost fet and vfd transistor
     PORTD &= ~_BV(PD6); // boost fet off (pull low)
-    PORTD |=  _BV(PD3); // MAX6921 power off (push high)
 
 #ifdef VFD_TO_SPEC
     // configure MAX6921 load and blank pins
@@ -257,8 +264,9 @@ void display_init(void) {
     display_loadstatus();
 
 #ifdef VFD_TO_SPEC
-    DDRC |= _BV(PC2);
-    DDRC |= _BV(PC3);
+    // configure AC signal pins
+    DDRC  |=  _BV(PC2) |  _BV(PC3);  // set as output
+    PORTC &= ~_BV(PC2) & ~_BV(PC3);  // pull to ground
 #endif  // VFD_TO_SPEC
 }
 
@@ -319,10 +327,12 @@ void display_wake(void) {
     display_loadbright();
 
     // MAX6921 power on (pull low)
+#ifndef XMAS_DESIGN
     PORTD &= ~_BV(PD3);
+#endif  // !XMAS_DESIGN
 
 #ifdef VFD_TO_SPEC
-    // power fillament
+    // power VFD cathode (heater)
     PORTC |=  _BV(PC2);
     PORTC &= ~_BV(PC3);
 #endif  // VFD_TO_SPEC
@@ -338,7 +348,9 @@ void display_sleep(void) {
     TCCR0A = TCCR0B = 0;
 
     PORTD &= ~_BV(PD6); // boost fet off (pull low)
+#ifndef XMAS_DESIGN
     PORTD |=  _BV(PD3); // MAX6921 power off (pull high)
+#endif  // !XMAS_DESIGN
 
     // disable external and internal photoresistor pull-ups
     PORTC &= ~_BV(PC5) & ~_BV(PC4);  // pull to ground, disable pull-up
@@ -363,8 +375,8 @@ void display_sleep(void) {
     PORTB &= ~_BV(PB5) & ~_BV(PB3);  // disable pull-ups
 
 #ifdef VFD_TO_SPEC
-    // remove power from fillament
-    PORTC &= ~_BV(PC2) & ~_BV(PC3);
+    // disable VFD cathode (heater fillament)
+    PORTC &= ~_BV(PC2) & ~_BV(PC3);  // pull to ground
 #endif  // VFD_TO_SPEC
 }
 
@@ -447,11 +459,12 @@ void display_off(void) {
 	    display.status |=  DISPLAY_DISABLED;
 	    TCCR0A = _BV(WGM00) | _BV(WGM01);
 	    PORTD &= ~_BV(PD6);  // boost fet off (pull low)
+#ifndef XMAS_DESIGN
 	    PORTD |=  _BV(PD3);  // MAX6921 power off (pull high)
+#endif  // !XMAS_DESIGN
 #ifdef VFD_TO_SPEC
-	    // disable fillament power
-	    PORTC &= ~_BV(PC2);
-	    PORTC &= ~_BV(PC3);
+	    // disable VFD cathode (heater fillament)
+	    PORTC &= ~_BV(PC2) & ~_BV(PC3);  // pull to ground
 #endif  // VFD_TO_SPEC
 	}
     }
@@ -469,13 +482,15 @@ void display_on(void) {
 	    TCCR0A =   _BV(COM0A1) | _BV(COM0B0) | _BV(COM0B1)
 		     | _BV(WGM00) | _BV(WGM01);
 
-	    // power fillament
+	    // power VFD cathode (heater fillament)
 	    PORTC |=  _BV(PC2);
 	    PORTC &= ~_BV(PC3);
 #else
 	    TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
 #endif  // VFD_TO_SPEC
+#ifndef XMAS_DESIGN
 	    PORTD &= ~_BV(PD3);  // MAX6921 power on (pull low)
+#endif  // !XMAS_DESIGN
 	}
     }
 }
