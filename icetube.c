@@ -128,6 +128,9 @@ ISR(TIMER2_COMPB_vect) {
 	temp_tick();
 	wdt_reset();
     } else {
+	if(semitick_successful) wdt_reset();
+	semitick_successful = 0;
+
 	system_tick();
 	time_tick();
 	buttons_tick();
@@ -138,8 +141,6 @@ ISR(TIMER2_COMPB_vect) {
 	gps_tick();
 	usart_tick();
 	temp_tick();
-	if(semitick_successful) wdt_reset();
-	semitick_successful = 0;
     }
 }
 

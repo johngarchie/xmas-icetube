@@ -609,17 +609,16 @@ uint8_t display_varsemitick(void) {
 		bits[bitidx >> 3] |= _BV(bitidx & 0x7);
 	    }
 	}
-    }
 
-
-    // blank display to prevent ghosting
+	// blank display to prevent ghosting
 #ifdef VFD_TO_SPEC
-    // disable pwm on blank pin
-    TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
-    PORTD |= _BV(PD5);  // push MAX6921 BLANK pin high
+	// disable pwm on blank pin
+	TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
+	PORTD |= _BV(PD5);  // push MAX6921 BLANK pin high
 #else
-    PORTC |= _BV(PC3);  // push MAX6921 BLANK pin high
+	PORTC |= _BV(PC3);  // push MAX6921 BLANK pin high
 #endif  // VFD_TO_SPEC
+    }
 
     // send bits to the MAX6921 (vfd driver chip)
 
@@ -659,14 +658,17 @@ uint8_t display_varsemitick(void) {
     PORTC |=  _BV(PC0);
     PORTC &= ~_BV(PC0);
 
-    // unblank display to prevent ghosting
+    if(!(display.status & DISPLAY_DISABLED)) {
+	// unblank display to prevent ghosting
 #ifdef VFD_TO_SPEC
-    // enable pwm on blank pin
-    TCCR0A = _BV(COM0A1) | _BV(COM0B0) | _BV(COM0B1) | _BV(WGM00) | _BV(WGM01);
-    TCNT0  = 0xFF;  // set counter to max
+	// enable pwm on blank pin
+	TCCR0A = _BV(COM0A1) | _BV(COM0B0) | _BV(COM0B1) |
+	         _BV(WGM00)  | _BV(WGM01);
+	TCNT0  = 0xFF;  // set counter to max
 #else
-    PORTC &= ~_BV(PC3);  // pull MAX6921 BLANK pin low
+	PORTC &= ~_BV(PC3);  // pull MAX6921 BLANK pin low
 #endif  // VFD_TO_SPEC
+    }
 
     // return time to display current digit
     return display.digit_times[digit_idx] >> display.digit_time_shift;
@@ -951,9 +953,9 @@ void display_autodim(void) {
     OCR0A = OCR0A_VALUE;  // set fixed boost value
 
 #ifdef AUTOMATIC_DIMMER
-    // convert photoresistor value to 0-255 for OCR0B
+    // convert photoresistor value to [0-80] for ocr0b_gradient index
     int16_t grad_idx = (display.bright_max << 3) - (((display.photo_avg >> 8)
-		       * ((display.bright_max - display.bright_min) << 3)) >> 8);
+		      * ((display.bright_max - display.bright_min) << 3)) >> 8);
 #else
     int16_t grad_idx = (display.brightness < 0 ? 0 : display.brightness << 3);
 #endif  // AUTOMATIC_DIMMER
@@ -966,7 +968,7 @@ void display_autodim(void) {
 
 #else  // ~VFD_TO_SPEC
 #ifdef AUTOMATIC_DIMMER
-    // convert photoresistor value to 20-90 for OCR0A
+    // convert photoresistor value to OCR0A_MIN-OCR0A_MAX for OCR0A
     int16_t new_OCR0A = OCR0A_MIN + OCR0A_SCALE * display.bright_max
 			 - ( (((display.photo_avg >> 8) * OCR0A_SCALE) >> 2)
                              * (display.bright_max - display.bright_min) >> 6);

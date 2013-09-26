@@ -25,7 +25,7 @@
 // "next selected option," or "increment selected number."
 //
 //
-//#define ADAFRUIT_BUTTONS
+// #define ADAFRUIT_BUTTONS
 
 
 // AUTOMATIC DIMMER HACK
@@ -175,7 +175,7 @@
 // macros defined in usart.h.  The default speed is 9600 baud.
 //
 //
-// #define DEBUG
+#define DEBUG
 
 
 // USART BAUD RATE

@@ -1,6 +1,6 @@
 // temp.c  --  acquires measurements from temperature sensor
 //
-//    PC2        1-Wire bus
+//    PC1        1-Wire bus
 //
 
 #include "config.h"
@@ -52,15 +52,18 @@ void temp_init(void) {
 }
 
 
-// mark current temperature conversion as invalid
 void temp_sleep(void) {
+    // disable output on the one-wire bus
+    DDRC  &= ~_BV(PC1);  // set as input
+    PORTC &= ~_BV(PC1);  // disable pull-up
+
+    // mark current conversion as invalid
     temp.status |= TEMP_CONV_INVALID;
 }
 
 
 // query temperature probe as needed, once per second
 void temp_tick(void) {
-    return;
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
 	++temp.int_timer;
     }
@@ -199,14 +202,15 @@ uint8_t temp_reset(void) {
     uint8_t response = 0;
 
     // pull low for at least 500 us
-    DDRC |= _BV(PC2);  // set as output
+    PORTC &= ~_BV(PC1);  // pull low
+    DDRC  |=  _BV(PC1);  // set as output
     _delay_us(500);
 
     // release bus and check device response (timing critical)
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
-	DDRC &= ~_BV(PC2);  // set as input
+	DDRC &= ~_BV(PC1);  // set as input
 	_delay_us(80);      // wait for response
-	if(PINC & _BV(PC2)) response = 1;  // query bus
+	if(PINC & _BV(PC1)) response = 1;  // query bus
     }
 
     // additional 420 us delay, so bus released for at least 500 us
@@ -222,22 +226,19 @@ uint8_t temp_reset(void) {
 // if bit is true, writes 1; if false, writes 0
 void temp_write_bit(uint8_t bit) {
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
-	PORTC &= ~_BV(PC2);  // disable pull-up
-	DDRC  |=  _BV(PC2);  // pull low
+	PORTC &= ~_BV(PC1);  // disable pull-up
+	DDRC  |=  _BV(PC1);  // pull low
 	_delay_us(10);
 
 	if(bit) {  // sending 1
-	    PORTC |= _BV(PC2);  // pull high
+	    PORTC |= _BV(PC1);  // pull high
 	    _delay_us(55);      // for 55 us
 	} else {  // sending 0
 	    _delay_us(55);  // remain low for 55 us
-	    PORTC |= _BV(PC2);  // pull high
+	    PORTC |= _BV(PC1);  // pull high
 	}
 
 	_delay_us(5);  // 5 us recovery time
-
-	DDRC  &= ~_BV(PC2);  // set to input
-	PORTC &= ~_BV(PC2);  // disable pull-up
     }
 }
 
@@ -249,18 +250,23 @@ uint8_t temp_read_bit(void) {
 
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
 	// initiate read timeslot
-	PORTC &= ~_BV(PC2);      // disable pull-up
-	DDRC  |=  _BV(PC2);      // pull low
+	PORTC &= ~_BV(PC1);      // disable pull-up
+	DDRC  |=  _BV(PC1);      // pull low
 	_delay_us(3);
 
 	// wait for and read response
-	DDRC &= ~_BV(PC2);       // set to input
+	DDRC &= ~_BV(PC1);       // set to input
 	_delay_us(10);           // wait for response
-	if(PINC & _BV(PC2)) bit = 1;  // query bus
+	if(PINC & _BV(PC1)) bit = 1;  // query bus
     }
 
-    // 52 us to complete 65 us timeslot with 5us recovery time
-    _delay_us(57);
+    // 50 us to complete 60 us timeslot
+    _delay_us(47);
+
+    // pull bus high for 5 us recovery time
+    PORTC |=  _BV(PC1);      // enable pull-up
+    DDRC  |=  _BV(PC1);      // pull low
+    _delay_us(5);
 
     return bit;
 }
@@ -290,8 +296,8 @@ uint8_t temp_read_byte(void) {
 
 // sends power via the bus (sensor wired in parasitic mode)
 void temp_power_bus(void) {
-    PORTC |= _BV(PC2);  // enable pull-up
-    DDRC  |= _BV(PC2);  // push high
+    PORTC |= _BV(PC1);  // enable pull-up
+    DDRC  |= _BV(PC1);  // push high
 }
 
 
