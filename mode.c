@@ -969,6 +969,26 @@ void mode_semitick(void) {
 		    mode_update(MODE_CFGDISP_SETDIGITBRIGHT_LEVEL,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
+		case (BUTTONS_SET | BUTTONS_PLUS):
+		    display.digit_times[*mode.tmp] = 15;
+
+		    display_noflicker();
+
+		    mode_update(MODE_CFGDISP_SETDIGITBRIGHT_LEVEL,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		case (BUTTONS_MENU | BUTTONS_PLUS):
+		    for(*mode.tmp=0; *mode.tmp<DISPLAY_SIZE; ++(*mode.tmp)) {
+			display.digit_times[*mode.tmp] = 15;
+		    }
+
+		    *mode.tmp = 0;
+
+		    display_noflicker();
+
+		    mode_update(MODE_CFGDISP_SETDIGITBRIGHT_LEVEL,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
 			display_loaddigittimes();
