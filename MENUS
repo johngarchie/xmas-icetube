@@ -52,10 +52,15 @@
     above the minimum and maximum provides more flexibility when
     configuring autodimming.
 
-
   "digt bri"
     Adjust the brightness of each individual digit to compensate for
-    inconsistent digit brightness.
+    inconsistent digit brightness.  In addition to the standard
+    single-button commands, the per-digit brightness controls also
+    respond to two multi-button commands:
+      (1) Pressing "set" and "+" simultaneously resets the brightness of
+	  the current digit to the minimum (default) value.
+      (2) Pressing "menu" and "+" simultaneously resets the brightness of
+	  all digits to the minimum (default) value.
 
   "auto off" -- Automatic Display Off
     Some users may wish to inactivate the display when no one is around, as

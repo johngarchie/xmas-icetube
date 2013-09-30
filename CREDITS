@@ -12,6 +12,9 @@
   * Ray Ramirez contributed code, made useful suggestions, and provided
     helpful advice.
 
+  * Justin Hayes suggested improvements to the per-digit brightness
+    controls.
+
   * Jens Gutsche suggested implementing alternative date formats and
     disabling the display at scheduled times to extend the IV-18 tube
     lifetime.
