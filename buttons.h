@@ -8,7 +8,7 @@
 
 
 // debounce and repeat settings
-#define BUTTONS_DEBOUNCE_TIME   20
+#define BUTTONS_DEBOUNCE_TIME   30
 #define BUTTONS_REPEAT_AFTER  1000
 #define BUTTONS_REPEAT_RATE    100
 
