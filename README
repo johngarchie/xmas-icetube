@@ -9,16 +9,15 @@ The firmware README is now located in the firmware directory:
 
 The xmas-icetube project started as an alternative firmware for the
 Adafruit Ice Tube clock, but now includes the xmas-icetube hardware
-redesign.  The hardware redesign includes an extensive revision of the
-main board as well as slight modifications to the side board and case.
+redesign.  The redesign includes an extensive revision of the main
+board as well as slight modifications to the side board and case.
 
 The xmas-icetube firmware runs on *both* the Adafruit Ice Tube Clock
-v1.1) and the xmas-icetube redesign.  Since most users will be using
+v1.1 and the xmas-icetube redesign.  Since most users will be using
 xmas-icetube on the Adafruit Ice Tube Clock v1.1, the default firmware
-configuration in config.h is set the Adafruit Ice Tube Clock v1.1
-without any hardware mods.  See the README file in the firmware
-directory for more information on how to configure the xmas-icetube
-firmware.
+configuration is set for the Adafruit Ice Tube Clock v1.1 without any
+hardware mods.  See the README file in the firmware directory for more
+information on how to configure the xmas-icetube firmware.
 
 
 #################
@@ -27,6 +26,6 @@ firmware.
 
 This project includes the following directories:
 
-  - board/     contains the xmas-icetube circuit board redesign
-  - case/      contains the xmas-icetube case redesign
-  - firmware/  contains the xmas-icetube firmware itself
+  - board/     contains the xmas-icetube circuit board redesign.
+  - case/      contains the xmas-icetube case redesign.
+  - firmware/  contains the xmas-icetube firmware.

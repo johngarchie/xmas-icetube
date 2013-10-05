@@ -7,20 +7,18 @@ in the following thread:
 
     http://forums.adafruit.com/viewtopic.php?f=41&t=43836
 
+
 The included board files can be opened and and modified with Eagle,
 which may be purchased or downloaded from CadSoft:
 
     http://www.cadsoftusa.com/
 
 
-This revision (revision B) may also be ordered directly from OSH Park:
+The current (revision C) board may also be ordered directly from
+OSH Park:
 
-    http://www.oshpark.com/shared_projects/Kyug4sCR
-
-
-Note:  The main PCB and side PCB might not be separated by OSH Park,
-so be prepared to cut those apart yourself.  In a future revision, the
-boards will be divided into two separate projects to avoid this issue.
+  http://oshpark.com/shared_projects/cANRY9hF
+  http://oshpark.com/shared_projects/PiRXWH3F
 
 
 #####################
