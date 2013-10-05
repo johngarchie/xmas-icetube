@@ -1,264 +1,32 @@
-##################
-## xmas-icetube ##
-##################
+The firmware README is now located in the firmware directory:
 
-My father gave me an Ice Tube Clock kit from Adafruit as a Christmas gift last
-year.  As an excuse to learn AVR programming, I started playing with the
-software.  Eventually, none of the original code remained and the project
-became a feature-rich reimplementation of the original Adafruit firmware.
+  https://github.com/johngarchie/xmas-icetube/blob/master/firmware
 
-  John Archie <www.jarchie.com>
-  December 27, 2012
 
+##########################
+## xmas-icetube Project ##
+##########################
 
-##############
-## FEATURES ##
-##############
+The xmas-icetube project started as an alternative firmware for the
+Adafruit Ice Tube clock, but now includes the xmas-icetube hardware
+redesign.  The hardware redesign includes an extensive revision of the
+main board as well as slight modifications to the side board and case.
 
-Many of the features in the xmas-icetube firmware were first implemented in
-other firmware projects; see the CREDITS file for details.  This firmware
-boasts the following improvements over the official Adafruit firmware.
+The xmas-icetube firmware runs on *both* the Adafruit Ice Tube Clock
+v1.1) and the xmas-icetube redesign.  Since most users will be using
+xmas-icetube on the Adafruit Ice Tube Clock v1.1, the default firmware
+configuration in config.h is set the Adafruit Ice Tube Clock v1.1
+without any hardware mods.  See the README file in the firmware
+directory for more information on how to configure the xmas-icetube
+firmware.
 
-  - animated display transitions
-  - multiple time and date formats
-  - optionally pulse display during alarm and snooze
-  - three alarm times for selectable days of the week
-  - adjustable alarm volume (from 0 to 10)
-  - progressive alarm option (gradually increasing volume)
-  - selectable alarm sound (high frequency beeps, low frequency beeps,
-    high frequency three beep pulse, low frequency three beep pulse,
-    Merry Christmas, Big Ben, Reveille, or For He's a Jolly Good Fellow)
-  - adjustable snooze duration
-  - DST support (USA, EU, or manual)
-  - fully automatic correction for time drift
-  - time-from-GPS support*
-  - no beeping or time loss after external power failure
-  - 4-fold or 25-fold* increase in backup battery life
-  - functional alarm during power outage**
-  - per-digit brightness adjustment for uneven displays
-  - automatic brightness control by ambient light*
-  - optionally disable display during specified time periods
-  - optionally disable display at night (when dark)*
-  - IV-18 VFD tube driven to specifications*
 
-*  These hacks require hardware modification and support must be enabled by
-   uncommenting macros in config.h.  See the HACKS AND MODS section of
-   this file as well as the comments in config.h for more information.
+#################
+## Directories ##
+#################
 
-** The snooze feature, musical alarm, and progressive alarm are automatically
-   disabled during a power failure.  While on battery power, the buzzer alarm
-   sounds at the menu-settable maximum volume and the alarm can only be enabled
-   or disabled via the alarm on/off switch.  All other inputs are ignored until
-   power is restored.
+This project includes the following directories:
 
-
-For Ice Tube Clock hackers, this firmware has
-
-    (1) compatibility with the ATMEGA328P,
-    (2) a pseudo object-oriented design,
-    (3) reasonably good commenting, and
-    (4) display/menus by finite state machine.
-
-
-##################
-## INSTALLATION ##
-##################
-
-Installation requires GNU Make, avr-libc, avr-gcc, and avrdude; the
-instructions below presume proficiency with these tools.
-
-This firmware requires the ATMEGA328P:  not the ATMEGA168V included
-with the Ice Tube Clock kit.  Due to the many features, this firmware
-currently requires ~25 kb of flash, but the ATMEGA168V only has 16 kb.
-Also, if your ATMEGA328P has an Arduino bootloader installed, it will
-not work without reconfiguration.  See the TROUBLESHOOTING section for
-reconfiguration instructions.
-
-To program the chip, any avrdude-compatible ISP programmer should work,
-but programming has been tested with the Adafruit USBtinyISP, the Atmel
-AVR Dragon, and an Arduino programed with the ArduinoISP sketch.
-
-Compilation and installation has been tested under
-
-    (a) Ubuntu Linux 12.04 with the avr-gcc and avrdude packages,
-    (b) Mac OS 10.6 with MacPorts' avr-gcc and avrdude packages, and
-    (c) Windows 7 with WinAVR and Cygwin's perl and bash packages.
-
-To compile and install this firmware, first configure compile-time
-options by editing config.h; then, build and install the project using
-the included Makefile:
-
-(1) Edit the Configuration Variables
-
-    First, review the macro definitions in config.h, changing macro
-    definitions as needed to enable support for various hardware hacks.
-
-    Next, review the Makefile to ensure that configuration variables
-    are reasonable given your hardware.  In particular, AVRISP and
-    AVRDUDEOPT seem most likely to require attention.
-
-(2) Compile the Firmware
-
-    Build icetube_fuse.hex, icetube_flash.hex, icetube_eeprom.hex, and
-    icetube_lock.hex which contain the fuse bits, program memory (flash),
-    EEPROM data, and lock bits:
-
-	% make
-
-(3) Connect the Programmer
-
-    Before unplugging the clock, reduce the display brightness to the
-    minimum.  Ensure the clock has an ATMEGA328P installed and not
-    an ATMEGA168V.  Unplug and disassemble the clock.  Most users
-    report that the clock cannot be programmed without removing the
-    side PCB with VFD tube, so remove that.  Reconnect the power
-    adaptor.  Connect the AVR programmer to the clock's ISP header,
-    ensuring that pin one on the cable and the marked pin on the clock's
-    ISP header match.
-
-(4) Install the Firmware
-
-    Install this firmware to an ATMEGA328P by setting the fuse bits,
-    writing the flash program, writing the EEPROM data, and setting
-    the lock bits:
-
-        % make install-all
-
-    Alternatively, this firmware may be installed in separate steps:
-
-        % make install-fuse
-        % make install-flash
-        % make install-eeprom
-        % make install-lock
-
-
-#####################
-## USING THE CLOCK ##
-#####################
-
-Clock usage is largely undocumented, but a description of the
-configuration menu layout is in the MENUS text file.
-
-
-####################
-## HACKS AND MODS ##
-####################
-
-Development of the various hacks and mods supported by this firmware
-have been discussed extensively in the Adafruit discussion board.
-Options requiring hardware changes can be enabled by uncommenting
-macros in the config.h file.  Comments in the config.h describe each
-optional feature in detail.
-
-:: Automatic Display Dimming ::
-http://forums.adafruit.com/viewtopic.php?f=41&t=12932
-
-:: Temperature Compensated Timekeeping ::
-http://forums.adafruit.com/viewtopic.php?f=41&t=14941
-
-:: GPS Timekeeping ::
-http://forums.adafruit.com/viewtopic.php?f=41&t=36873
-http://www.ladyada.net/make/icetube/mods.html
-http://forums.adafruit.com/viewtopic.php?f=41&t=32660
-
-:: Extended Battery Life ::
-http://forums.adafruit.com/viewtopic.php?f=41&t=36697
-
-:: IV-18 To-Spec Hack ::
-http://forums.adafruit.com/viewtopic.php?f=41&t=41811
-
-:: Reliably Sleeping During Power Failure ::
-http://forums.adafruit.com/viewtopic.php?f=41&t=22515
-
-:: Automatic Drift Correction ::
-http://forums.adafruit.com/viewtopic.php?f=41&t=12720
-
-:: Per-Digit Brightness Adjustment ::
-http://forums.adafruit.com/viewtopic.php?f=41&t=23586
-
-
-#####################
-## TROUBLESHOOTING ##
-#####################
-
-:: General Troubleshooting ::
-
-For many hardware issues, the Adafruit FAQs are quite helpful:
-
-  http://forums.adafruit.com/viewtopic.php?f=41&t=27032
-  http://learn.adafruit.com/ice-tube-clock-kit/faq
-
-
-The Adafruit Clocks forums is an excellent place to ask for help:
-
-  http://forums.adafruit.com/viewforum.php?f=41
-
-
-:: Programming Fails with an Arduino Chip ::
-
-The Arduino Uno chip is an ATMEGA328P, but will not work in an Ice
-Tube Clock without reconfiguration.  Arduino chips have their fuse
-settings configured to use an external 16 MHz oscillator for the
-system clock.  The Ice Tube Clock does not provide a suitable external
-oscillator, and without an external oscillator, an Arduino chip will
-not function--not even to be reconfigured.
-
-To provide an external oscillator for reconfiguration, insert the
-Arduino chip into an Arduino board.  Next, connect a programmer to the
-ISP on the Arduino board and reprogram the fuses with the xmas-icetube
-Makefile:  "make install-fuse".  The ATMEGA328P's fuse settings are
-now configured to use the 8 MHz internal oscillator and can be
-installed and programmed as described in the INSTALLATION section.
-
-This method is also described in the following thread:
-
-  http://forums.adafruit.com/viewtopic.php?p=184722#p184722
-
-
-:: Dim Digits ::
-
-The per-digit brightness control in the xmas-icetube firmware provides
-one way to increase the brightness of dim digits, but increasing
-current across the VFD filament often produces better results.  The
-most straightforward way to increase filament current is to replace
-R3 with a jumper:
-
-  http://forums.adafruit.com/viewtopic.php?p=179107#p179107
-
-
-:: Nonfunctional Drift Correction ::
-
-Initially the clock will not perform drift correction.  Use the clock
-normally and the automatic drift correction will eventually enable
-itself.  Accuracy will improve over time.
-
-The clock estimates time drift when users change the time by more than
-15 seconds.  The fastest way to enable drift correction is to (1) set
-the correct time, (2) wait for the clock to drift by more than 15
-seconds, and (3) set the correct time.
-
-Occasionally setting an incorrect time will not have much affect on
-drift correction, and changing time for different timezones or
-daylight saving is similarly unproblematic.  The automatic drift
-correction method is quite robust:
-
-    http://forums.adafruit.com/viewtopic.php?p=178611#p178611
-
-
-:: Unstable Crystal Oscillator ::
-
-Oscillator caps C8 and C9 are a bit large.  Usually this only means
-that the clock consistently runs slow, losing a few seconds each day.
-When the time is periodically corrected, the automatic drift
-correction detects that the clock is running slow and compensates
-timekeeping accordingly.
-
-Much less commonly, the quartz oscillator will not function--or much
-worse--operate intermittently.  Faulty operation causes time loss
-and/or clock resets.  After such a reset, the clock will periodically
-display "wdt rset" to warn of time loss.  This message indicates that
-the watchdog timer ("wdt") has expired and the watchdog circuit has
-reset ("rset") the clock.  The most straightforward solution to this
-problem is to replace C8 and C9 with 10 pF caps:
-
-  http://forums.adafruit.com/viewtopic.php?p=189366#p189366
+  - board/     contains the xmas-icetube circuit board redesign
+  - case/      contains the xmas-icetube case redesign
+  - firmware/  contains the xmas-icetube firmware itself
