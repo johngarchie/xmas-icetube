@@ -954,6 +954,7 @@ void mode_semitick(void) {
 				    DISPLAY_TRANS_INSTANT);
 		    } else {
 			mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+			display_savedigittimes();
 		    }
 		    break;
 		case BUTTONS_PLUS:
