@@ -1,6 +1,17 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// XMAS-ICETUBE CLOCK DESIGN
+//
+// The xmas-icetube redesign of the Ice Tube Clock requires a few
+// firmware modifications.  The following macro enables these
+// modifications, but break compatibility with the original Ice Tube
+// Clock design by Adafruit (v1.1)
+//
+//
+// #define XMAS_DESIGN
+
+
 // ADAFRUIT-STYLE BUTTONS
 //
 // By default this xmas-icetube uses a unique button scheme:
@@ -46,7 +57,7 @@
 // #define GPS_TIMEKEEPING
 
 
-// TEMPERATURE COMPENSATED CRYSTAL OSCILLATOR
+// EXTERNAL CLOCK / TEMPERATURE COMPENSATED CRYSTAL OSCILLATOR
 //
 // The following macro should be defined if using an external
 // 32.768 kHz clock source for timekeeping such as a Maxim DS32kHz.
@@ -56,6 +67,42 @@
 //
 //
 // #define EXTERNAL_CLOCK
+
+
+// TEMPERATURE SENSOR / TEMPERATURE COMPENSATED TIMEKEEPING
+//
+// This hack requires attaching a DS18B20 OneWire temperature sensor
+// to ATMEGA328P PC1 pin, but unfortunately the internal temperature
+// of the clock is above the ambiant temperature.  As a result, this
+// modification is not useful for displaying the current temperature.
+//
+// This modification is useful for temperature compensated
+// timekeeping, however.  The XTAL_TURNOVER_TEMP macro specifies the
+// temperature at which the crystal oscillates at maximum frequency in
+// units of deg C / 16.  The XTAL_FREQUENCY_COEF macro specifies the
+// parabolic temperature dependence of the crystal in units -ppb /
+// (deg C)^2.  For a turnover temperature of 25 deg C and a frequency
+// coefficient of -0.034 ppm / (deg C)^2, XTAL_TURNOVER_TEMP should be
+// defined as 400 (25 * 16), and XTAL_FREQUENCY_COEF should be defined
+// as 34 (-0.034 * -1000).
+//
+// This technique for temperature compensation is described in the
+// following thread:
+//
+//   http://forums.adafruit.com/viewtopic.php?f=41&t=43998
+// 
+//
+// WARNING:  If your clock is modified for the original extended
+// battery hack, which shorts the ATMEGA328P PC1 pin to ground,
+// enabling the macros below might damage your clock!  The original
+// extended battery hack is described in the following thread:
+//
+//   http://forums.adafruit.com/viewtopic.php?t=36697
+// 
+//
+// #define TEMPERATURE_SENSOR
+// #define XTAL_TURNOVER_TEMP  400  // deg C / 16
+// #define XTAL_FREQUENCY_COEF 34   // -ppb / (deg C)^2
 
 
 // IV-18 TO-SPEC HACK
@@ -70,7 +117,7 @@
 //
 //
 // #define VFD_TO_SPEC
-// #define OCR0A_VALUE 128
+// #define OCR0A_VALUE 96
 
 
 // DISPLAY BRIGHTNESS / BOOST CONFIGURATION
@@ -134,7 +181,7 @@
 // macros defined in usart.h.  The default speed is 9600 baud.
 //
 //
-// #define DEBUG
+#define DEBUG
 
 
 // USART BAUD RATE

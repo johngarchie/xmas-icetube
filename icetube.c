@@ -3,15 +3,16 @@
 // The code here is minimal and, for the most part, simply invokes
 // functionality contained within other files:
 //
-//    system.c     system management (idle and sleep loops)
-//    time.c       date and time keeping
 //    alarm.c      alarm functionality
-//    piezo.c      piezo element control (music, beeps, clicks)
 //    buttons.c    button inputs (menu, set, and plus)
 //    display.c    boost, MAX6921, and VFD
-//    mode.c       clock mode (displayed time, menus, etc.)
-//    usart.c      serial communication
 //    gps.c        time-from-GPS functionality
+//    mode.c       clock mode (displayed time, menus, etc.)
+//    piezo.c      piezo element control (music, beeps, clicks)
+//    system.c     system management (idle and sleep loops)
+//    temp.c       temperature sensing
+//    time.c       date and time keeping
+//    usart.c      serial communication
 //
 
 
@@ -35,6 +36,7 @@
 #include "mode.h"
 #include "usart.h"
 #include "gps.h"
+#include "temp.h"
 
 
 // define ATmega328p lock bits
@@ -81,6 +83,7 @@ int main(void) {
     display_init();
     mode_init();
     gps_init();
+    temp_init();
 
     // if on battery power, sleep until external power restored
     if(system_power() == SYSTEM_BATTERY) {
@@ -122,8 +125,12 @@ ISR(TIMER2_COMPB_vect) {
 	time_tick();
 	alarm_tick();
 	piezo_tick();
+	temp_tick();
 	wdt_reset();
     } else {
+	if(semitick_successful) wdt_reset();
+	semitick_successful = 0;
+
 	system_tick();
 	time_tick();
 	buttons_tick();
@@ -133,8 +140,7 @@ ISR(TIMER2_COMPB_vect) {
 	display_tick();
 	gps_tick();
 	usart_tick();
-	if(semitick_successful) wdt_reset();
-	semitick_successful = 0;
+	temp_tick();
     }
 }
 
@@ -168,6 +174,7 @@ ISR(TIMER0_OVF_vect) {
 		display_semitick();
 		gps_semitick();
 		usart_semitick();
+		temp_semitick();
 
 		semitick_successful = 1;
 		semicounter = 32;
@@ -197,6 +204,7 @@ ISR(ANALOG_COMP_vect) {
     gps_sleep();      // disable usart rx interrupt
     usart_sleep();    // disable usart
     piezo_sleep();    // adjust buzzer timer for slower clock
+    temp_sleep();     // disable temperature sensor
     system_sleep();   // does nothing
 
     // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
@@ -212,6 +220,7 @@ ISR(ANALOG_COMP_vect) {
     sei();  // allow interrupts
 
     system_wake();   // does nothing
+    temp_wake();     // enable temperature sensor
     piezo_wake();    // adjust buzzer for faster clock
     mode_wake();     // does nothing
     buttons_wake();  // enable button pull-ups

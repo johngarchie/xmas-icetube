@@ -12,6 +12,7 @@
 
 #include "time.h"
 #include "usart.h"   // for debugging output
+#include "temp.h"    // for temperature compensation
 #include "system.h"  // for determining power source
 
 
@@ -677,8 +678,20 @@ void time_autodrift(void) {
 	    // clock is fast: make next "second" longer
 	    OCR2A = 128;  // 129 values, including zero
 	} else {
+#ifdef TEMPERATURE_SENSOR
+	    if(temp.adjust) {
+		// make next "second" shorter if required
+		// for temperature compensation 
+		--temp.adjust;
+		OCR2A = 126; // 127 values, including zero
+	    } else {
+		// make next "second" of normal duration
+		OCR2A = 127; // 128 values, including zero
+	    }
+#else
 	    // make next "second" of normal duration
 	    OCR2A = 127; // 128 values, including zero
+#endif  // TEMPERATURE_SENSOR
 	}
     }
 

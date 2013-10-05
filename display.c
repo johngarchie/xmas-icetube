@@ -3,23 +3,27 @@
 //
 //    PB5 (SCK)                      MAX6921 CLK pin
 //    PB3 (MOSI)                     MAX6921 DIN pin
-//    PC5                            photoresistor pull-up
+//    PC5*                           photoresistor pull-up
 //    PC4 (ADC4)                     photoresistor voltage
-//    PC3*                           MAX6921 BLANK pin
-//    PC3**			     alternating current signal pin
-//    PC2**			     alternating current signal pin
+//    PC3**                          MAX6921 BLANK pin
+//    PC3***			     alternating current signal pin
+//    PC2***			     alternating current signal pin
 //    PC0                            MAX6921 LOAD pin
 //    PD6                            boost transistor
-//    PD3                            vfd power transistor
+//    PD3*                           vfd power transistor
 //    counter/timer0                 boost (PD6) and semiticks
 //    analog to digital converter    photoresistor (ADC4) voltage
 //
-//  * PD5--not PC3--is used to control the BLANK pin if and only if
-//    the IV-18 to-spec hack is enabled.
+//   * PC5 is used to directly power the photoresistor, vfd power, and
+//     temperature sensor pull-up if configured for the xmas-icetube
+//     hardware design.
 //
-// ** PC3 and PC2 are used to generate an alternating current signal
-//    to power the IV-18 filament if and only if the IV-18 to-spec 
-//    hack is enabled.
+//  ** PD5--not PC3--is used to control the BLANK pin if and only if
+//     the IV-18 to-spec hack is enabled.
+//
+// *** PC3 and PC2 are used to generate an alternating current signal
+//     to power the IV-18 filament if and only if the IV-18 to-spec 
+//     hack is enabled.
 //
 
 
@@ -206,9 +210,12 @@ void display_init(void) {
     power_timer0_enable();
 
     // disable boost and vfd
-    DDRD  |= _BV(PD6) | _BV(PD3); // enable boost fet and vfd transistor
+#ifndef XMAS_DESIGN
+    DDRD  |= _BV(PD3); // enable boost fet and vfd transistor
+    PORTD |= _BV(PD3); // MAX6921 power off (push high)
+#endif  // !XMAS_DESIGN
+    DDRD  |=  _BV(PD6); // enable boost fet and vfd transistor
     PORTD &= ~_BV(PD6); // boost fet off (pull low)
-    PORTD |=  _BV(PD3); // MAX6921 power off (push high)
 
 #ifdef VFD_TO_SPEC
     // configure MAX6921 load and blank pins
@@ -257,8 +264,9 @@ void display_init(void) {
     display_loadstatus();
 
 #ifdef VFD_TO_SPEC
-    DDRC |= _BV(PC2);
-    DDRC |= _BV(PC3);
+    // configure AC signal pins
+    DDRC  |=  _BV(PC2) |  _BV(PC3);  // set as output
+    PORTC &= ~_BV(PC2) & ~_BV(PC3);  // pull to ground
 #endif  // VFD_TO_SPEC
 }
 
@@ -319,10 +327,12 @@ void display_wake(void) {
     display_loadbright();
 
     // MAX6921 power on (pull low)
+#ifndef XMAS_DESIGN
     PORTD &= ~_BV(PD3);
+#endif  // !XMAS_DESIGN
 
 #ifdef VFD_TO_SPEC
-    // power fillament
+    // power VFD cathode (heater)
     PORTC |=  _BV(PC2);
     PORTC &= ~_BV(PC3);
 #endif  // VFD_TO_SPEC
@@ -338,7 +348,9 @@ void display_sleep(void) {
     TCCR0A = TCCR0B = 0;
 
     PORTD &= ~_BV(PD6); // boost fet off (pull low)
+#ifndef XMAS_DESIGN
     PORTD |=  _BV(PD3); // MAX6921 power off (pull high)
+#endif  // !XMAS_DESIGN
 
     // disable external and internal photoresistor pull-ups
     PORTC &= ~_BV(PC5) & ~_BV(PC4);  // pull to ground, disable pull-up
@@ -363,8 +375,8 @@ void display_sleep(void) {
     PORTB &= ~_BV(PB5) & ~_BV(PB3);  // disable pull-ups
 
 #ifdef VFD_TO_SPEC
-    // remove power from fillament
-    PORTC &= ~_BV(PC2) & ~_BV(PC3);
+    // disable VFD cathode (heater fillament)
+    PORTC &= ~_BV(PC2) & ~_BV(PC3);  // pull to ground
 #endif  // VFD_TO_SPEC
 }
 
@@ -447,11 +459,12 @@ void display_off(void) {
 	    display.status |=  DISPLAY_DISABLED;
 	    TCCR0A = _BV(WGM00) | _BV(WGM01);
 	    PORTD &= ~_BV(PD6);  // boost fet off (pull low)
+#ifndef XMAS_DESIGN
 	    PORTD |=  _BV(PD3);  // MAX6921 power off (pull high)
+#endif  // !XMAS_DESIGN
 #ifdef VFD_TO_SPEC
-	    // disable fillament power
-	    PORTC &= ~_BV(PC2);
-	    PORTC &= ~_BV(PC3);
+	    // disable VFD cathode (heater fillament)
+	    PORTC &= ~_BV(PC2) & ~_BV(PC3);  // pull to ground
 #endif  // VFD_TO_SPEC
 	}
     }
@@ -469,13 +482,15 @@ void display_on(void) {
 	    TCCR0A =   _BV(COM0A1) | _BV(COM0B0) | _BV(COM0B1)
 		     | _BV(WGM00) | _BV(WGM01);
 
-	    // power fillament
+	    // power VFD cathode (heater fillament)
 	    PORTC |=  _BV(PC2);
 	    PORTC &= ~_BV(PC3);
 #else
 	    TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
 #endif  // VFD_TO_SPEC
+#ifndef XMAS_DESIGN
 	    PORTD &= ~_BV(PD3);  // MAX6921 power on (pull low)
+#endif  // !XMAS_DESIGN
 	}
     }
 }
@@ -594,17 +609,16 @@ uint8_t display_varsemitick(void) {
 		bits[bitidx >> 3] |= _BV(bitidx & 0x7);
 	    }
 	}
-    }
 
-
-    // blank display to prevent ghosting
+	// blank display to prevent ghosting
 #ifdef VFD_TO_SPEC
-    // disable pwm on blank pin
-    TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
-    PORTD |= _BV(PD5);  // push MAX6921 BLANK pin high
+	// disable pwm on blank pin
+	TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
+	PORTD |= _BV(PD5);  // push MAX6921 BLANK pin high
 #else
-    PORTC |= _BV(PC3);  // push MAX6921 BLANK pin high
+	PORTC |= _BV(PC3);  // push MAX6921 BLANK pin high
 #endif  // VFD_TO_SPEC
+    }
 
     // send bits to the MAX6921 (vfd driver chip)
 
@@ -644,14 +658,17 @@ uint8_t display_varsemitick(void) {
     PORTC |=  _BV(PC0);
     PORTC &= ~_BV(PC0);
 
-    // unblank display to prevent ghosting
+    if(!(display.status & DISPLAY_DISABLED)) {
+	// unblank display to prevent ghosting
 #ifdef VFD_TO_SPEC
-    // enable pwm on blank pin
-    TCCR0A = _BV(COM0A1) | _BV(COM0B0) | _BV(COM0B1) | _BV(WGM00) | _BV(WGM01);
-    TCNT0  = 0xFF;  // set counter to max
+	// enable pwm on blank pin
+	TCCR0A = _BV(COM0A1) | _BV(COM0B0) | _BV(COM0B1) |
+	         _BV(WGM00)  | _BV(WGM01);
+	TCNT0  = 0xFF;  // set counter to max
 #else
-    PORTC &= ~_BV(PC3);  // pull MAX6921 BLANK pin low
+	PORTC &= ~_BV(PC3);  // pull MAX6921 BLANK pin low
 #endif  // VFD_TO_SPEC
+    }
 
     // return time to display current digit
     return display.digit_times[digit_idx] >> display.digit_time_shift;
@@ -936,9 +953,9 @@ void display_autodim(void) {
     OCR0A = OCR0A_VALUE;  // set fixed boost value
 
 #ifdef AUTOMATIC_DIMMER
-    // convert photoresistor value to 0-255 for OCR0B
+    // convert photoresistor value to [0-80] for ocr0b_gradient index
     int16_t grad_idx = (display.bright_max << 3) - (((display.photo_avg >> 8)
-		       * ((display.bright_max - display.bright_min) << 3)) >> 8);
+		      * ((display.bright_max - display.bright_min) << 3)) >> 8);
 #else
     int16_t grad_idx = (display.brightness < 0 ? 0 : display.brightness << 3);
 #endif  // AUTOMATIC_DIMMER
@@ -951,7 +968,7 @@ void display_autodim(void) {
 
 #else  // ~VFD_TO_SPEC
 #ifdef AUTOMATIC_DIMMER
-    // convert photoresistor value to 20-90 for OCR0A
+    // convert photoresistor value to OCR0A_MIN-OCR0A_MAX for OCR0A
     int16_t new_OCR0A = OCR0A_MIN + OCR0A_SCALE * display.bright_max
 			 - ( (((display.photo_avg >> 8) * OCR0A_SCALE) >> 2)
                              * (display.bright_max - display.bright_min) >> 6);
