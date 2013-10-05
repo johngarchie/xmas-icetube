@@ -2144,9 +2144,11 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    break;
 	case MODE_CFGALARM_SETVOL_MIN:
 	    mode_textnum_display(PSTR("v min"), mode.tmp[MODE_TMP_MIN]);
+	    display_dot(1, TRUE);
 	    break;
 	case MODE_CFGALARM_SETVOL_MAX:
 	    mode_textnum_display(PSTR("v max"), mode.tmp[MODE_TMP_MAX]);
+	    display_dot(1, TRUE);
 	    break;
 	case MODE_CFGALARM_SETVOL_TIME:
 	    mode_textnum_display(PSTR("time"), *mode.tmp);
