@@ -44,19 +44,23 @@ AVROBJCOPYOPT ?=
 # explicitly specify a bourne-compatable shell
 SHELL ?= /bin/sh
 
+# included utility script for development tasks
+UTILSCRIPT ?= util.pl
+
 # build project and print memory usage
 all: $(addprefix $(PROJECT),.elf _flash.hex _eeprom.hex _fuse.hex _lock.hex)
 	-@echo
-	-@$(AVRSIZE) $(AVRSIZEOPT) $<
+	-@$(AVRSIZE) $(AVRSIZEOPT) $< | ./$(UTILSCRIPT) memusage
+	-@echo
 
 # make program binary by linking object files
 $(PROJECT).elf: $(OBJECTS)
 	$(AVRCPP) $(AVRCPPFLAGS) -o $@ $^
 
 # make time.o using system time the default clock time
-time.o: time.c optgen.pl
-	./optgen.pl time | xargs $(AVRCPP) -c $(AVRCPPFLAGS) -o $@ $<
-	./optgen.pl time | xargs $(AVRCPP) -MM $(AVRCPPFLAGS) $< > $*.d
+time.o: time.c $(UTILSCRIPT)
+	./$(UTILSCRIPT) time | xargs $(AVRCPP) -c $(AVRCPPFLAGS) -o $@ $<
+	./$(UTILSCRIPT) time | xargs $(AVRCPP) -MM $(AVRCPPFLAGS) $< > $*.d
 
 # make object files and dependency lists from source code
 %.o: %.c Makefile
@@ -87,20 +91,20 @@ install: $(addprefix $(PROJECT),_fuse.hex _flash.hex _eeprom.hex _lock.hex)
 # install everything--fuses, flash, eeprom, and lock
 install-all: $(addprefix $(PROJECT),_fuse.hex _flash.hex _eeprom.hex _lock.hex)
 	-@echo $(AVRDUDE) $(AVRDUDEOPT) \
-		`./optgen.pl fuse < $(PROJECT)_fuse.hex` \
+		`./$(UTILSCRIPT) fuse < $(PROJECT)_fuse.hex` \
 		-U flash:w:$(PROJECT)_flash.hex:i \
 		-U eeprom:w:$(PROJECT)_eeprom.hex:i \
-		`./optgen.pl lock < $(PROJECT)_lock.hex`
+		`./$(UTILSCRIPT) lock < $(PROJECT)_lock.hex`
 	-@$(AVRDUDE) $(AVRDUDEOPT) \
-		`./optgen.pl fuse < $(PROJECT)_fuse.hex` \
+		`./$(UTILSCRIPT) fuse < $(PROJECT)_fuse.hex` \
 		-U flash:w:$(PROJECT)_flash.hex:i \
 		-U eeprom:w:$(PROJECT)_eeprom.hex:i \
-		`./optgen.pl lock < $(PROJECT)_lock.hex`
+		`./$(UTILSCRIPT) lock < $(PROJECT)_lock.hex`
 
 # set fuse bits on avr chip
-install-fuse: $(PROJECT)_fuse.hex optgen.pl
-	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./optgen.pl fuse < $<`
-	-@     $(AVRDUDE) $(AVRDUDEOPT) `./optgen.pl fuse < $<`
+install-fuse: $(PROJECT)_fuse.hex $(UTILSCRIPT)
+	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) fuse < $<`
+	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) fuse < $<`
 
 # install executable code to avr chip
 install-flash: $(PROJECT)_flash.hex
@@ -111,9 +115,9 @@ install-eeprom: $(PROJECT)_eeprom.hex
 	$(AVRDUDE) $(AVRDUDEOPT) -U eeprom:w:$<:i
 
 # set lock bits on avr chip
-install-lock: $(PROJECT)_lock.hex optgen.pl
-	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./optgen.pl lock < $<`
-	-@     $(AVRDUDE) $(AVRDUDEOPT) `./optgen.pl lock < $<`
+install-lock: $(PROJECT)_lock.hex $(UTILSCRIPT)
+	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) lock < $<`
+	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) lock < $<`
 
 # delete build files
 clean:

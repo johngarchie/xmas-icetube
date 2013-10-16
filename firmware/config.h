@@ -121,7 +121,7 @@
 //
 //
 // #define VFD_TO_SPEC
-// #define OCR0A_VALUE 100
+// #define OCR0A_VALUE 128
 
 
 // DISPLAY BRIGHTNESS / BOOST CONFIGURATION

@@ -3,6 +3,10 @@
 use warnings;
 use strict;
 
+use constant FLASH_AVAIL  => 32768;
+use constant RAM_AVAIL    => 2048 ;
+use constant EEPROM_AVAIL => 1024 ;
+
 if(@ARGV && $ARGV[0] eq "fuse") {
     # read fuse settings
     my $line = <STDIN>;
@@ -50,6 +54,29 @@ if(@ARGV && $ARGV[0] eq "fuse") {
     for(my $i = 0; defined($timeFields[$i]); ++$i) {
 	print "-DTIME_DEFAULT_$timeFields[$i]=$timeData[$i]$/";
     }
+} elsif(@ARGV && $ARGV[0] eq "memusage") {
+    my %usage;
+
+    while(<STDIN>) {
+	if(m/^(\.[a-z]+)\s+(\d+)\s+\d+\s*$/) {
+	    $usage{$1} = $2;
+	}
+    }
+    my $flash_usage  = $usage{".text"} + $usage{".data"};
+    my $ram_usage    = $usage{".data"} + $usage{".bss"};
+    my $eeprom_usage = $usage{".eeprom"};
+
+    printf "ATMEGA328P MEMORY USAGE SUMMARY$/$/";
+
+    printf "Program memory (FLASH):  %3d%%    (%5d/%5d)$/",
+	   (100 * $flash_usage / FLASH_AVAIL),
+	   $flash_usage, FLASH_AVAIL;
+    printf "Preallocated SRAM:       %3d%%    (%5d/%5d)$/",
+	   (100 * $ram_usage / RAM_AVAIL),
+	   $ram_usage, RAM_AVAIL;
+    printf "Allocated EEPROM:        %3d%%    (%5d/%5d)$/",
+	   (100 * $eeprom_usage / EEPROM_AVAIL),
+	   $eeprom_usage, EEPROM_AVAIL;
 } else {
-    die "Usage:  avropt.pl [time|fuse|lock]\n";
+    die "Usage:  $0 [time|fuse|lock|memusage]\n";
 }
