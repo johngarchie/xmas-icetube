@@ -23,6 +23,7 @@ boasts the following improvements over the official Adafruit firmware.
   - multiple time and date formats
   - optionally pulse display during alarm and snooze
   - three alarm times for selectable days of the week
+  - functional alarm during power outage
   - adjustable alarm volume (from 0 to 10)
   - progressive alarm option (gradually increasing volume)
   - selectable alarm sound (high frequency beeps, low frequency beeps,
@@ -32,9 +33,9 @@ boasts the following improvements over the official Adafruit firmware.
   - DST support (USA, EU, or manual)
   - fully automatic correction for time drift
   - time-from-GPS support*
+  - temperature compensated timekeeping*
   - no beeping or time loss after external power failure
   - 4-fold or 25-fold* increase in backup battery life
-  - functional alarm during power outage**
   - per-digit brightness adjustment for uneven displays
   - automatic brightness control by ambient light*
   - optionally disable display during specified time periods
@@ -45,18 +46,12 @@ boasts the following improvements over the official Adafruit firmware.
    uncommenting macros in config.h.  See the HACKS AND MODS section of
    this file as well as the comments in config.h for more information.
 
-** The snooze feature, musical alarm, and progressive alarm are automatically
-   disabled during a power failure.  While on battery power, the buzzer alarm
-   sounds at the menu-settable maximum volume and the alarm can only be enabled
-   or disabled via the alarm on/off switch.  All other inputs are ignored until
-   power is restored.
-
 
 For Ice Tube Clock hackers, this firmware has
 
     (1) compatibility with the ATMEGA328P,
     (2) a pseudo object-oriented design,
-    (3) reasonably good commenting, and
+    (3) good source code documentation, and
     (4) display/menus by finite state machine.
 
 

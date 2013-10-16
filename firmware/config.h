@@ -4,9 +4,14 @@
 // XMAS-ICETUBE CLOCK DESIGN
 //
 // The xmas-icetube redesign of the Ice Tube Clock requires a few
-// firmware modifications.  The following macro enables these
-// modifications, but break compatibility with the original Ice Tube
-// Clock design by Adafruit (v1.1)
+// firmware modifications.  The XMAS_DESIGN macro enables these
+// modifications, but breaks compatibility with the Adafruit Ice Tube
+// Clock v1.1.
+//
+// When configuring this firmware for use with the xmas-icetube clock
+// design, the configuration macros for the following features should
+// also be enabled: the automatic dimmer hack, software temperature
+// compensated timekeeping, and the IV-18 to-spec hack.
 //
 //
 // #define XMAS_DESIGN
@@ -25,7 +30,7 @@
 // "next selected option," or "increment selected number."
 //
 //
-#define ADAFRUIT_BUTTONS
+// #define ADAFRUIT_BUTTONS
 
 
 // AUTOMATIC DIMMER HACK
@@ -57,7 +62,7 @@
 // #define GPS_TIMEKEEPING
 
 
-// EXTERNAL CLOCK / TEMPERATURE COMPENSATED CRYSTAL OSCILLATOR
+// TEMPERATURE COMPENSATED CRYSTAL OSCILLATOR
 //
 // The following macro should be defined if using an external
 // 32.768 kHz clock source for timekeeping such as a Maxim DS32kHz.
@@ -69,7 +74,7 @@
 // #define EXTERNAL_CLOCK
 
 
-// TEMPERATURE SENSOR / TEMPERATURE COMPENSATED TIMEKEEPING
+// SOFTWARE TEMPERATURE COMPENSATED TIMEKEEPING
 //
 // This hack requires attaching a DS18B20 OneWire temperature sensor
 // to ATMEGA328P PC1 pin, but unfortunately the internal temperature
@@ -90,7 +95,6 @@
 // following thread:
 //
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=43998
-// 
 //
 // WARNING:  If your clock is modified for the original extended
 // battery hack, which shorts the ATMEGA328P PC1 pin to ground,
@@ -117,7 +121,7 @@
 //
 //
 // #define VFD_TO_SPEC
-// #define OCR0A_VALUE 96
+// #define OCR0A_VALUE 100
 
 
 // DISPLAY BRIGHTNESS / BOOST CONFIGURATION
@@ -181,7 +185,7 @@
 // macros defined in usart.h.  The default speed is 9600 baud.
 //
 //
-#define DEBUG
+// #define DEBUG
 
 
 // USART BAUD RATE
