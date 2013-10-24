@@ -36,6 +36,9 @@
 // disabled flag for display.off_hour
 #define DISPLAY_NOOFF 0x80
 
+// the largest value for a rolling colon
+#define DISPLAY_ROLLING_MAX 2
+
 
 // types of display transitions
 enum {
@@ -153,6 +156,7 @@ void display_twodigit_rightadj(uint8_t idx, int8_t n);
 void display_twodigit_leftadj(uint8_t idx, int8_t n);
 void display_twodigit_zeropad(uint8_t idx, int8_t n);
 void display_char(uint8_t idx, char c);
+void display_rolling(uint8_t idx, uint8_t rolling_idx);
 void display_clear(uint8_t idx);
 
 void display_clearall(void);

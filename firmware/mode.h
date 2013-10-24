@@ -9,7 +9,6 @@
 // default menu timeout; on timeout, mode changes to time display
 #define MODE_TIMEOUT 30000  // semiticks (~milliseconds)
 
-
 // various clock modes; current mode given by mode.state
 enum {
     MODE_TIME_DISPLAY,

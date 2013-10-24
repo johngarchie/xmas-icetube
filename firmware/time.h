@@ -97,17 +97,22 @@ enum {
 
 enum {
     TIME_TIMEFORMAT_HH_MM_SS,
+    TIME_TIMEFORMAT_HH_MM_SS_rolling,
     TIME_TIMEFORMAT_HH_MM_dial,
+    TIME_TIMEFORMAT_HHMMSS_split,
     TIME_TIMEFORMAT_HH_MM,
     TIME_TIMEFORMAT_HH_MM_PM,
+    TIME_TIMEFORMAT_HH_MM_P,
     TIME_TIMEFORMAT_HHMMSSPM,
+    TIME_TIMEFORMAT_HHMMSSP,
 };
 
 
 typedef struct {
-    uint8_t status;  // status flags
-    uint8_t dateformat;  // date format
-    uint8_t timeformat;  // time format
+    uint8_t status;            // timekeeping status flags
+    uint8_t dateformat;        // date format flags
+    uint8_t timeformat_flags;  // time format flags
+    uint8_t timeformat_idx;    // time format index
 
     uint8_t year;    // years past 2000 (0 during year 2000)
     uint8_t month;   // month (1 during january)

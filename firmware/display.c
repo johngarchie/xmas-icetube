@@ -164,6 +164,15 @@ const uint8_t number_segments[] PROGMEM = {
     SEG_A | SEG_B | SEG_C | SEG_F | SEG_G,                 // 9
 };
 
+
+// codes for rolling colon time separators
+const uint8_t rolling_segments[] PROGMEM = {
+    SEG_A | SEG_D,
+    SEG_B | SEG_E,
+    SEG_C | SEG_F,
+};
+
+
 // vfd digit selection wires are on these MAX6921 pins
 const uint8_t vfd_digit_pins[] PROGMEM = {
     3,  // digit 9 (dash & circle)
@@ -1083,6 +1092,12 @@ void display_char(uint8_t idx, char c) {
 		break;
 	}
     }
+}
+
+
+// display rolling colon (rolling_idx) at display position (idx)
+void display_rolling(uint8_t idx, uint8_t rolling_idx) {
+    display.prebuf[idx] = pgm_read_byte(&(rolling_segments[rolling_idx]));
 }
 
 

@@ -34,10 +34,11 @@ uint8_t ee_time_minute EEMEM = TIME_DEFAULT_MINUTE;
 uint8_t ee_time_second EEMEM = TIME_DEFAULT_SECOND;
 
 // places to store the time and date display format
-uint8_t ee_time_timeformat EEMEM = 0;
-uint8_t ee_time_dateformat EEMEM =   TIME_DATEFORMAT_SHOWWDAY
-				   | TIME_DATEFORMAT_SHOWYEAR
-				   | TIME_DATEFORMAT_TEXT_EU;
+uint8_t ee_time_timeformat_flags EEMEM = 0;
+uint8_t ee_time_timeformat_idx   EEMEM = TIME_TIMEFORMAT_HH_MM_SS_rolling;
+uint8_t ee_time_dateformat       EEMEM =   TIME_DATEFORMAT_SHOWWDAY
+					 | TIME_DATEFORMAT_SHOWYEAR
+					 | TIME_DATEFORMAT_TEXT_EU;
 
 // drift adjustment data
 uint8_t ee_time_drift_count EEMEM = 0;
@@ -163,13 +164,15 @@ void time_loaddateformat(void) {
 
 // save time format
 void time_savetimeformat(void) {
-    eeprom_write_byte(&ee_time_timeformat, time.timeformat);
+    eeprom_write_byte(&ee_time_timeformat_flags, time.timeformat_flags);
+    eeprom_write_byte(&ee_time_timeformat_idx,   time.timeformat_idx);
 }
 
 
 // load time format
 void time_loadtimeformat(void) {
-    time.timeformat = eeprom_read_byte(&ee_time_timeformat);
+    time.timeformat_flags  = eeprom_read_byte(&ee_time_timeformat_flags);
+    time.timeformat_idx    = eeprom_read_byte(&ee_time_timeformat_idx);
 }
 
 
