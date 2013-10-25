@@ -25942,7 +25942,7 @@ Metric Code Size 5664</description>
 </classes>
 <parts>
 <part name="J1" library="minimidi" deviceset="2.1MMJACK" device=""/>
-<part name="C2" library="minimidi" deviceset="CPOL-US" device="E2.5-6" value="10uF/25V"/>
+<part name="C2" library="minimidi" deviceset="CPOL-US" device="E2.5-6" value="47uF"/>
 <part name="C4" library="minimidi" deviceset="CPOL-US" device="E2.5-6" value="220/6VuF"/>
 <part name="GND5" library="supply1" deviceset="GND" device=""/>
 <part name="GND6" library="supply1" deviceset="GND" device=""/>
@@ -26103,7 +26103,7 @@ Metric Code Size 5664</description>
 </instance>
 <instance part="C2" gate="G$1" x="38.1" y="167.64" smashed="yes">
 <attribute name="NAME" x="33.401" y="168.275" size="1.778" layer="95"/>
-<attribute name="VALUE" x="43.053" y="161.671" size="1.778" layer="96" rot="R180"/>
+<attribute name="VALUE" x="37.973" y="164.719" size="1.778" layer="96" rot="R180"/>
 </instance>
 <instance part="C4" gate="G$1" x="68.58" y="170.18" smashed="yes">
 <attribute name="NAME" x="69.342" y="170.815" size="1.778" layer="95"/>

@@ -4454,7 +4454,7 @@ Please make sure your boards conform to these design rules.</description>
 </autorouter>
 <elements>
 <element name="J1" library="minimidi" package="PJ-102A" value="2.1MMJACK" x="12.239" y="25.1206" smashed="yes"/>
-<element name="C2" library="minimidi" package="E2,5-6" value="10uF/25V" x="7.159" y="12.0396" smashed="yes">
+<element name="C2" library="minimidi" package="E2,5-6" value="47uF" x="7.159" y="12.0396" smashed="yes">
 <attribute name="NAME" x="10.207" y="13.3096" size="1.27" layer="25" font="vector" ratio="10" rot="R270"/>
 <attribute name="VALUE" x="9.826" y="9.3726" size="1.27" layer="27" ratio="10"/>
 </element>

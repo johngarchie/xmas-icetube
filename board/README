@@ -26,7 +26,26 @@ circuit to increase voltage to within specifications.
 ## Original Design ##
 #####################
 
-The original Adafruit Ice Tube Clock design, including the board,
-is available via GitHub:
+The original Ice Tube Clock board was designed by Lady Ada of
+Adafruit.  Her design is also available via GitHub:
 
   https://github.com/adafruit/Ice-Tube-Clock/
+
+
+######################
+## Acknowledgements ##
+######################
+
+The Adafruit Ice Tube Clock board was loosely based on the inGrid
+IV-18 clock by Riad S. Wahby.  My xmas-icetube board revision is based
+on the Adafruit Ice Tube Clock board by Lady Ada.
+
+While creating the xmas-icetube board revision, I had fruitful
+discussions with both Phil DeGruy (PhilD13) and Russ Walker
+(Russell27), mostly in regard to how to properly drive the IV-18 tube.
+Phil also took the time to review my design and suggest several
+alternative components, which was especially helpful.
+
+Because I am inexperienced in electronics design, I feel compelled to
+add the following disclaimer:  Those cited in this section cannot be
+faulted for any errors in my board revisions.
