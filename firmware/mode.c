@@ -50,36 +50,39 @@ void mode_init() {
 
 // called each second; updates current mode as required
 void mode_tick(void) {
-    switch(mode.state) {
-	case MODE_TIME_DISPLAY:
-	    // update time display for each tick of the clock
-	    if(time.status & TIME_UNSET && time.second % 2) {
-	       if(system.initial_mcusr & _BV(WDRF)) {
-		   display_pstr(0, PSTR("wdt rset"));
-	       } else if(system.initial_mcusr & _BV(EXTRF)) {
-		   display_pstr(0, PSTR("ext rset"));
-	       } else if(system.initial_mcusr & _BV(PORF)) {
-		   display_pstr(0, PSTR("pwr rset"));
-	       } else if(system.initial_mcusr & _BV(BORF)) {
-		   display_pstr(0, PSTR("bod rset"));
-	       } else {
-		   display_pstr(0, PSTR("oth rset"));
-	       }
-	       display_transition(DISPLAY_TRANS_INSTANT);
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	switch(mode.state) {
+	    case MODE_TIME_DISPLAY:
+		// update time display for each tick of the clock
+		if(time.status & TIME_UNSET && time.second & 0x01) {
+		   if(system.initial_mcusr & _BV(WDRF)) {
+		       display_pstr(0, PSTR("wdt rset"));
+		   } else if(system.initial_mcusr & _BV(EXTRF)) {
+		       display_pstr(0, PSTR("ext rset"));
+		   } else if(system.initial_mcusr & _BV(PORF)) {
+		       display_pstr(0, PSTR("pwr rset"));
+		   } else if(system.initial_mcusr & _BV(BORF)) {
+		       display_pstr(0, PSTR("bod rset"));
+		   } else {
+		       display_pstr(0, PSTR("oth rset"));
+		   }
+		   display_transition(DISPLAY_TRANS_INSTANT);
 #ifdef GPS_TIMEKEEPING
-	    } else if(gps.data_timer && !gps.warn_timer && time.second % 2) {
-		display_pstr(0, PSTR("gps lost"));
-		display_transition(DISPLAY_TRANS_INSTANT);
+		} else if(gps.data_timer && !gps.warn_timer
+			  && time.second & 0x01) {
+		    display_pstr(0, PSTR("gps lost"));
+		    display_transition(DISPLAY_TRANS_INSTANT);
 #endif  // GPS_TIMEKEEPING
-	    } else {
-		mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_INSTANT);
-	    }
-	    break;
-	case MODE_CFGREGN_TIMEFMT_FORMAT:
-	    if((mode.timer & 0x00FF) < 0xFF - BLINK_OFF_SEMITICKS) {
-		mode_time_display_tick();
-	    }
-	    break;
+		} else {
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_INSTANT);
+		}
+		break;
+	    case MODE_CFGREGN_TIMEFMT_FORMAT:
+		if((mode.timer & 0x00FF) < 0xFF - BLINK_OFF_SEMITICKS) {
+		    mode_time_display_tick();
+		}
+		break;
+	}
     }
 }
 
@@ -2600,7 +2603,7 @@ void mode_time_display_tick(void) {
     // show alarm status with leftmost dash
     display_dash(0, alarm.status & ALARM_SET
 		    && ( !(alarm.status & (ALARM_SOUNDING | ALARM_SNOOZE))
-		    || time.second % 2));
+		    || time.second & 0x01));
 
     mode_time_display_semitick();
 }
