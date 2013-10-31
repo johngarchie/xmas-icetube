@@ -2524,7 +2524,7 @@ void mode_time_display_tick(void) {
 
     display_clearall();
 
-    if((time.timeformat_flags & TIME_TIMEFORMAT_MASK)==TIME_TIMEFORMAT_HH_MM) {
+    if(time.timeformat_idx == TIME_TIMEFORMAT_HH_MM) {
 	hour_idx = 2;
     }
 

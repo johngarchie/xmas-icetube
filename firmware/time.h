@@ -93,8 +93,6 @@ enum {
 #define TIME_TIMEFORMAT_SHOWGPS   0x10
 #endif  // GPS_TIMEKEEPING
 
-#define TIME_TIMEFORMAT_MASK 0x0F
-
 enum {
     TIME_TIMEFORMAT_HH_MM_SS,
     TIME_TIMEFORMAT_HH_MM_SS_rolling,
