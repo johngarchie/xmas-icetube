@@ -43,8 +43,15 @@ void mode_menu_process_button(uint8_t up, uint8_t next, uint8_t down,
 
 
 // set default startup mode after system reset
-void mode_init() {
+void mode_init(void) {
     mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_INSTANT);
+}
+
+
+// when appropriate, update the display contents
+// with current time upon waking
+void mode_wake(void) {
+    mode_tick();
 }
 
 

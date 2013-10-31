@@ -222,7 +222,7 @@ ISR(ANALOG_COMP_vect) {
     system_wake();   // does nothing
     temp_wake();     // enable temperature sensor
     piezo_wake();    // adjust buzzer for faster clock
-    mode_wake();     // does nothing
+    mode_wake();     // update display contents when necessary
     buttons_wake();  // enable button pull-ups
     alarm_wake();    // enable alarm switch pull-up
     usart_wake();    // enable and configure usart
