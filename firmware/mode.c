@@ -19,7 +19,7 @@
 #include "gps.h"      // for setting the utc offset
 #include "usart.h"    // for debugging output
 
-#define BLINK_OFF_SEMITICKS 64
+#define BLINK_OFF_SEMITICKS 128
 
 
 // extern'ed clock mode data
@@ -1712,18 +1712,18 @@ void mode_semitick(void) {
 		    if(mode.timer == MODE_TIMEOUT) {
 			time_loadtimeformat();
 		    } else {
-			switch(mode.timer & 0x00FF) {
+			switch(mode.timer & 0x01FF) {
 			    case 0:
 				mode_time_display_tick();
 				display_transition(DISPLAY_TRANS_INSTANT);
 				break;
-			    case 0xFF - BLINK_OFF_SEMITICKS:
+			    case 0x01FF - BLINK_OFF_SEMITICKS:
 				display_clearall();
 				display_transition(DISPLAY_TRANS_INSTANT);
 				break;
 			    default:
-				if((mode.timer & 0x00FF) <
-					0xFF - BLINK_OFF_SEMITICKS) {
+				if((mode.timer & 0x01FF) <
+					0x1FF - BLINK_OFF_SEMITICKS) {
 				    mode_time_display_semitick();
 				    display_transition(DISPLAY_TRANS_INSTANT);
 				}
@@ -2618,13 +2618,13 @@ void mode_time_display_tick(void) {
 
 // updates the time display every semitick
 void mode_time_display_semitick(void) {
-    static uint8_t rolling_delay = 0;
-    static uint8_t rolling_idx   = 0;
+    static uint16_t rolling_delay = 0;
+    static uint8_t  rolling_idx   = 0;
 
 
     switch(time.timeformat_idx) {
 	case TIME_TIMEFORMAT_HH_MM_SS_rolling:
-	    if(!++rolling_delay) {
+	    if(!(++rolling_delay & 0x1FF)) {
 		if(++rolling_idx > DISPLAY_ROLLING_MAX) {
 		    rolling_idx = 0;
 		}
