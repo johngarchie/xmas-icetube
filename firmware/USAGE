@@ -1,7 +1,61 @@
-#########################
-## CONFIGURATION MENUS ##
-#########################
+####################
+## BUTTONS SCHEME ##
+####################
 
+Unless the ADAFRUIT_BUTTONS macro is defined in config.h, the buttons
+function as described below.
+
+.----------------------------------------------.
+| Button | Function                            |
+|--------+-------------------------------------|
+| "menu" | enter menu / exit menu              |
+|  "set" | open menu item / save setting value |
+|    "+" | next menu item / next setting value |
+'----------------------------------------------'
+
+When time is displayed, pressing the "set" or "plus" button will display
+the date.
+
+When time is displayed, the "menu" button will enter the configuration
+menu.  While in the configuration menu, pressing "menu" will return to the
+time display, canceling any changes that may have been made.
+
+While in the configuration menu and a menu label is displayed, the "set"
+button will open the displayed category or setting.  While in the
+configuration menu and a setting is displayed, the "set" button saves the
+selected setting and either proceeds to the next setting or returns to the
+time display.
+
+While in the configuration menu and a menu label is displayed, the "+"
+button moves to the next menu label.  While in the configuration menu and a
+setting is displayed, the "+" button moves to the next possible value for
+that setting.
+
+The "alarm" switch turns any and all enabled alarms on or off.  When the
+alarm sounds, any button will enable snooze.  Only the alarm switch will
+turn a sounding alarm off.
+
+
+###################
+## MENU SETTINGS ##
+###################
+
+The avilable menu settings are described below.
+
+"set alar"
+  "alarm 1 " / "alarm 2 " / "alarm 3 "
+    Enable alarm ("alar  on") or disable the alarm ("alar off").  If the alarm
+    is enabled, next set the hour and minute of the alarm time.  Finally,
+    choose the days in which the alarm should sound ("all days" /
+    "weekdays" / "weekends" / " custom ").  If " custom " is selected,
+    specify a subset of days by showing only the letters ("smtwtfs ")
+    corresponding to the days on which the alarm should sound.
+
+"set time"
+  Set the current hour, minute, and second.
+
+"set date"
+  Set the current year, month, and day.
 
 "cfg alar"  --  Configure Alarm
   "a. sound"

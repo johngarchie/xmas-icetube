@@ -131,8 +131,7 @@ the included Makefile:
 ## USING THE CLOCK ##
 #####################
 
-Clock usage is largely undocumented, but a description of the
-configuration menu layout is in the MENUS text file.
+The USAGE file contains an overview of how to use the clock.
 
 
 ####################
