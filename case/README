@@ -2,24 +2,48 @@
 ## xmas-icetube Case ##
 #######################
 
-The icetube.svg file is a slightly modified version of the Adafruit
-Ice Tube Clock v1.1 case to accommodate the xmas-icetube board.
+The xmas-icetube case revision is a slightly modified version of the
+Adafruit Ice Tube Clock v1.1 case that accommodates the xmas-icetube
+circuit board.
 
-This modification can be viewed and modified in Inkscape:
+The xmas-icetube case revision may be viewed and modified in Inkscape:
 
-  http://inkscape.org/
+    http://inkscape.org/
 
-The modification is also suitable for ordering from Ponoko, and should
-be cut from 3mm acrylic:
+The custom-cut acrylic parts may also be ordered directly from my
+Ponoko showroom:
 
-  http://www.ponoko.com/
+    http://www.ponoko.com/showroom/jarchie
 
 
 #####################
 ## Original Design ##
 #####################
 
-The original Adafruit Ice Tube Clock design, including the case,
-is available via GitHub:
+The original Adafruit Ice Tube Clock case design is available
+through GitHub:
 
-  https://github.com/adafruit/Ice-Tube-Clock/
+    https://github.com/adafruit/Ice-Tube-Clock/
+
+
+######################
+## Acknowledgements ##
+######################
+
+The Ice Tube Clock case was originally designed by Amanda Wozniak
+(w0z), and I have only made minor adjustments to her design.
+
+Adafruit forum user Daygecko also deserves credit for finding clear
+machine nuts and bolts from McMaster-Carr, which give the assembled
+case a much cleaner look.
+
+
+#############
+## License ##
+#############
+
+The xmas-icetube case revisions may be used under the Attribution-
+ShareAlike 3.0 (CC BY-SA 3.0), available from Creative Commons:
+
+    http://creativecommons.org/licenses/by-sa/3.0/
+

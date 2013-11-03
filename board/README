@@ -15,7 +15,7 @@ which may be purchased or downloaded from CadSoft:
 
 
 The current board (Rev. D) is *untested*, so use this design at your
-own risk.  Rev. C includes an enhancement to the filament driver
+own risk.  Rev. D includes an enhancement to the filament driver
 circuit to increase voltage to within specifications.
 
   http://forums.adafruit.com/viewtopic.php?p=223798#p223798
@@ -26,8 +26,8 @@ circuit to increase voltage to within specifications.
 ## Original Design ##
 #####################
 
-The original Ice Tube Clock board was designed by Lady Ada of
-Adafruit.  Her design is also available via GitHub:
+The original Ice Tube Clock board was designed by Limor Fried
+(Lady Ada) of Adafruit.  Her design is available via GitHub:
 
   https://github.com/adafruit/Ice-Tube-Clock/
 
@@ -42,10 +42,20 @@ on the Adafruit Ice Tube Clock board by Lady Ada.
 
 While creating the xmas-icetube board revision, I had fruitful
 discussions with both Phil DeGruy (PhilD13) and Russ Walker
-(Russell27), mostly in regard to how to properly drive the IV-18 tube.
+(Russell27), mostly in regard to properly driving the IV-18 tube.
 Phil also took the time to review my design and suggest several
 alternative components, which was especially helpful.
 
 Because I am inexperienced in electronics design, I feel compelled to
 add the following disclaimer:  Those cited in this section cannot be
 faulted for any errors in my board revisions.
+
+
+#############
+## License ##
+#############
+
+The xmas-icetube board revisions may be used under the Attribution-
+ShareAlike 3.0 (CC BY-SA 3.0), available from Creative Commons:
+
+    http://creativecommons.org/licenses/by-sa/3.0/
