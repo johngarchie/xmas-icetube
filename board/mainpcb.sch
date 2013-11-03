@@ -25953,7 +25953,7 @@ Metric Code Size 5664</description>
 <part name="GND8" library="supply1" deviceset="GND" device=""/>
 <part name="D3" library="usbbuck" deviceset="SCHOTTKY-DIODE" device="DO41" value="MBR160"/>
 <part name="L1" library="usbbuck" deviceset="L" device="" value="2200uH"/>
-<part name="C6" library="rcl-ez" deviceset="CPOL-US" device="E3.5-8" value="33uF"/>
+<part name="C6" library="rcl-ez" deviceset="CPOL-US" device="E3.5-8" value="22uF"/>
 <part name="V2" library="supply2" deviceset="+9V" device=""/>
 <part name="GND3" library="supply1" deviceset="GND" device=""/>
 <part name="GND4" library="supply1" deviceset="GND" device=""/>
