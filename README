@@ -3,21 +3,55 @@ The firmware README is now located in the firmware directory:
   https://github.com/johngarchie/xmas-icetube/blob/master/firmware
 
 
-##########################
-## xmas-icetube Project ##
-##########################
+########################
+## xmas-icetube Clock ##
+########################
 
-The xmas-icetube project started as an alternative firmware for the
-Adafruit Ice Tube clock, but now includes the xmas-icetube hardware
-redesign.  The redesign includes an extensive revision of the main
-board as well as slight modifications to the side board and case.
+The xmas-icetube clock is a revision of the Adafruit Ice Tube Clock v1.1,
+but the software has been completely rewritten and the circuit board
+extensively revised.  The case and overall look of the clock is nearly
+identical to the original design, however.
 
-The xmas-icetube firmware runs on *both* the Adafruit Ice Tube Clock
-v1.1 and the xmas-icetube redesign.  Since most users will be using
-xmas-icetube on the Adafruit Ice Tube Clock v1.1, the default firmware
-configuration is set for the Adafruit Ice Tube Clock v1.1 without any
-hardware mods.  See the README file in the firmware directory for more
+The xmas-icetube firmware runs on *both* the Adafruit Ice Tube Clock v1.1
+and the xmas-icetube revision.  Since most users will be using the
+xmas-icetube firmware on the Adafruit Ice Tube Clock v1.1, the default
+firmware configuration is set for the Adafruit clock with no hardware
+modifications.  See the README file in the firmware directory for more
 information on how to configure the xmas-icetube firmware.
+
+
+##############
+## FEATURES ##
+##############
+
+The xmas-icetube clock includes the following improvements over the
+original Adafruit design:
+
+  - animated display transitions
+  - multiple time and date formats
+  - pulsing display brightness during alarm and snooze
+  - three alarm times for selectable days of the week
+  - functional alarm during power outage*
+  - finely adjustable alarm volume (from 0 to 10)
+  - progressive alarm option (gradually increasing volume)
+  - selectable alarm sound (high frequency beeps, low frequency beeps,
+    high frequency three beep pulse, low frequency three beep pulse,
+    Merry Christmas, Big Ben, Reveille, or For He's a Jolly Good Fellow)
+  - adjustable snooze duration
+  - DST support (USA, EU, or manual)
+  - fully automatic correction for time drift
+  - highly accurate temperature compensated timekeeping
+  - no beeping or time loss after external power failure
+  - 25-fold improvement in battery life
+  - per-digit brightness adjustment for uneven displays
+  - automatic brightness control by ambient light
+  - optionally disable display during specified time periods
+  - optionally disable display at night (when dark)
+  - various design improvements to extend tube lifetime
+
+* Without external power, the alarm sounds with loud high frequency beeps.
+  The only way to turn the alarm on or off is with the alarm switch.
+  Snooze is not supported.
 
 
 #################
@@ -26,6 +60,5 @@ information on how to configure the xmas-icetube firmware.
 
 This project includes the following directories:
 
-  - board/     contains the xmas-icetube circuit board redesign.
-  - case/      contains the xmas-icetube case redesign.
+  - hardware/  contains the xmas-icetube hardware revision.
   - firmware/  contains the xmas-icetube firmware.

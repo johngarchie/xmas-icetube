@@ -87,6 +87,12 @@ the included Makefile:
 
     First, review the macro definitions in config.h, changing macro
     definitions as needed to enable support for various hardware hacks.
+    The default values in config.h are suitable for the Adafruit Ice Tube
+    Clock v1.1 without any hardware mods or hacks.  For the xmas-icetube
+    clock, it may be more convenient to copy the config.h file from the
+    hardware directory and edit that as desired:
+
+	% cp ../hardware/config.h config.h
 
     Next, review the Makefile to ensure that configuration variables
     are reasonable given your hardware.  In particular, AVRISP and
@@ -149,6 +155,7 @@ http://forums.adafruit.com/viewtopic.php?f=41&t=12932
 
 :: Temperature Compensated Timekeeping ::
 http://forums.adafruit.com/viewtopic.php?f=41&t=14941
+http://forums.adafruit.com/viewtopic.php?f=41&t=43998
 
 :: GPS Timekeeping ::
 http://forums.adafruit.com/viewtopic.php?f=41&t=36873

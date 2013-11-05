@@ -1,0 +1,157 @@
+########################
+## xmas-icetube Clock ##
+########################
+
+The xmas-icetube clock is a revision of the Adafruit Ice Tube Clock and is
+discussed in the following thread:
+
+    http://forums.adafruit.com/viewtopic.php?f=41&t=43836
+
+The current versions of the xmas-icetube custom parts are:
+
+  - main board   (Rev. D)
+  - side board   (Rev. C)
+  - acrylic case (Rev. A)
+
+
+##############################
+## Editing the Design Files ##
+##############################
+
+The board revisions can be opened and and modified with Eagle,
+which is available from CadSoft:
+
+    http://www.cadsoftusa.com/
+
+The case revision may be viewed and modified in Inkscape:
+
+    http://inkscape.org/
+
+
+##########################
+## Collecting the Parts ##
+##########################
+
+I ordered my circuit boards from OSH Park and have shared those uploads
+in case others would like to do the same:
+
+    http://www.oshpark.com/shared_projects/6xAVpeHb
+    http://www.oshpark.com/shared_projects/PiRXWH3F
+
+I ordered the acrylic parts from Ponoko and have also shared that design:
+
+    http://www.ponoko.com/showroom/jarchie
+
+See the enclosed manifest for a complete parts list.  Note that I have not
+personally tried every part on the list, as I often had suitable
+substitutes in my parts bin.  In particular, I have not tested the two 9v
+power adaptors listed on the manifest.  Instead, I am currently using 9v
+1000mA adaptors from Adafruit.
+
+
+#######################
+## Construction Tips ##
+#######################
+
+For aesthetic reasons, the xmas-icetube design uses TO-92 packages for the
+voltage regulators, so their ability to burn off excess voltage is limited.
+The 9VDC input should stay below 10v at 120 mA to be on the safe side:  A
+standard regulated switching-type 9v adapter should work fine, but I
+recommend against using an older, transformer-type wall wort.
+
+Alternatively, the board will accommodate regulators in TO-220 packages,
+even though the silkscreen shows TO-92 packages.  The holes are a bit small
+for TO-220s, so it might be necessary to file down the TO-220 leads to make
+them narrower, but those packages will work with a bit of extra effort.
+Although, I do prefer the TO-92s, TO-220s would look okay--just a bit bulky.
+
+When assembling the parts, I suggest building the circuit incrementally and
+testing each section after it is built.  See the Eagle schematics for the
+parts in each section.
+
+1.  Solder the "5V Power Supply" parts.  Connect the 9v adaptor and
+    verify that the power supply outputs 5v.
+
+2.  Solder the "Temperature Sensor" parts.  (It's easier to solder R9
+    before inserting the microcontroller into its socket.)
+
+3.  Solder the "Microcontroller", "Battery Sensor", and "Speaker" parts.
+    Place the programming jumper across J1 and program the chip with the
+    xmas-icetube firmware.  Remove the jumper and connect the 9v adaptor:
+    the speaker should beep when powered for the first time.
+
+4.  Solder the "5VAC Cathode/Filament Supply" parts.  Connect the 9v
+    adaptor and verify that the LM317 outputs around 5.8v.  Measure the AC
+    voltage between the push-pull outputs (AC1 and AC2).  The push-pulls
+    should be providing high frequency, square wave, alternating current,
+    which most multimeters cannot measure accurately.  So just verify that
+    AC1 and AC2 are providing alternating current.
+
+5.  Solder the "Tube 30-60VDC Boost Supply" parts.  Connect the 9v adaptor
+    and verify that the boost circuit indeed provides about 55 volts.
+
+6.  Solder the "VFD Anode/Segment Controller" and "VFD Tube / Side PCB"
+    parts.  Attach the side board to the main board, connect the 9v
+    adaptor, and verify that the VFD display is functional.
+
+7.  Solder the "Buttons and Alarm Switch" parts.  Connect the 9v adaptor
+    and verify that the buttons and alarm switch function properly.
+
+8.  Solder the "Battery Backup" parts and insert a battery.  Connect the
+    9v adaptor, set the time, disconnect the 9v adaptor for a few seconds,
+    connect it again, and verify that the clock kept the correct time.
+
+9.  Solder the "Light Sensor" parts.  Connect the 9v adaptor and configure
+    the display brightness to auto ("cfg disp"/"disp bri"/"bri auto").  Set
+    the minimum brightness to zero ("b. min  0") and the maximum brightness
+    to 10 ("b. max 10).  Using a flashlight, lamp, or similar, verify that
+    the clock responds to changes in ambient light.
+
+10. Assemble the acrylic case and enjoy!
+
+
+#####################
+## Original Design ##
+#####################
+
+The original Adafruit Ice Tube Clock board was designed by Limor Fried
+(Lady Ada) of Adafruit.  The case was designed by Amanda Wozniak (w0z).
+The original design files are available via GitHub:
+
+    https://github.com/adafruit/Ice-Tube-Clock/
+
+
+######################
+## Acknowledgements ##
+######################
+
+The Adafruit Ice Tube Clock board was loosely based on the inGrid
+IV-18 clock by Riad S. Wahby.  My xmas-icetube board revision is based
+on the Adafruit Ice Tube Clock board by Lady Ada.
+
+The clock case was originally designed by Amanda Wozniak (w0z), and I have
+only made minor adjustments to her design.  Adafruit forum user Daygecko
+also deserves credit for finding clear machine nuts and bolts from
+McMaster-Carr, which give the assembled case a cleaner look.
+
+While creating the xmas-icetube board revision, I had fruitful discussions
+with both Phil DeGruy (PhilD13) and Russ Walker (Russell27), mostly in
+regard to properly driving the IV-18 tube.  Phil also took the time to
+review my design and suggest several alternative components, which was
+especially helpful.
+
+Because I am inexperienced in electronics design, I feel compelled to add
+the following disclaimer:  Those cited in this section cannot be faulted
+for any bugs in the xmas-icetube hardware design.
+
+
+#############
+## License ##
+#############
+
+The xmas-icetube clock revision may be used under the Attribution-
+ShareAlike 3.0 (CC BY-SA 3.0), available from Creative Commons:
+
+    http://creativecommons.org/licenses/by-sa/3.0/
+
+
