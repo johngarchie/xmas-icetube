@@ -36,13 +36,17 @@
 // AUTOMATIC DIMMER HACK
 //
 // Defining the following macro enables support for Automatic dimming
-// when a 10-20k resister and CdS photoresistor are installed in R3 and
-// CT1, adjacent to the ATMEGA's PC5 pin.  This hack also allows for the
-// clock to be disabled at night (when dark).  For more details, visit
-// the Adafruit Clocks forum:
+// when a pull-up resister and CdS photoresistor are installed in R3
+// and CT1, adjacent to the ATMEGA's PC5 pin.  This hack also allows
+// for the clock to be disabled at night (when dark).
+//
+// I suggest using a 5.6k pull-up resistor with an Advanced Photonix
+// Inc. PDV-P8001 photoresistor.  Note that photoresistors purchased
+// from Adafruit should behave like the PDV-P8001 and are acceptable
+// substitutes.  For more details, visit the Adafruit Clocks forum:
 //
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=12932
-//
+//   http://forums.adafruit.com/viewtopic.php?p=219736#p219736
 //
 #define AUTOMATIC_DIMMER
 

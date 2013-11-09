@@ -42,11 +42,8 @@ I ordered the acrylic parts from Ponoko and have also shared that design:
 
     http://www.ponoko.com/showroom/jarchie
 
-See the enclosed manifest for a complete parts list.  Note that I have not
-personally tried every part on the list, as I often had suitable
-substitutes in my parts bin.  In particular, I have not tested the two 9v
-power adaptors listed on the manifest.  Instead, I am currently using 9v
-1000mA adaptors from Adafruit.
+See the enclosed bill of materials (BOM.csv) for a complete parts list,
+including manufacturers, suppliers, and part numbers.
 
 
 #######################
@@ -57,7 +54,7 @@ For aesthetic reasons, the xmas-icetube design uses TO-92 packages for the
 voltage regulators, so their ability to burn off excess voltage is limited.
 The 9VDC input should stay below 10v at 120 mA to be on the safe side:  A
 standard regulated switching-type 9v adapter should work fine, but I
-recommend against using an older, transformer-type wall wort.
+recommend against using an older, unregulated transformer-type wall wort.
 
 Alternatively, the board will accommodate regulators in TO-220 packages,
 even though the silkscreen shows TO-92 packages.  The holes are a bit small
@@ -80,15 +77,14 @@ parts in each section.
     xmas-icetube firmware.  Remove the jumper and connect the 9v adaptor:
     the speaker should beep when powered for the first time.
 
-4.  Solder the "5VAC Cathode/Filament Supply" parts.  Connect the 9v
-    adaptor and verify that the LM317 outputs around 5.8v.  Measure the AC
-    voltage between the push-pull outputs (AC1 and AC2).  The push-pulls
+4.  Solder the "5VAC Cathode/Filament Supply" parts.  Measure the AC voltage
+    between the two push-pull outputs (AC1 and AC2).  The push-pulls
     should be providing high frequency, square wave, alternating current,
     which most multimeters cannot measure accurately.  So just verify that
     AC1 and AC2 are providing alternating current.
 
 5.  Solder the "Tube 30-60VDC Boost Supply" parts.  Connect the 9v adaptor
-    and verify that the boost circuit indeed provides about 55 volts.
+    and verify that the boost circuit indeed provides 50-60 volts.
 
 6.  Solder the "VFD Anode/Segment Controller" and "VFD Tube / Side PCB"
     parts.  Attach the side board to the main board, connect the 9v
