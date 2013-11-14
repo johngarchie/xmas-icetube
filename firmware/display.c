@@ -358,12 +358,6 @@ void display_wake(void) {
     PORTD &= ~_BV(PD3);
 #endif  // !XMAS_DESIGN
 
-#ifdef VFD_TO_SPEC
-    // power VFD cathode (heater)
-    PORTC |=  _BV(PC2);
-    PORTC &= ~_BV(PC3);
-#endif  // VFD_TO_SPEC
-
     display.off_timer = DISPLAY_OFF_TIMEOUT;
     display_on();
 }
@@ -390,6 +384,9 @@ void display_sleep(void) {
     // configure MAX6921 LOAD and BLANK pins
     PORTC &= ~_BV(PC0); // clamp to ground
     PORTD &= ~_BV(PD5); // clamp to ground
+
+    // disable VFD cathode (heater fillament)
+    PORTC &= ~_BV(PC2) & ~_BV(PC3);  // pull to ground
 #else
     // configure MAX6921 LOAD and BLANK pins
     PORTC &= ~_BV(PC0) & ~_BV(PC3); // clamp to ground
@@ -400,11 +397,6 @@ void display_sleep(void) {
     // as inputs *without* pull-ups!?!?)
     DDRB  &= ~_BV(PB5) & ~_BV(PB3);  // set as input
     PORTB &= ~_BV(PB5) & ~_BV(PB3);  // disable pull-ups
-
-#ifdef VFD_TO_SPEC
-    // disable VFD cathode (heater fillament)
-    PORTC &= ~_BV(PC2) & ~_BV(PC3);  // pull to ground
-#endif  // VFD_TO_SPEC
 }
 
 

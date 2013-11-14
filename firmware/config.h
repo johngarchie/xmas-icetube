@@ -3,15 +3,15 @@
 
 // XMAS-ICETUBE CLOCK DESIGN
 //
-// The xmas-icetube redesign of the Ice Tube Clock requires a few
-// firmware modifications.  The XMAS_DESIGN macro enables these
+// The xmas-icetube revision of the Ice Tube Clock requires a few
+// firmware modifications.  The XMAS_DESIGN macro below enables these
 // modifications, but breaks compatibility with the Adafruit Ice Tube
 // Clock v1.1.
 //
-// When configuring this firmware for use with the xmas-icetube clock
-// design, the configuration macros for the following features should
-// also be enabled: the automatic dimmer hack, software temperature
-// compensated timekeeping, and the IV-18 to-spec hack.
+// When configuring this firmware for use with the xmas-icetube
+// revision, the configuration macros for the following features
+// should also be enabled: the automatic dimmer hack, software
+// temperature compensated timekeeping, and the IV-18 to-spec hack.
 //
 //
 // #define XMAS_DESIGN
@@ -19,15 +19,15 @@
 
 // ADAFRUIT-STYLE BUTTONS
 //
-// By default this xmas-icetube uses a unique button scheme:
-// The "menu" button means "enter menu" or "exit menu."  Meanwhile,
-// the "+" button means "next menu item," "next selected option",
-// or "increment selected number."
+// By default, the xmas-icetube firmware uses a unique button scheme:
+// The menu button means "enter menu" or "exit menu."  Meanwhile, the
+// plus button means "next menu item," "next selected option," or
+// "increment selected number."  The set button means "set".
 //
-// The following macro enables Adafruit-style buttons where
-// the "menu" button means "enter menu," "next menu item", or
-// "exit menu." Meanwhile the "+" button can mean "exit menu,"
-// "next selected option," or "increment selected number."
+// The following macro enables Adafruit-style buttons: The menu button
+// means "enter menu," "next menu item," or "exit menu".  The plus
+// button means "next selected option," "increment selected number,"
+// or "exit menu."  The set button means "set" or "exit menu."
 //
 //
 // #define ADAFRUIT_BUTTONS
@@ -41,7 +41,7 @@
 // for the clock to be disabled at night (when dark).
 //
 // I suggest using a 5.6k pull-up resistor with an Advanced Photonix
-// Inc. PDV-P8001 photoresistor.  Note that photoresistors purchased
+// Inc PDV-P8001 photoresistor.  Note that photoresistors purchased
 // from Adafruit should behave like the PDV-P8001 and are acceptable
 // substitutes.  For more details, visit the Adafruit Clocks forum:
 //
@@ -56,7 +56,7 @@
 // Defining the following macro enables GPS detection on the ATMEGA's
 // RX pin.  The connection speed is 9600 baud by default for
 // compatibility with the Adafruit Ultimate GPS Module.  For more
-// information, check out the following sites:
+// information, visit the following pages:
 //
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=36873
 //   http://www.ladyada.net/make/icetube/mods.html
@@ -77,9 +77,9 @@
 
 // TEMPERATURE COMPENSATED CRYSTAL OSCILLATOR
 //
-// The following macro should be defined if using an external
-// 32.768 kHz clock source for timekeeping such as a Maxim DS32kHz.
-// This hack is discussed in detail on the Adafruit Clocks forum:
+// The following macro enables support for an external 32.768 kHz
+// clock source such as a Maxim DS32kHz.  This hack is discussed in
+// detail on the Adafruit Clocks forum:
 //
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=14941
 //
@@ -92,9 +92,9 @@
 // This hack requires attaching a DS18B20 OneWire temperature sensor
 // to ATMEGA328P PC1 pin, but unfortunately the internal temperature
 // of the clock is above the ambiant temperature.  As a result, this
-// modification is not useful for displaying the current temperature.
+// modification is not useful for displaying temperature.
 //
-// This modification is useful for temperature compensated
+// This modification is, however, useful for temperature compensated
 // timekeeping, however.  The XTAL_TURNOVER_TEMP macro specifies the
 // temperature at which the crystal oscillates at maximum frequency in
 // units of deg C / 16.  The XTAL_FREQUENCY_COEF macro specifies the
@@ -104,7 +104,7 @@
 // defined as 400 (25 * 16), and XTAL_FREQUENCY_COEF should be defined
 // as 34 (-0.034 * -1000).
 //
-// This technique for temperature compensation is described in the
+// The technique for temperature compensation is described in the
 // following thread:
 //
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=43998
@@ -120,6 +120,17 @@
 // #define TEMPERATURE_SENSOR
 // #define XTAL_TURNOVER_TEMP  400  // deg C / 16
 // #define XTAL_FREQUENCY_COEF 34   // -ppb / (deg C)^2
+
+
+// BIRTHDAY ALARM
+//
+// If BDAY_ALARM_MONTH and BDAY_ALARM_DAY are defined, the alarm sound
+// on that day will always be "For He's a Jolly Good Fellow,"
+// regardless of the alarm sound set in the menus.
+//
+//
+// #define BDAY_ALARM_MONTH 5
+// #define BDAY_ALARM_DAY   1
 
 
 // DISPLAY BRIGHTNESS / BOOST CONFIGURATION
@@ -138,20 +149,8 @@
 // The IV-18 display has an absolute maximum grid/segment voltage of
 // 70 volts, but on the Ice Tube Clock, a Zener diode prevents this
 // from exceeding 60 volts.  And the clock's fuse will probably kick
-// in well before that point.  Thus the hardware will ensure that
-// the grid/segment voltage maximum is never exceeded.
-//
-// With a dim display, it might also be necessary to increase current
-// across the VFD tube filament.  Current can be increased slightly by
-// replacing R3 with a jumper:
-//
-//   http://forums.adafruit.com/viewtopic.php?f=41&t=23586&start=30
-//
-// To further increase filament current, replace Q3 with a PNP transister
-// with a 200 ohm resistor at the base.  Current can be adjusted by
-// replacing R3 with a 100 ohm potentiometer:
-//
-//   http://forums.adafruit.com/viewtopic.php?f=41&t=23586&start=43
+// in before that point.  Thus the hardware will ensure that the
+// grid/segment voltage maximum is never exceeded.
 //
 // For a dim display, I suggest setting OCR0A_MIN to 30 and
 // OCR0A_SCALE to 14.  If the fuse becomes warm during operation,
@@ -163,23 +162,72 @@
 #define OCR0A_MAX OCR0A_MIN + 10 * OCR0A_SCALE
 
 
+// DISPLAY MULTIPLEXING ALGORITHM
+//
+// The following multiplexing options define how the display should be
+// multiplexed.
+//
+// Digit multiplexing displays each digit in rapid succession.
+// Although this is the standard way to do multiplexing, there might
+// be slight ghosting, especially of decimals at higher boost voltage.
+//
+// I recommend digit multiplexing for use with the Adafruit Ice Tube
+// Clock v1.1 without the to-spec hack.
+//
+// Subdigit multiplexing is like digit multiplexing, but displays each
+// digit twice--once showing only segments B, C, and H (those lit when
+// displaying "1.") and once showing only the other segments.  This
+// method eliminates ghosting and reduces the overall brightness.
+//
+// I recommend subdigit multiplexing for use with the to-spec hack and
+// the xmas-icetube hardware revision.  I find the reduction in
+// overall brightness to be a benefit here, as the minimum brightness
+// attainable with PWM brightness control and simple digit
+// multiplexing is a bit too bright for my taste.  And the maximum
+// brightness with plain PWM and simple digit multiplexing is
+// unnecessarally bright.
+//
+// Segment multiplexing displays each segment (on all digits where
+// that segment is displayed) in rapid succession.  This method
+// eliminates ghosting, and the maximum brightness is similar to that
+// with digit multiplexing.  But the per-digit brightness adjustment
+// is not available when using this method.
+//
+// I do not recommend segment multiplexing, but left the feature in
+// the code in case anyone wants to play with it.  The problem with
+// segment multiplexing is that resistance through the MAX6921
+// limits current on each segment, so if one segment is displayed on
+// many digits, that segment will be dimmer than if one segment is
+// displayed on only a few digits.  Also, more current will flow
+// through segments with the least resistance (at the right of the
+// display), so those digits will appear slightly brighter.
+//
+#define DIGIT_MULTIPLEXING
+// #define SUBDIGIT_MULTIPLEXING
+// #define SEGMENT_MULTIPLEXING
+
+
 // IV-18 TO-SPEC HACK
 //
 // The Ice Tube Clock does not drive the IV-18 VFD tube to
 // specifications, but with some rewiring and additional circuitry,
 // enabling the following macros will drive the IV-18 tube as it was
-// designed.
-//
-// The following thread on the Adafruit Clocks forum describes the
-// required hardware modifications for this hack:
+// designed.  The following thread on the Adafruit Clocks forum
+// describes the required hardware modifications for this hack:
 //
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=41811
 //
 //
-// The VFD_TO_SPEC macro enables the this to-spec hack.  With the
-// to-spec hack, brightness may be controlled with boost voltage,
-// pulse width modulation (PWM), or both.  I recommend controlling
-// brightness with PWM only.
+// #define VFD_TO_SPEC
+
+
+// TO-SPEC BRIGHTNESS ADJUSTMENT METHOD
+//
+// These options should only be used with the to-spec hack above.
+//
+// With the to-spec hack, brightness may be controlled with boost
+// voltage, pulse width modulation (PWM), or both.  I recommend
+// controlling brightness with PWM only.
 //
 // If neither OCR0A_VALUE nor OCR0B_PWM_DISABLE is defined, brightness
 // will be controlled by both boost voltage and PWM.
@@ -190,66 +238,47 @@
 // If only OCR0B_PWM_DISABLE is defined, brightness will be controlled
 // by the boost voltage.
 //
-// And for completeness, if both OCR0A_VALUE and OCR0B_PWM_DISABLE are
-// defined, display brightness will be hard-coded into the firmware
-// and the brightness controls will have no effect on brightness.
-// What a useless combination!
+// Defining OCR0A_VALUE and OCR0B_PWM_DISABLE is possible, but doing
+// so will lock the display to a constant brightness and break the
+// menu-configurable brightness adjustment.
+//
+// If D1 is a power blocking diode (as in the xmas-icetube hardware
+// revision), I suggest an OCR0A_VALUE of 192.  If D1 is a Schottky
+// diode (as in the original Adafruit design), I suggest an
+// OCR0A_VALUE value of 128.  Ideally, the exact value should be tuned
+// for your particular clock:  OCR0A_VALUE should be large enough such
+// that the boost circuit generates just over 50v with the display
+// installed and at maximum brightness, but OCR0A_VALUE should be no
+// larger than necessary, as that would waste electricity.
 //
 //
-// #define VFD_TO_SPEC
-// #define OCR0A_VALUE 192
+// #define OCR0A_VALUE 128
 // #define OCR0B_PWM_DISABLE
 
 
-// DISPLAY MULTIPLEXING ALGORITHM
+// TO-SPEC FILAMENT DRIVER METHOD
 //
-// The following multiplexing options define how the display should be
-// multiplexed.
+// The options below should only be used with the to-spec hack above,
+// if at all.  To drive the filament to specifications, neither of the
+// following macros should be defined.
 //
-// Digit multiplexing displays each digit in rapid succession.
-// Although this is the standard way to do multiplexing, there might
-// be slight ghosting, especially of decimals.
+// Defining the FILAMENT_DRIVE_DC macro will drive the display with
+// direct current instead of alternating current.
 //
-// I recommend digit multiplexing for use with the Adafruit Ice Tube
-// Clock v1.1 without the to-spec hack.
+// Defining either FILAMENT_VOLTAGE_3_3 or FILAMENT_VOLTAGE_2_5 will
+// reduce the filament voltage to either 3.3 or 2.5 volts,
+// respectively.  Voltage is reduced through pulse width modulation.
 //
-// Subdigit multiplexing is like digit multiplexing, but displays each
-// digit twice--once showing only segments B, C, and H (those lit when
-// displaying "1.") and once showing only the other segments.  This
-// method eliminates ghosting, but reduces the maximum brightness a
-// little bit.
-//
-// I recommend subdigit multiplexing for use with the to-spec hack
-// and the xmas-icetube hardware revision.
-//
-// Segment multiplexing displays each segment (on all digits where
-// that segment is displayed) in rapid succession.  This method
-// eliminates ghosting, and the maximum brightness is similar to that
-// with digit multiplexing.  But the per-digit brightness adjustment
-// is not available when using this method.
-//
-// I do not recommend segment multiplexing, but left the feature in
-// the code in case anyone wants to play with it.  The problem with
-// segment multiplexing is that the MAX6921 chip enforces an overall
-// current limit on each segment, so if one segment is displayed on
-// many digits, that segment will be dimmer than if one segment is
-// displayed on only a few digits.  And more current will flow through
-// segments with the least resistance (at the right of the display).
-//
-#define DIGIT_MULTIPLEXING
-// #define SUBDIGIT_MULTIPLEXING
-// #define SEGMENT_MULTIPLEXING
-
-
-// BIRTHDAY ALARM
-//
-// If BDAY_ALARM_MONTH and BDAY_ALARM_DAY are defined, the alarm sound
-// on that day will always be "For He's a Jolly Good Fellow,"
-// regardless of the alarm sound set in the menus.
+// And again, defining any of the macros below deliberately runs the
+// filament outside the IV-18 specifications.  These macros are mainly
+// provided for testing purposes.  But if the redish glow of the
+// filament is bothersome, reducing the filament voltage might be
+// worthwhile even though doing so may cause cathode poisoning.
 //
 //
-// #define BDAY_ALARM_MONTH 1
-// #define BDAY_ALARM_DAY   1
+// #define FILAMENT_CURRENT_DC
+// #define FILAMENT_VOLTAGE_3_3
+// #define FILAMENT_VOLTAGE_2_5
 
 
 // DEBUGGING FEATURES

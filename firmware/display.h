@@ -105,6 +105,7 @@ typedef struct {
 #ifndef OCR0B_PWM_DISABLE
     uint8_t OCR0B_value;
 #endif  // ~OCR0B_PWM_DISABLE
+    uint8_t filament_timer;  // timer for generating filament current
 #endif  // VFD_TO_SPEC
 
 #ifndef SEGMENT_MULTIPLEXING
@@ -132,8 +133,100 @@ void display_semitick(void);
 // toggle push-pull outputs to generate alternating current on vfd fillament
 inline void display_semisemitick(void) {
 #ifdef VFD_TO_SPEC
-    if(!(display.status & DISPLAY_DISABLED)) PORTC ^= _BV(PC2) | _BV(PC3);
-#endif
+    if(!(display.status & DISPLAY_DISABLED)) {
+#ifdef FILAMENT_CURRENT_DC
+#if defined(FILAMENT_VOLTAGE_3_3)
+	switch(display.filament_timer) {
+	    case 0:
+		PORTC &= ~_BV(PC2);
+		PORTC |=  _BV(PC3);
+	    case 1:
+		++display.filament_timer;
+		break;
+	    default:
+		PORTC &= ~_BV(PC2);
+		PORTC &= ~_BV(PC3);
+		display.filament_timer = 0;
+		break;
+	}
+#elif defined(FILAMENT_VOLTAGE_2_5)  // && ~FILAMENT_VOLTAGE_3_3
+	switch(display.filament_timer) {
+	    case 0:
+		PORTC &= ~_BV(PC2);
+		PORTC |=  _BV(PC3);
+		++display.filament_timer;
+		break;
+	    default:
+		PORTC &= ~_BV(PC2);
+		PORTC &= ~_BV(PC3);
+		display.filament_timer = 0;
+		break;
+	}
+#else  // ~FILAMENT_VOLTAGE_3_3 && ~FILAMENT_VOLTAGE_2_5 
+	PORTC &= ~_BV(PC2);
+	PORTC |=  _BV(PC3);
+#endif  // FILAMENT_VOLTAGE
+
+#else  // ~FILAMENT_CURRENT_DC
+
+#ifdef FILAMENT_VOLTAGE_3_3
+	switch(display.filament_timer) {
+	    case 0:
+		PORTC &= ~_BV(PC2);
+		PORTC |=  _BV(PC3);
+		++display.filament_timer;
+		break;
+	    case 1:
+		PORTC |=  _BV(PC2);
+		PORTC &= ~_BV(PC3);
+		++display.filament_timer;
+		break;
+	    default:
+		PORTC &= ~_BV(PC2);
+		PORTC &= ~_BV(PC3);
+		display.filament_timer = 0;
+		break;
+	}
+#elif defined(FILAMENT_VOLTAGE_2_5)  // && ~FILAMENT_VOLTAGE_3_3
+	switch(display.filament_timer) {
+	    case 0:
+		PORTC |=  _BV(PC2);
+		PORTC &= ~_BV(PC3);
+		++display.filament_timer;
+		break;
+	    case 1:
+		PORTC &= ~_BV(PC2);
+		PORTC &= ~_BV(PC3);
+		++display.filament_timer;
+		break;
+	    case 2:
+		PORTC &= ~_BV(PC2);
+		PORTC |=  _BV(PC3);
+		++display.filament_timer;
+		break;
+	    default:
+		PORTC &= ~_BV(PC2);
+		PORTC &= ~_BV(PC3);
+		display.filament_timer = 0;
+		break;
+	}
+#else // ~FILAMENT_VOLTAGE_3_3 && ~FILAMENT_VOLTAGE_2_5
+	switch(display.filament_timer) {
+	    case 0:
+		PORTC |=  _BV(PC2);
+		PORTC &= ~_BV(PC3);
+		++display.filament_timer;
+		break;
+	    default:
+		PORTC &= ~_BV(PC2);
+		PORTC |=  _BV(PC3);
+		display.filament_timer = 0;
+		break;
+	}
+#endif  // FILAMENT_VOLTAGE_3_3
+#endif // FILAMENT_CURRENT_DC
+    }
+#endif  // VFD_TO_SPEC
 }
 
 void display_savestatus(void);
