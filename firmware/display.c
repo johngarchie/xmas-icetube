@@ -45,13 +45,6 @@
 volatile display_t display;
 
 
-uint8_t display_combineLR(uint8_t a, uint8_t b);
-uint8_t display_shiftU1(uint8_t digit);
-uint8_t display_shiftU2(uint8_t digit);
-uint8_t display_shiftD1(uint8_t digit);
-uint8_t display_shiftD2(uint8_t digit);
-
-
 // permanent place to store display brightness
 uint8_t ee_display_status     EEMEM = DISPLAY_ANIMATED;
 #ifdef AUTOMATIC_DIMMER
@@ -61,7 +54,9 @@ uint8_t ee_display_off_threshold EEMEM = 0;
 #else
 uint8_t ee_display_brightness EEMEM = 1;
 #endif  // AUTOMATIC_DIMMER
+#ifndef SEGMENT_MULTIPLEXING
 uint8_t ee_display_digit_times[] EEMEM = { [0 ... DISPLAY_SIZE - 1] = 15 };
+#endif  // ~SEGMENT_MULTIPLEXING
 
 uint8_t ee_display_off_hour   EEMEM = 23 | DISPLAY_NOOFF;
 uint8_t ee_display_off_minute EEMEM = 0;
@@ -200,16 +195,28 @@ const uint8_t vfd_segment_pins[] PROGMEM = {
 
 
 #ifdef VFD_TO_SPEC
+#ifndef OCR0B_PWM_DISABLE
 // magic values for converting brightness to OCR2B values
 #define OCR0B_GRADIENT_MAX 80
+#ifdef OCR0A_VALUE
+// floor(exp(2.0201 + 0.3437 * 2:82/8))
 const uint8_t ocr0b_gradient[] PROGMEM =
-  { 8, 8, 8, 9, 9, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 13, 13, 14, 15, 16,
-    17, 18, 20, 21, 23, 24, 26, 27, 28, 30, 31, 33, 34, 36, 37, 39, 40, 42,
-    43, 45, 46, 48, 50, 51, 53, 55, 57, 59, 61, 63, 65, 68, 70, 73, 76, 79,
-    83, 86, 90, 94, 98, 102, 105, 109, 112, 116, 120, 123, 128, 132, 138,
-    144, 151, 159, 169, 179, 191, 205, 220, 236, 255 };
+  { 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 16, 17, 17,
+    18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 31, 32, 33, 35, 36, 38,
+    40, 42, 43, 45, 47, 49, 52, 54, 56, 59, 61, 64, 67, 70, 73, 76, 80, 83,
+    87, 91, 95, 99, 103, 108, 112, 117, 123, 128, 134, 139, 146, 152, 159,
+    166, 173, 181, 189, 197, 206, 215, 224, 234, 244, 255 };
+#else  // ~OCR0A_VALUE
+// floor(exp(2.0201 + 0.3437 * seq(2,82/8, length.out=81)))
+const uint8_t ocr0b_gradient[] PROGMEM =
+  { 14, 15, 16, 16, 17, 17, 18, 19, 19, 20, 21, 22, 22, 23, 24, 25, 26, 27,
+    28, 29, 30, 31, 32, 33, 35, 36, 37, 39, 40, 41, 43, 44, 46, 48, 50, 51,
+    53, 55, 57, 59, 61, 64, 66, 68, 71, 73, 76, 79, 82, 85, 88, 91, 94, 98,
+    101, 105, 109, 113, 117, 121, 125, 130, 134, 139, 144, 150, 155, 161,
+    166, 172, 179, 185, 192, 199, 206, 213, 221, 229, 237, 246, 255 };
+#endif  // OCR0A_VALUE
+#endif  // ~OCR0B_PWM_DISABLE
 #endif  // VFD_TO_SPEC
-    
 
 
 // initialize display after system reset
@@ -259,7 +266,9 @@ void display_init(void) {
 #endif  // AUTOMATIC_DIMMER
 
     // load the digit display times
+#ifndef SEGMENT_MULTIPLEXING
     display_loaddigittimes();
+#endif  // ~SEGMENT_MULTIPLEXING
 
     // load the auto off settings
     display_loadofftime();
@@ -316,6 +325,14 @@ void display_wake(void) {
 
 
 #ifdef VFD_TO_SPEC
+#ifdef OCR0B_PWM_DISABLE
+    // configure and start Timer/Counter0
+    // COM0A1:0 = 10: clear OC0A on compare match; set at BOTTOM
+    // WGM02:0 = 011: clear timer on compare match; TOP = 0xFF
+    TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
+    TCCR0B = _BV(CS00);   // clock counter0 with system clock
+    TIMSK0 = _BV(TOIE0);  // enable counter0 overflow interrupt
+#else  // ~OCR0B_PWM_DISABLE
     // configure and start Timer/Counter0
     // COM0A1:0 = 10: clear OC0A on compare match; set at BOTTOM
     // COM0B1:0 = 11: clear OC0B at bottom; set on compare match
@@ -323,7 +340,8 @@ void display_wake(void) {
     TCCR0A = _BV(COM0A1) | _BV(COM0B0) | _BV(COM0B1) | _BV(WGM00) | _BV(WGM01);
     TCCR0B = _BV(CS00);   // clock counter0 with system clock
     TIMSK0 = _BV(TOIE0);  // enable counter0 overflow interrupt
-#else
+#endif // OCR0B_PWM_DISABLE
+#else  // ~VFD_TO_SPEC
     // configure and start Timer/Counter0
     // COM0A1:0 = 10: clear OC0A on compare match; set at BOTTOM
     // WGM02:0 = 011: clear timer on compare match; TOP = 0xFF
@@ -488,8 +506,12 @@ void display_on(void) {
 	    display.status &= ~DISPLAY_DISABLED;
 #ifdef VFD_TO_SPEC
 	    // enable boost and blank pwm
+#ifdef OCR0B_PWM_DISABLE
+	    TCCR0A =   _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
+#else  // ~OCR0B_PWM_DISABLE
 	    TCCR0A =   _BV(COM0A1) | _BV(COM0B0) | _BV(COM0B1)
-		     | _BV(WGM00) | _BV(WGM01);
+		     | _BV(WGM00)  | _BV(WGM01);
+#endif  // OCR0B_PWM_DISABLE
 
 	    // power VFD cathode (heater fillament)
 	    PORTC |=  _BV(PC2);
@@ -505,12 +527,88 @@ void display_on(void) {
 }
 
 
+#ifndef SEGMENT_MULTIPLEXING
+// utility function for display_varsemitick();
+// combines two characters for the scroll-left transition
+inline uint8_t display_combineLR(uint8_t a, uint8_t b) {
+    uint8_t c = 0;
+
+    if(a & SEG_B) c |= SEG_F;
+    if(a & SEG_E) c |= SEG_E;
+    if(b & SEG_F) c |= SEG_B;
+    if(b & SEG_E) c |= SEG_C;
+
+    return c;
+}
+
+
+// utility function for display_varsemitick();
+// shifts the given digit up by one
+inline uint8_t display_shiftU1(uint8_t digit) {
+    uint8_t shifted = 0;
+
+    if(digit & SEG_G) shifted |= SEG_A;
+    if(digit & SEG_E) shifted |= SEG_F;
+    if(digit & SEG_C) shifted |= SEG_B;
+    if(digit & SEG_D) shifted |= SEG_G;
+
+    return shifted;
+}
+
+
+// utility function for display_varsemitick();
+// shifts the given digit up by two
+inline uint8_t display_shiftU2(uint8_t digit) {
+    uint8_t shifted = 0;
+
+    if(digit & SEG_D) shifted |= SEG_A;
+
+    return shifted;
+}
+
+
+// utility function for display_varsemitick();
+// shifts the given digit down by one
+inline uint8_t display_shiftD1(uint8_t digit) {
+    uint8_t shifted = 0;
+
+    if(digit & SEG_A) shifted |= SEG_G;
+    if(digit & SEG_F) shifted |= SEG_E;
+    if(digit & SEG_B) shifted |= SEG_C;
+    if(digit & SEG_G) shifted |= SEG_D;
+
+    return shifted;
+}
+
+
+// utility function for display_varsemitick();
+// shifts the given digit down by two
+inline uint8_t display_shiftD2(uint8_t digit) {
+    uint8_t shifted = 0;
+
+    if(digit & SEG_A) shifted |= SEG_D;
+
+    return shifted;
+}
+
+
 // called periodically to to control the VFD via the MAX6921
 // returns time (in 32us units) to display current digit
 uint8_t display_varsemitick(void) {
     static uint8_t digit_idx = DISPLAY_SIZE - 1;
 
+#ifdef SUBDIGIT_MULTIPLEXING
+    static uint8_t digit_side = 1;
+
+    if(digit_side) {
+	digit_side = 0;
+	if(++digit_idx >= DISPLAY_SIZE) digit_idx  = 0;
+    } else {
+	digit_side = 1;
+    }
+#else
     if(++digit_idx >= DISPLAY_SIZE) digit_idx = 0;
+#endif  // SUBDIGIT_MULTIPLEXING
 
     // bits to send MAX6921 (vfd driver chip)
     uint8_t bits[3] = {0, 0, 0};
@@ -613,16 +711,37 @@ uint8_t display_varsemitick(void) {
 
 	// select the segments to display
 	for(uint8_t segment = 0; segment < 8; ++segment) {
+#ifdef SUBDIGIT_MULTIPLEXING
+	    switch(_BV(segment)) {
+		case SEG_B:
+		case SEG_C:
+		case SEG_H:
+		    if(digit_side && (digit & _BV(segment))) {
+			bitidx = pgm_read_byte(&(vfd_segment_pins[segment]));
+			bits[bitidx >> 3] |= _BV(bitidx & 0x7);
+		    }
+		    break;
+		default:
+		    if(!digit_side && (digit & _BV(segment))) {
+			bitidx = pgm_read_byte(&(vfd_segment_pins[segment]));
+			bits[bitidx >> 3] |= _BV(bitidx & 0x7);
+		    }
+		    break;
+	    }
+#else
 	    if(digit & _BV(segment)) {
 		bitidx = pgm_read_byte(&(vfd_segment_pins[segment]));
 		bits[bitidx >> 3] |= _BV(bitidx & 0x7);
 	    }
+#endif  // SUBDIGIT_MULTIPLEXING
 	}
 
 	// blank display to prevent ghosting
 #ifdef VFD_TO_SPEC
 	// disable pwm on blank pin
+#ifndef OCR0B_PWM_DISABLE
 	TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
+#endif  // ~OCR0B_PWM_DISABLE
 	PORTD |= _BV(PD5);  // push MAX6921 BLANK pin high
 #else
 	PORTC |= _BV(PC3);  // push MAX6921 BLANK pin high
@@ -671,17 +790,340 @@ uint8_t display_varsemitick(void) {
 	// unblank display to prevent ghosting
 #ifdef VFD_TO_SPEC
 	// enable pwm on blank pin
+#ifdef OCR0B_PWM_DISABLE
+	PORTD &= ~_BV(PD5);  // pull MAX6921 BLANK pin low
+#else  // ~OCR0B_PWM_DISABLE
+	OCR0B  = display.OCR0B_value;
 	TCCR0A = _BV(COM0A1) | _BV(COM0B0) | _BV(COM0B1) |
 	         _BV(WGM00)  | _BV(WGM01);
 	TCNT0  = 0xFF;  // set counter to max
+#endif  // OCR0B_PWM_DISABLE
 #else
 	PORTC &= ~_BV(PC3);  // pull MAX6921 BLANK pin low
 #endif  // VFD_TO_SPEC
     }
 
     // return time to display current digit
-    return display.digit_times[digit_idx] >> display.digit_time_shift;
+    return (display.digit_times[digit_idx] >> display.digit_time_shift) + 1;
 }
+#endif  // ~SEGMENT_MULTIPLEXING
+
+
+#ifdef SEGMENT_MULTIPLEXING
+// utility function for display_varsemitick();
+// shifts digits up by one
+inline void display_shiftU1(uint8_t bits[], volatile uint8_t buf[],
+	                    uint8_t segment) {
+    switch(segment) {
+      case SEG_A:
+	  segment = SEG_G;
+	  break;
+      case SEG_F:
+	  segment = SEG_E;
+	  break;
+      case SEG_B:
+	  segment = SEG_C;
+	  break;
+      case SEG_G:
+	  segment = SEG_D;
+	  break;
+      default:
+	  return;
+    }
+
+    for(uint8_t digit_idx = 1; digit_idx < DISPLAY_SIZE; ++digit_idx) {
+	if(buf[digit_idx] & segment) {
+	    // select the digit position to display
+	    uint8_t bitidx = pgm_read_byte(&(vfd_digit_pins[digit_idx]));
+	    bits[bitidx >> 3] |= _BV(bitidx & 0x7);
+	}
+    }
+}
+
+
+// utility function for display_varsemitick();
+// shifts digits up by two
+inline void display_shiftU2(uint8_t bits[], volatile uint8_t buf[],
+	                    uint8_t segment) {
+    if(segment == SEG_A) {
+	for(uint8_t digit_idx = 1; digit_idx < DISPLAY_SIZE; ++digit_idx) {
+	    if(buf[digit_idx] & SEG_D) {
+		uint8_t bitidx = pgm_read_byte(&(vfd_digit_pins[digit_idx]));
+		bits[bitidx >> 3] |= _BV(bitidx & 0x7);
+	    }
+	}
+    }
+}
+
+
+// utility function for display_varsemitick();
+// shifts digits down by one
+inline void display_shiftD1(uint8_t bits[], volatile uint8_t buf[],
+	                    uint8_t segment) {
+    switch(segment) {
+      case SEG_G:
+	  segment = SEG_A;
+	  break;
+      case SEG_E:
+	  segment = SEG_F;
+	  break;
+      case SEG_C:
+	  segment = SEG_B;
+	  break;
+      case SEG_D:
+	  segment = SEG_G;
+	  break;
+      default:
+	  return;
+    }
+
+    for(uint8_t digit_idx = 1; digit_idx < DISPLAY_SIZE; ++digit_idx) {
+	if(buf[digit_idx] & segment) {
+	    uint8_t bitidx = pgm_read_byte(&(vfd_digit_pins[digit_idx]));
+	    bits[bitidx >> 3] |= _BV(bitidx & 0x7);
+	}
+    }
+}
+
+
+// utility function for display_varsemitick();
+// shifts digits down by two
+inline void display_shiftD2(uint8_t bits[], volatile uint8_t buf[],
+	                    uint8_t segment) {
+    if(segment == SEG_D) {
+	for(uint8_t digit_idx = 1; digit_idx < DISPLAY_SIZE; ++digit_idx) {
+	    if(buf[digit_idx] & SEG_A) {
+		uint8_t bitidx = pgm_read_byte(&(vfd_digit_pins[digit_idx]));
+		bits[bitidx >> 3] |= _BV(bitidx & 0x7);
+	    }
+	}
+    }
+}
+
+
+// utility function for display_varsemitick();
+// combines two characters for the scroll-left transition
+inline void display_shiftL(uint8_t bits[], uint8_t segment) {
+    uint8_t digit_idx = 0;
+    uint8_t trans_idx = DISPLAY_SIZE - (display.trans_timer >> 1);
+
+    if(display.trans_timer & 0x01) {
+	switch(segment) {
+	    case SEG_B:
+		segment = SEG_F;
+		break;
+	    case SEG_C:
+		segment = SEG_E;
+		break;
+	    case SEG_E:
+		--trans_idx;
+		segment = SEG_C;
+		break;
+	    case SEG_F:
+		--trans_idx;
+		segment = SEG_B;
+		break;
+	    default:
+		return;
+	}
+    }
+
+    while(++digit_idx < DISPLAY_SIZE) {
+	++trans_idx;
+
+	uint8_t digit;
+
+	if(trans_idx < DISPLAY_SIZE) {
+	    if(trans_idx == 0) continue;
+	    digit = display.postbuf[trans_idx];
+	} else {
+	    if(trans_idx == DISPLAY_SIZE) continue;
+	    digit = display.prebuf[trans_idx - DISPLAY_SIZE];
+	}
+
+	if(digit & segment) {
+	    uint8_t bitidx = pgm_read_byte(&(vfd_digit_pins[digit_idx]));
+	    bits[bitidx >> 3] |= _BV(bitidx & 0x7);
+	}
+    }
+}
+
+
+// utility function for display_varsemitick();
+// sets bit for given segment
+void display_noshift(uint8_t bits[], volatile uint8_t buf[],
+		     uint8_t segment) {
+    for(uint8_t digit_idx = 0; digit_idx < DISPLAY_SIZE; ++digit_idx) {
+	if(buf[digit_idx] & segment) {
+	    uint8_t bitidx=pgm_read_byte(&(vfd_digit_pins[digit_idx]));
+	    bits[bitidx >> 3] |= _BV(bitidx & 0x7);
+	}
+    }
+}
+
+
+// called periodically to to control the VFD via the MAX6921
+// returns time (in 32us units) to display current digit
+uint8_t display_varsemitick(void) {
+    static uint8_t segment_idx = SEGMENT_COUNT - 1;
+
+    if(++segment_idx >= SEGMENT_COUNT) segment_idx = 0;
+
+    uint8_t segment = _BV(segment_idx);
+
+    // bits to send MAX6921 (vfd driver chip)
+    uint8_t bits[3] = {0, 0, 0};
+
+    // select the segment to be displayed
+    uint8_t bitidx = pgm_read_byte(&(vfd_segment_pins[segment_idx]));
+    bits[bitidx >> 3] |= _BV(bitidx & 0x7);
+
+    switch(display.trans_type) {
+	case DISPLAY_TRANS_UP:
+	    switch(display.trans_timer) {
+		case 5:
+		    display_noshift(bits, display.postbuf, segment);
+		    break;
+
+		case 4:
+		    display_shiftU1(bits, display.postbuf, segment);
+		    break;
+
+		case 3:
+		    display_shiftU2(bits, display.postbuf, segment);
+		    break;
+
+		case 2:
+		    display_shiftD2(bits, display.prebuf, segment);
+		    break;
+
+		case 1:
+		    display_shiftD1(bits, display.prebuf, segment);
+		    break;
+
+		default:
+		    display_noshift(bits, display.prebuf, segment);
+		    break;
+	    }
+	    break;
+
+	case DISPLAY_TRANS_DOWN:
+	    switch(display.trans_timer) {
+		case 5:
+		    display_noshift(bits, display.postbuf, segment);
+		    break;
+
+		case 4:
+		    display_shiftD1(bits, display.postbuf, segment);
+		    break;
+
+		case 3:
+		    display_shiftD2(bits, display.postbuf, segment);
+		    break;
+
+		case 2:
+		    display_shiftU2(bits, display.prebuf, segment);
+		    break;
+
+		case 1:
+		    display_shiftU1(bits, display.prebuf, segment);
+		    break;
+
+		default:
+		    display_noshift(bits, display.prebuf, segment);
+		    break;
+	    }
+	    break;
+
+	case DISPLAY_TRANS_LEFT:
+	    if(display.trans_timer >= 2 * DISPLAY_SIZE) {
+		display_noshift(bits, display.postbuf, segment);
+	    } else if(display.trans_timer) {
+		display_shiftL(bits, segment);
+	    } else if(display.trans_timer < 2 * DISPLAY_SIZE) {
+		display_noshift(bits, display.prebuf, segment);
+	    }
+	    break;
+
+	default:
+	    display_noshift(bits, display.postbuf, segment);
+	    break;
+    }
+
+
+    // create the sequence of bits for the calculated digit
+    if(!(display.status & DISPLAY_DISABLED)) {
+	// blank display to prevent ghosting
+#ifdef VFD_TO_SPEC
+	// disable pwm on blank pin
+#ifndef OCR0B_PWM_DISABLE
+	TCCR0A = _BV(COM0A1) | _BV(WGM00) | _BV(WGM01);
+#endif  // ~OCR0B_PWM_DISABLE
+	PORTD |= _BV(PD5);  // push MAX6921 BLANK pin high
+#else
+	PORTC |= _BV(PC3);  // push MAX6921 BLANK pin high
+#endif  // VFD_TO_SPEC
+    }
+
+    // send bits to the MAX6921 (vfd driver chip)
+
+    // Note that one system clock cycle is 1 / 8 MHz seconds or 125 ns.
+    // According to the MAX6921 datasheet, the minimum pulse-width on the
+    // MAX6921 CLK and LOAD pins need only be 90 ns and 55 ns,
+    // respectively.  The minimum period for CLK must be at least 200 ns.
+    // Therefore, no delays should be necessary in the code below.
+
+    // Also, the bits could be sent by SPI (they are in the origional
+    // Adafruit firmware), but I have found that doing so sometimes
+    // results in display flicker.
+    uint8_t bitflag = 0x08;
+    for(int8_t bitidx=2; bitidx >= 0; --bitidx) {
+        uint8_t bitbyte = bits[bitidx];
+
+        for(; bitflag; bitflag >>= 1) {
+            if(bitbyte & bitflag) {
+                // output high on MAX6921 DIN pin
+                PORTB |= _BV(PB3);
+            } else {
+                // output low on MAX6921 DIN pin
+                PORTB &= ~_BV(PB3);
+            }
+
+            // pulse MAX6921 CLK pin:  shifts DIN input into
+            // the 20-bit shift register on rising edge
+            PORTB |=  _BV(PB5);
+            PORTB &= ~_BV(PB5);
+        }
+
+	bitflag = 0x80;
+    }
+    
+    // pulse MAX6921 LOAD pin:  transfers shift
+    // register to latch when high; latches when low
+    PORTC |=  _BV(PC0);
+    PORTC &= ~_BV(PC0);
+
+    if(!(display.status & DISPLAY_DISABLED)) {
+	// unblank display to prevent ghosting
+#ifdef VFD_TO_SPEC
+#ifdef OCR0B_PWM_DISABLE
+	PORTD &= ~_BV(PD5);  // pull MAX6921 BLANK pin low
+#else  // ~OCR0B_PWM_DISABLE
+	// enable pwm on blank pin
+	OCR0B = display.OCR0B_value;
+	TCCR0A = _BV(COM0A1) | _BV(COM0B0) | _BV(COM0B1) |
+	         _BV(WGM00)  | _BV(WGM01);
+	TCNT0  = 0xFF;  // set counter to max
+#endif  // OCR0B_PWM_DISABLE
+#else
+	PORTC &= ~_BV(PC3);  // pull MAX6921 BLANK pin low
+#endif  // VFD_TO_SPEC
+    }
+
+    // return time to display current digit
+    return 16;
+}
+#endif  // SEGMENT_MULTIPLEXING
 
 
 // called every semisecond; updates ambient brightness running average
@@ -690,29 +1132,29 @@ void display_semitick(void) {
     // During a transition, display_varsemitick() calculates the segments
     // to display on-the-fly from the transition variables.
 
-    static uint8_t trans_delay_timer = 0;
+    static uint16_t trans_delay_timer = 0;
 
     // calculate timer values for scrolling display
-    if(display.trans_timer) {
-	if(trans_delay_timer) {
-	    --trans_delay_timer;
-	} else {
-	    if(--display.trans_timer) {
-		switch(display.trans_type) {
-		    case DISPLAY_TRANS_UP:
-		    case DISPLAY_TRANS_DOWN:
-			trans_delay_timer = DISPLAY_TRANS_UD_DELAY;
-			break;
-
-		    case DISPLAY_TRANS_LEFT:
-			trans_delay_timer = DISPLAY_TRANS_LR_DELAY;
-			break;
-
-		    default:
-			break;
-		}
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	if(display.trans_timer) {
+	    if(trans_delay_timer) {
+		--trans_delay_timer;
 	    } else {
-		ATOMIC_BLOCK(ATOMIC_FORCEON) {
+		if(--display.trans_timer) {
+		    switch(display.trans_type) {
+			case DISPLAY_TRANS_UP:
+			case DISPLAY_TRANS_DOWN:
+			    trans_delay_timer = DISPLAY_TRANS_UD_DELAY;
+			    break;
+
+			case DISPLAY_TRANS_LEFT:
+			    trans_delay_timer = DISPLAY_TRANS_LR_DELAY;
+			    break;
+
+			default:
+			    break;
+		    }
+		} else {
 		    for(uint8_t i = 0; i < DISPLAY_SIZE; ++i) {
 			display.postbuf[i] = display.prebuf[i];
 		    }
@@ -754,37 +1196,21 @@ void display_semitick(void) {
 	if(! --pulse_timer) {
 	    pulse_timer = DISPLAY_PULSE_DELAY;
 
-#ifdef VFD_TO_SPEC
 	    static uint8_t grad_idx = 0;
 
 	    if(display.status & DISPLAY_PULSE_DOWN) {
 		if(grad_idx == 0x00) {
 		    display.status &= ~DISPLAY_PULSE_DOWN;
 		} else {
-		    OCR0B = pgm_read_byte(&(ocr0b_gradient[--grad_idx]));
+		    display_setbrightness(--grad_idx);
 		}
 	    } else {
-		if(grad_idx == OCR0B_GRADIENT_MAX) {
+		if(grad_idx == 80) {
 		    display.status |=  DISPLAY_PULSE_DOWN;
 		} else {
-		    OCR0B = pgm_read_byte(&(ocr0b_gradient[++grad_idx]));
+		    display_setbrightness(++grad_idx);
 		}
 	    }
-#else  // ! VFD_TO_SPEC
-	    if(display.status & DISPLAY_PULSE_DOWN) {
-		if(OCR0A <= OCR0A_MIN) {
-		    display.status &= ~DISPLAY_PULSE_DOWN;
-		} else {
-		    --OCR0A;
-		}
-	    } else {
-		if(OCR0A >= OCR0A_MAX) {
-		    display.status |=  DISPLAY_PULSE_DOWN;
-		} else {
-		    ++OCR0A;
-		}
-	    }
-#endif  // VFD_TO_SPEC
 	}
     }
 }
@@ -865,6 +1291,7 @@ void display_savebright(void) {
 }
 
 
+#ifndef SEGMENT_MULTIPLEXING
 // loads the times (32 us units) to display each digit
 void display_loaddigittimes(void) {
     for(uint8_t i = 0; i < DISPLAY_SIZE; ++i) {
@@ -893,10 +1320,12 @@ void display_noflicker(void) {
 
     display.digit_time_shift = 0;
 
-    while( (total_digit_time >> display.digit_time_shift) > 512 ) {
+    while( (total_digit_time >> display.digit_time_shift)
+	    > DISPLAY_NOFLICKER_TIME ) {
 	++display.digit_time_shift;
     }
 }
+#endif //  ~SEGMENT_MULTIPLEXING
 
 
 #ifdef AUTOMATIC_DIMMER
@@ -955,35 +1384,35 @@ void display_saveondays(void) {
 }
 
 
-// set display brightness from display.bright_min,
-// display.bright_max, and display.photo_avg
+// set display brightness using photoresistor or specified level
 void display_autodim(void) {
-#ifdef VFD_TO_SPEC
-    OCR0A = OCR0A_VALUE;  // set fixed boost value
-
 #ifdef AUTOMATIC_DIMMER
-    // convert photoresistor value to [0-80] for ocr0b_gradient index
+    // convert photoresistor value to [0-80] for display_setbrightness()
     int16_t grad_idx = (display.bright_max << 3) - (((display.photo_avg >> 8)
 		      * ((display.bright_max - display.bright_min) << 3)) >> 8);
-#else
+#else  // ~AUTOMATIC_DIMMER
     int16_t grad_idx = (display.brightness < 0 ? 0 : display.brightness << 3);
 #endif  // AUTOMATIC_DIMMER
+    display_setbrightness(grad_idx);
+}
 
-    // force grad_idx in appropriate bounds
-    if(grad_idx < 0 ) grad_idx = 0;
-    if(grad_idx > OCR0B_GRADIENT_MAX) grad_idx = OCR0B_GRADIENT_MAX;
 
-    OCR0B = pgm_read_byte(&(ocr0b_gradient[grad_idx]));
+// set the display brightness where level is in the range [0-80]
+void display_setbrightness(int8_t level) {
+#ifdef VFD_TO_SPEC
+#ifndef OCR0B_PWM_DISABLE
+    // force level in appropriate bounds
+    if(level < 0 ) level = 0;
+    if(level > OCR0B_GRADIENT_MAX) level = OCR0B_GRADIENT_MAX;
 
-#else  // ~VFD_TO_SPEC
-#ifdef AUTOMATIC_DIMMER
-    // convert photoresistor value to OCR0A_MIN-OCR0A_MAX for OCR0A
-    int16_t new_OCR0A = OCR0A_MIN + OCR0A_SCALE * display.bright_max
-			 - ( (((display.photo_avg >> 8) * OCR0A_SCALE) >> 2)
-                             * (display.bright_max - display.bright_min) >> 6);
-#else
-    int16_t new_OCR0A = OCR0A_MIN + OCR0A_SCALE * display.brightness;
-#endif  // AUTOMATIC_DIMMER
+    display.OCR0B_value = pgm_read_byte(&(ocr0b_gradient[level]));
+#endif  // OCR0B_PWM_DISABLE
+#endif  // VFD_TO_SPEC
+
+#ifdef OCR0A_VALUE
+    OCR0A = OCR0A_VALUE;  // set fixed boost value
+#else  // ~OCR0A_VALUE
+    int16_t new_OCR0A = OCR0A_MIN + ((OCR0A_SCALE * level) >> 3);
 
     // ensure display will not be too dim or too bright:
     // if too dim, low voltage may not light digit segments;
@@ -993,7 +1422,7 @@ void display_autodim(void) {
 
     // set new brightness
     OCR0A = new_OCR0A;
-#endif  // VFD_TO_SPEC
+#endif  // OCR0A_VALUE
 }
 
 
@@ -1182,7 +1611,7 @@ void display_transition(uint8_t type) {
 		break;
 
 	    case DISPLAY_TRANS_LEFT:
-		display.trans_timer = 18;
+		display.trans_timer = 2 * DISPLAY_SIZE;
 		break;
 
 	    case DISPLAY_TRANS_INSTANT:
@@ -1197,68 +1626,4 @@ void display_transition(uint8_t type) {
 		break;
 	}
     }
-}
-
-
-// utility function for display_varsemitick();
-// combines two characters for the scroll-left transition
-uint8_t display_combineLR(uint8_t a, uint8_t b) {
-    uint8_t c = 0;
-
-    if(a & SEG_B) c |= SEG_F;
-    if(a & SEG_E) c |= SEG_E;
-    if(b & SEG_F) c |= SEG_B;
-    if(b & SEG_E) c |= SEG_C;
-
-    return c;
-}
-
-
-// utility function for display_varsemitick();
-// shifts the given digit up by one
-uint8_t display_shiftU1(uint8_t digit) {
-    uint8_t shifted = 0;
-
-    if(digit & SEG_G) shifted |= SEG_A;
-    if(digit & SEG_E) shifted |= SEG_F;
-    if(digit & SEG_C) shifted |= SEG_B;
-    if(digit & SEG_D) shifted |= SEG_G;
-
-    return shifted;
-}
-
-
-// utility function for display_varsemitick();
-// shifts the given digit up by two
-uint8_t display_shiftU2(uint8_t digit) {
-    uint8_t shifted = 0;
-
-    if(digit & SEG_D) shifted |= SEG_A;
-
-    return shifted;
-}
-
-
-// utility function for display_varsemitick();
-// shifts the given digit down by one
-uint8_t display_shiftD1(uint8_t digit) {
-    uint8_t shifted = 0;
-
-    if(digit & SEG_A) shifted |= SEG_G;
-    if(digit & SEG_F) shifted |= SEG_E;
-    if(digit & SEG_B) shifted |= SEG_C;
-    if(digit & SEG_G) shifted |= SEG_D;
-
-    return shifted;
-}
-
-
-// utility function for display_varsemitick();
-// shifts the given digit down by two
-uint8_t display_shiftD2(uint8_t digit) {
-    uint8_t shifted = 0;
-
-    if(digit & SEG_A) shifted |= SEG_D;
-
-    return shifted;
 }

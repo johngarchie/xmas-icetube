@@ -24,6 +24,7 @@ typedef struct {
      int8_t adjust;      // necessary 1/128 second adjustments
     int32_t error;       // time error [1 / (16^2 * 10^9) seconds]
     int16_t temp;        // current temperature (16 * deg C)
+     int8_t missed_ovf;  // missed timer0 overflows
 } temp_t;
 
 

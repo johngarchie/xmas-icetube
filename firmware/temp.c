@@ -211,6 +211,7 @@ uint8_t temp_reset(void) {
 	DDRC &= ~_BV(PC1);  // set as input
 	_delay_us(80);      // wait for response
 	if(PINC & _BV(PC1)) response = 1;  // query bus
+	temp.missed_ovf += 2;
     }
 
     // additional 420 us delay, so bus released for at least 500 us
@@ -239,6 +240,7 @@ void temp_write_bit(uint8_t bit) {
 	}
 
 	_delay_us(5);  // 5 us recovery time
+	temp.missed_ovf += 2;
     }
 }
 

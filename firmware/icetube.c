@@ -146,7 +146,7 @@ ISR(TIMER2_COMPB_vect) {
 
 
 // timer0 overflow interrupt
-// triggered every 32 microseconds (32.25 khz);
+// triggered every 32 microseconds (31.25 khz);
 // pwm output from timer0 controls boost power
 ISR(TIMER0_OVF_vect) {
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
@@ -154,6 +154,14 @@ ISR(TIMER0_OVF_vect) {
 	if(varcounter && !--varcounter) {
 	    varcounter = display_varsemitick();
 	}
+#ifdef TEMPERATURE_SENSOR
+	while(temp.missed_ovf) {
+	    --temp.missed_ovf;
+	    if(varcounter && !--varcounter) {
+		varcounter = display_varsemitick();
+	    }
+	}
+#endif  // TEMPERATURE_SENSOR
     }
 
     ATOMIC_BLOCK(ATOMIC_FORCEON) {

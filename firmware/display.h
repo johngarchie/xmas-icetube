@@ -8,6 +8,7 @@
 
 
 #define DISPLAY_SIZE 9
+#define SEGMENT_COUNT 8
 #define DISPLAY_OFF_TIMEOUT 60
 
 // status flags for display.status
@@ -29,6 +30,12 @@
 // time required for one step of OCR0A when pulsing
 #define DISPLAY_PULSE_DELAY 750 / (OCR0A_MAX - OCR0A_MIN)  // (semiticks)
 #endif  // VFD_TO_SPEC
+
+#ifdef SUBSEGMENT_MULTIPLEXING
+#define DISPLAY_NOFLICKER_TIME 128
+#else  // ~SUBSEGMENT_MULTIPLEXING
+#define DISPLAY_NOFLICKER_TIME 256
+#endif  // SUBSEGMENT_MULTIPLEXING
 
 // time between photoresister voltage samples
 #define DISPLAY_ADC_DELAY 16  // (semiticks)
@@ -94,9 +101,17 @@ typedef struct {
     // of seconds before the display may be disabled after a button press.
     uint8_t off_timer;
 
+#ifdef VFD_TO_SPEC
+#ifndef OCR0B_PWM_DISABLE
+    uint8_t OCR0B_value;
+#endif  // ~OCR0B_PWM_DISABLE
+#endif  // VFD_TO_SPEC
+
+#ifndef SEGMENT_MULTIPLEXING
     // length of time to display each digit (32 microsecond units)
     uint8_t digit_times[DISPLAY_SIZE];
     uint8_t digit_time_shift;  // flicker reduction adjustment
+#endif  // ~SEGMENT_MULTIPLEXING
 } display_t;
 
 volatile extern display_t display;
@@ -149,6 +164,7 @@ void display_saveondays(void);
 uint8_t display_onbutton(void);
 
 void display_autodim(void);
+void display_setbrightness(int8_t level);
 
 void display_pstr(const uint8_t idx, PGM_P pstr);
 void display_digit(uint8_t idx, uint8_t n);

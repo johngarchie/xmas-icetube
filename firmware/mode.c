@@ -851,7 +851,11 @@ void mode_semitick(void) {
 
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
+#ifndef SEGMENT_MULTIPLEXING
 		    MODE_CFGDISP_SETDIGITBRIGHT_MENU,
+#else
+		    MODE_CFGDISP_SETAUTOOFF_MENU,
+#endif  // ~ SEGMENT_MULTIPLEXING
 		    MODE_CFGDISP_SETBRIGHT_LEVEL,
 		    menu_cfgdisp_setbright_init,
 		    btn, FALSE);
@@ -964,6 +968,7 @@ void mode_semitick(void) {
 	    }
 	    break;
 #endif  // AUTOMATIC_DIMMER
+#ifndef SEGMENT_MULTIPLEXING
 	case MODE_CFGDISP_SETDIGITBRIGHT_MENU: ;
 	    void menu_cfgdisp_setdigitbright_init(void) {
 		*mode.tmp = 0;
@@ -1031,6 +1036,7 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
+#endif  // ~SEGMENT_MULTIPLEXING
 	case MODE_CFGDISP_SETAUTOOFF_MENU:
 	    mode_menu_process_button(
 		    MODE_TIME_DISPLAY,
@@ -2264,6 +2270,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    display_dot(1, TRUE);
 	    break;
 #endif  // AUTOMATIC_DIMMER
+#ifndef SEGMENT_MULTIPLEXING
 	case MODE_CFGDISP_SETDIGITBRIGHT_MENU:
 	    display_pstr(0, PSTR("digt bri"));
 	    break;
@@ -2282,6 +2289,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    }
 
 	    break;
+#endif  // ~SEGMENT_MULTIPLEXING
 	case MODE_CFGDISP_SETAUTOOFF_MENU:
 	    display_pstr(0, PSTR("auto off"));
 	    break;

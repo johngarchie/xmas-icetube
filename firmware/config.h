@@ -48,7 +48,6 @@
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=12932
 //   http://forums.adafruit.com/viewtopic.php?p=219736#p219736
 //
-//
 // #define AUTOMATIC_DIMMER
 
 
@@ -65,6 +64,15 @@
 //
 //
 // #define GPS_TIMEKEEPING
+
+
+// USART BAUD RATE
+//
+// The USART baud rate is used for both the debugging features and GPS
+// timekeeping and may be changed below.
+//
+//
+#define USART_BAUDRATE 9600
 
 
 // TEMPERATURE COMPENSATED CRYSTAL OSCILLATOR
@@ -114,21 +122,6 @@
 // #define XTAL_FREQUENCY_COEF 34   // -ppb / (deg C)^2
 
 
-// IV-18 TO-SPEC HACK
-//
-// The Ice Tube Clock does not drive the IV-18 VFD tube to
-// specifications, but with some rewiring and additional circuitry,
-// enabling the following macros will drive the IV-18 tube as it was
-// designed.  The following thread on the Adafruit Clocks forum
-// describes the required hardware modifications:
-//
-//   http://forums.adafruit.com/viewtopic.php?f=41&t=41811
-//
-//
-// #define VFD_TO_SPEC
-// #define OCR0A_VALUE 128
-
-
 // DISPLAY BRIGHTNESS / BOOST CONFIGURATION
 //
 // VFD displays lose brightness as they age, but increasing the
@@ -165,11 +158,87 @@
 // reduce OCR0A_SCALE or install a higher power fuse.
 //
 //
-#ifndef VFD_TO_SPEC
 #define OCR0A_MIN   20
-#define OCR0A_SCALE 7
+#define OCR0A_SCALE  7
 #define OCR0A_MAX OCR0A_MIN + 10 * OCR0A_SCALE
-#endif  //  !VFD_TO_SPEC
+
+
+// IV-18 TO-SPEC HACK
+//
+// The Ice Tube Clock does not drive the IV-18 VFD tube to
+// specifications, but with some rewiring and additional circuitry,
+// enabling the following macros will drive the IV-18 tube as it was
+// designed.
+//
+// The following thread on the Adafruit Clocks forum describes the
+// required hardware modifications for this hack:
+//
+//   http://forums.adafruit.com/viewtopic.php?f=41&t=41811
+//
+//
+// The VFD_TO_SPEC macro enables the this to-spec hack.  With the
+// to-spec hack, brightness may be controlled with boost voltage,
+// pulse width modulation (PWM), or both.  I recommend controlling
+// brightness with PWM only.
+//
+// If neither OCR0A_VALUE nor OCR0B_PWM_DISABLE is defined, brightness
+// will be controlled by both boost voltage and PWM.
+//
+// If only OCR0A_VALUE is defined, the boost voltage will be fixed,
+// and brightness will be controlled by PWM (recommended).
+//
+// If only OCR0B_PWM_DISABLE is defined, brightness will be controlled
+// by the boost voltage.
+//
+// And for completeness, if both OCR0A_VALUE and OCR0B_PWM_DISABLE are
+// defined, display brightness will be hard-coded into the firmware
+// and the brightness controls will have no effect on brightness.
+// What a useless combination!
+//
+//
+// #define VFD_TO_SPEC
+// #define OCR0A_VALUE 192
+// #define OCR0B_PWM_DISABLE
+
+
+// DISPLAY MULTIPLEXING ALGORITHM
+//
+// The following multiplexing options define how the display should be
+// multiplexed.
+//
+// Digit multiplexing displays each digit in rapid succession.
+// Although this is the standard way to do multiplexing, there might
+// be slight ghosting, especially of decimals.
+//
+// I recommend digit multiplexing for use with the Adafruit Ice Tube
+// Clock v1.1 without the to-spec hack.
+//
+// Subdigit multiplexing is like digit multiplexing, but displays each
+// digit twice--once showing only segments B, C, and H (those lit when
+// displaying "1.") and once showing only the other segments.  This
+// method eliminates ghosting, but reduces the maximum brightness a
+// little bit.
+//
+// I recommend subdigit multiplexing for use with the to-spec hack
+// and the xmas-icetube hardware revision.
+//
+// Segment multiplexing displays each segment (on all digits where
+// that segment is displayed) in rapid succession.  This method
+// eliminates ghosting, and the maximum brightness is similar to that
+// with digit multiplexing.  But the per-digit brightness adjustment
+// is not available when using this method.
+//
+// I do not recommend segment multiplexing, but left the feature in
+// the code in case anyone wants to play with it.  The problem with
+// segment multiplexing is that the MAX6921 chip enforces an overall
+// current limit on each segment, so if one segment is displayed on
+// many digits, that segment will be dimmer than if one segment is
+// displayed on only a few digits.  And more current will flow through
+// segments with the least resistance (at the right of the display).
+//
+#define DIGIT_MULTIPLEXING
+// #define SUBDIGIT_MULTIPLEXING
+// #define SEGMENT_MULTIPLEXING
 
 
 // BIRTHDAY ALARM
@@ -179,7 +248,7 @@
 // regardless of the alarm sound set in the menus.
 //
 //
-// #define BDAY_ALARM_MONTH 5
+// #define BDAY_ALARM_MONTH 1
 // #define BDAY_ALARM_DAY   1
 
 
@@ -191,15 +260,6 @@
 //
 //
 // #define DEBUG
-
-
-// USART BAUD RATE
-//
-// The USART baud rate is used for both the debugging features and GPS
-// timekeeping and may be changed below.
-//
-//
-#define USART_BAUDRATE 9600
 
 
 #endif  // CONFIG_H
