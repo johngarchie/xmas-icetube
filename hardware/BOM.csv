@@ -43,7 +43,7 @@
 "R1","270k 5% resistor","Yageo","CFR-25JB-52-270K","Digi-Key","270KQBK-ND"
 "R2","100k 5% resistor","Yageo","CFR-25JB-52-100K","Digi-Key","100KQBK-ND"
 "R3","removed from design",,,,
-"R4","5.6k 5% resistor","Yageo","CFR-25JB-52-15R","Digi-Key","15QBK-ND"
+"R4","5.6k 5% resistor","Yageo","CFR-25JB-52-5K6","Digi-Key","5.6KQBK-ND"
 "R5,R10","10k 5% resistor","Yageo","CFR-25JB-52-10K","Digi-Key","10KQBK-ND"
 "R6","photoresistor","Advanced Photonix Inc","PDV-P8001","Digi-Key","PDV-P8001-ND"
 "R7","1.00k 1% resistor","Yageo","MFR-25FBF52-1K","Digi-Key","1.00KXBK-ND"
