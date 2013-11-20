@@ -1381,10 +1381,15 @@ void display_autodim(void) {
 #ifdef AUTOMATIC_DIMMER
     // convert photoresistor value to [0-80] for display_setbrightness()
     int16_t grad_idx = (display.bright_max << 3) - (((display.photo_avg >> 8)
-		      * ((display.bright_max - display.bright_min) << 3)) >> 8);
+		      * (display.bright_max - display.bright_min)) >> 5);
 #else  // ~AUTOMATIC_DIMMER
     int16_t grad_idx = (display.brightness < 0 ? 0 : display.brightness << 3);
 #endif  // AUTOMATIC_DIMMER
+
+    // limit grad_idx to [0, 80]
+    if(grad_idx > 80) grad_idx = 80;
+    if(grad_idx < 0)  grad_idx = 0;
+
     display_setbrightness(grad_idx);
 }
 
