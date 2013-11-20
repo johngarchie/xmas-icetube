@@ -74,6 +74,10 @@ void mode_tick(void) {
 		       display_pstr(0, PSTR("oth rset"));
 		   }
 		   display_transition(DISPLAY_TRANS_INSTANT);
+               } else if(system.status & SYSTEM_LOW_BATTERY
+                         && time.second & 0x01) {
+                   display_pstr(0, PSTR("bad batt"));
+                   display_transition(DISPLAY_TRANS_INSTANT);
 #ifdef GPS_TIMEKEEPING
 		} else if(gps.data_timer && !gps.warn_timer
 			  && time.second & 0x01) {
@@ -103,9 +107,9 @@ void mode_semitick(void) {
 
     // enable snooze and ensure visible display on button press
     if(btn) {
-	uint8_t a = display_onbutton();
-	uint8_t b = alarm_onbutton();
-	if(a || b) btn = 0;
+       if(display_onbutton() || alarm_onbutton() || system_onbutton()) {
+           btn = 0;
+       }
     }
 
     switch(mode.state) {
@@ -125,12 +129,14 @@ void mode_semitick(void) {
 		    break;
 		default:
 		    cli();
-		    if(time.status & TIME_UNSET && time.second & 0x01) {
+                   if( (time.status & TIME_UNSET
+                        || system.status & SYSTEM_LOW_BATTERY)
+                           && time.second & 0x01) {
 			sei();
 			break;
 		    }
 #ifdef GPS_TIMEKEEPING
-		    if(gps.data_timer && !gps.warn_timer && time.second & 0x01) {
+		    if(gps.data_timer && !gps.warn_timer && time.second & 0x01){
 			sei();
 			break;
 		    }

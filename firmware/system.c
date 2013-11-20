@@ -25,10 +25,15 @@
 
 #include "system.h"
 #include "usart.h"  // for debugging output
+#include "mode.h"   // to refresh time when clearing low battery warning
 
 
 // extern'ed system status data
 volatile system_t system;
+
+
+// private function declarations
+void system_check_battery(void);
 
 
 // enable low-power detection and disables microcontroller modules
@@ -63,6 +68,12 @@ void system_init(void) {
 }
 
 
+// when clock goes to sleep, restart sleep timer
+void system_sleep(void) {
+    system.sleep_timer = 0;
+}
+
+
 // repeatedly enter idle mode forevermore
 void system_idle_loop(void) {
     sleep_enable();
@@ -84,6 +95,11 @@ void system_sleep_loop(void) {
     				    // clear analog comparator interrupt
     do {
 	do {
+	    // check battery status after specified delay
+	    if(system.sleep_timer == SYSTEM_BATTERY_CHECK_DELAY) {
+		system_check_battery();
+	    }
+
 	    // disable analog comparator to save power; analog comparator
 	    // will be enabled in system_tick() or system_wake()
 	    ACSR = _BV(ACD);
@@ -134,4 +150,70 @@ uint8_t system_power(void) {
     } else {
 	return SYSTEM_ADAPTOR;
     }
+}
+
+
+// check battery voltage during sleep
+void system_check_battery(void) {
+    // enable analog to digital converter
+    power_adc_enable();
+
+    // select bandgap as analog to digital input
+    //   REFS1:0 =   00:  VREF pin as voltage reference
+    //   MUX3:0  = 1110:  1.1v bandgap as input
+    ADMUX = _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+
+    // configure analog to digital converter
+    // ADEN    =   1:  enable analog to digital converter
+    // ADSC    =   1:  start ADC conversion now
+    // ADPS2:0 = 100:  system clock / 16  (4 MHz / 4 = 125 kHz)
+    ADCSRA = _BV(ADEN) | _BV(ADSC) | _BV(ADPS2);
+
+    // wait for conversion to complete
+    while(ADCSRA & _BV(ADSC));
+
+    uint16_t adc_curr = 0, adc_prev = 0;
+    int16_t  adc_err  = 0;
+    uint8_t  adc_good = 0;
+
+    // the analog-to-digital converter may take a while to converge
+    while(adc_good < 4) {
+       ADCSRA |= _BV(ADSC);            // start adc conversion
+       while(ADCSRA & _BV(ADSC));      // wait for result
+       adc_curr = ADC;                 // save current value
+       adc_err = adc_prev - adc_curr;  // calculate error--
+                                       // difference from previous value
+
+       // if negligable error, result is good
+       if(-1 <= adc_err && adc_err <= 1) {
+           ++adc_good;    // count consecutative good results
+       } else {
+           adc_good = 0;  // otherwise reset result counter
+       }
+
+       adc_prev = adc_curr;  // save current value as previous value
+    }
+
+    // disable analog to digital converter
+    ADCSRA = 0;  // disable ADC before power_adc_disable()
+    power_adc_disable();
+
+    // set or clear low battery flag as required
+    if(adc_curr > 1024UL * 1100 / LOW_BATTERY_VOLTAGE) {
+       system.status |= SYSTEM_LOW_BATTERY;
+    } else {
+       system.status &= ~_BV(SYSTEM_LOW_BATTERY);
+    }
+}
+
+
+// return true if pressed button should clear low battery warning
+uint8_t system_onbutton(void) {
+    if(!(system.status & SYSTEM_SLEEP) && system.status & SYSTEM_LOW_BATTERY) {
+       system.status &= ~SYSTEM_LOW_BATTERY;
+       mode_tick();  // force refresh of time display
+       return 1;
+    }
+
+    return 0;
 }

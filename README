@@ -43,6 +43,7 @@ original Adafruit design:
   - highly accurate temperature compensated timekeeping
   - no beeping or time loss after external power failure
   - 25-fold improvement in battery life
+  - low battery warning before battery failure
   - per-digit brightness adjustment for uneven displays
   - automatic brightness control by ambient light
   - optionally disable display during specified time periods

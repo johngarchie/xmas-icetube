@@ -33,6 +33,18 @@
 // #define ADAFRUIT_BUTTONS
 
 
+// LOW BATTERY THRESHOLD
+//
+// After sleeping for ten minutes, system voltage should fall to whatever
+// the battery is providing.  After that time, the microcontroller will
+// check the system voltage.  If system voltage is below the following
+// threshold, the clock will display a low battery warning ("bad batt")
+// upon waking.
+//
+//
+#define LOW_BATTERY_VOLTAGE 2600  // millivolts
+
+
 // AUTOMATIC DIMMER HACK
 //
 // Defining the following macro enables support for Automatic dimming
