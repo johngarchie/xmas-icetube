@@ -79,6 +79,10 @@ typedef struct {
 
     // photoresistor adc result (times 2^6, running average)
     uint16_t photo_avg;
+
+    // current brightness level from photoresistor
+    // (truncated to [0, 80] for actual display brightness)
+    int16_t photo_idx;
 #else
     int8_t  brightness;             // display brightness
 #endif  // AUTOMATIC_DIMMER
