@@ -13,6 +13,12 @@
 #define SYSTEM_BATTERY_CHECK_DELAY 600  // seconds
 
 
+// if the crystal oscillator is not running while the system sleeps the
+// system will not wake.  for robustness, the watchdog timer is only
+// disabled after the following time delay
+#define SYSTEM_WDT_DISABLE_DELAY 5  // seconds
+
+
 // return codes for the system_power() function
 enum {
     SYSTEM_ADAPTOR,

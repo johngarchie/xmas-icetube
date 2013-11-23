@@ -45,14 +45,16 @@ void system_init(void) {
     system.status &= ~SYSTEM_SLEEP;
 
     // enable pull-up resistors on unused pins to ensure a defined value
-#ifndef VFD_ANODE_GRID_TO_SPEC
+#if !defined(VFD_TO_SPEC) || defined(XMAS_DESIGN)
     PORTB |= _BV(PB4);
-#endif  // ~VFD_ANODE_GRID_TO_SPEC
-    // leave PC1 tri-stated in case clock is wired
-    // for the depricated exteneded battery hack
-#ifndef VFD_CATHODE_TO_SPEC
+#endif  // ~VFD_TO_SPEC || XMAS_DESIGN
+
+    // leave PC1 tri-stated in case clock is still wired
+    // for the now depricated exteneded battery hack
+
+#ifndef VFD_TO_SPEC
     PORTC |= _BV(PC2);
-#endif  // ~VFD_CATHODE_TO_SPEC
+#endif  // ~VFD_TO_SPEC
 
     // use internal bandgap as reference for analog comparator
     // and enable analog comparator interrupt on falling edge
@@ -90,11 +92,17 @@ void system_idle_loop(void) {
 void system_sleep_loop(void) {
     sleep_enable();                 // permit sleep mode
     system.status |= SYSTEM_SLEEP;  // set sleep flag
-    wdt_disable();                  // disable watchdog
     ACSR = _BV(ACD) | _BV(ACI);     // disable analog comparator and
     				    // clear analog comparator interrupt
     do {
 	do {
+	    // disable watchdog after five seconds to ensure
+	    // quartz crystal is running reasonably well
+	    // (otherwise, the clock will fail to wake from sleep)
+	    if(system.sleep_timer == SYSTEM_WDT_DISABLE_DELAY) {
+		wdt_disable();
+	    }
+
 	    // check battery status after specified delay
 	    if(system.sleep_timer == SYSTEM_BATTERY_CHECK_DELAY) {
 		system_check_battery();

@@ -121,12 +121,13 @@ int main(void) {
 // counter0 is clocked by the clock crystal
 ISR(TIMER2_COMPB_vect) {
     if(system.status & SYSTEM_SLEEP) {
+	wdt_reset();
+
 	system_tick();
 	time_tick();
 	alarm_tick();
 	piezo_tick();
 	temp_tick();
-	wdt_reset();
     } else {
 	if(semitick_successful) wdt_reset();
 	semitick_successful = 0;
