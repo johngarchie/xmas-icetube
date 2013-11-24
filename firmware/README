@@ -15,6 +15,9 @@ became a feature-rich reimplementation of the original Adafruit firmware.
 ## FEATURES ##
 ##############
 
+That this firmware works with *both* the Adafruit Ice Tube Clock v1.1 and
+xmas-icetube hardware revision.
+
 Many of the features in the xmas-icetube firmware were first implemented in
 other firmware projects; see the CREDITS file for details.  This firmware
 boasts the following improvements over the official Adafruit firmware.
@@ -109,14 +112,14 @@ the included Makefile:
 
 (3) Connect the Programmer
 
-    Before unplugging the clock, reduce the display brightness to the
-    minimum.  Ensure the clock has an ATMEGA328P installed and not
-    an ATMEGA168V.  Unplug and disassemble the clock.  Most users
-    report that the clock cannot be programmed without removing the
-    side PCB with VFD tube, so remove that.  Reconnect the power
-    adaptor.  Connect the AVR programmer to the clock's ISP header,
-    ensuring that pin one on the cable and the marked pin on the clock's
-    ISP header match.
+    Ensure the clock has an ATMEGA328P installed and not an ATMEGA168V.
+    Unplug and disassemble the clock.  Remove the side PCB with VFD tube.
+    Make sure that the AVR programmer will not provide power to the
+    clock.  (For the Adafruit USBtinyISP, this means ensuring that the
+    power jumper is not installed.)  Connect the AVR programmer to the
+    clock's ISP header, ensuring that pin one on the cable and the marked
+    pin on the clock's ISP header match.  Finally, power the clock board
+    with the external power adaptor.
 
 (4) Install the Firmware
 
@@ -126,7 +129,10 @@ the included Makefile:
 
         % make install-all
 
-    Alternatively, this firmware may be installed in separate steps:
+    Alternatively, this firmware may be installed or upgraded in separate
+    steps.  If a programmer wishes not to set lockbits or not to overwrite
+    the EEPROM (clock settings), simply skip the corresponding commands.
+    The following commands are equivalent to "make install-all":
 
         % make install-fuse
         % make install-flash
@@ -226,6 +232,9 @@ most straightforward way to increase filament current is to replace
 R3 with a jumper:
 
   http://forums.adafruit.com/viewtopic.php?p=179107#p179107
+
+In addition to replacing R3 with a jumper, I also recommend replacing Q3
+with a better MOSFET, such as a ZVP2110A.
 
 
 :: Nonfunctional Drift Correction ::

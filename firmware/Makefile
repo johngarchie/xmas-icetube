@@ -57,8 +57,13 @@ all: $(addprefix $(PROJECT),.elf _flash.hex _eeprom.hex _fuse.hex _lock.hex)
 $(PROJECT).elf: $(OBJECTS)
 	$(AVRCPP) $(AVRCPPFLAGS) -o $@ $^
 
-# make time.o using system time the default clock time
+# make time.o using system time settings for defaults
 time.o: time.c $(UTILSCRIPT)
+	./$(UTILSCRIPT) time | xargs $(AVRCPP) -c $(AVRCPPFLAGS) -o $@ $<
+	./$(UTILSCRIPT) time | xargs $(AVRCPP) -MM $(AVRCPPFLAGS) $< > $*.d
+
+# make gps.o using system time settings for defaults
+gps.o: gps.c $(UTILSCRIPT)
 	./$(UTILSCRIPT) time | xargs $(AVRCPP) -c $(AVRCPPFLAGS) -o $@ $<
 	./$(UTILSCRIPT) time | xargs $(AVRCPP) -MM $(AVRCPPFLAGS) $< > $*.d
 

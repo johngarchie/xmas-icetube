@@ -38,7 +38,8 @@ uint8_t ee_alarm_days[ALARM_COUNT] EEMEM = {
 };
 
 // volume range, and snooze timeout
-uint8_t ee_alarm_status      EEMEM = 0;
+uint8_t ee_alarm_status      EEMEM = ALARM_SOUNDING_PULSE
+				     | ALARM_SNOOZING_PULSE;
 uint8_t ee_alarm_snooze_time EEMEM = ALARM_DEFAULT_SNOOZE_TIME;
 uint8_t ee_alarm_volume_min  EEMEM = ALARM_DEFAULT_VOLUME_MIN;
 uint8_t ee_alarm_volume_max  EEMEM = ALARM_DEFAULT_VOLUME_MAX;

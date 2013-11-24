@@ -22,9 +22,9 @@ volatile time_t time;
 
 // places to store the current time in EEMEM
 #if TIME_DEFAULT_DST == 0
-uint8_t ee_time_status EEMEM = 0;
+uint8_t ee_time_status EEMEM = TIME_DEFAULT_AUTODST;
 #else
-uint8_t ee_time_status EEMEM = TIME_DST;
+uint8_t ee_time_status EEMEM = TIME_DST | TIME_DEFAULT_AUTODST;
 #endif
 uint8_t ee_time_year   EEMEM = TIME_DEFAULT_YEAR;
 uint8_t ee_time_month  EEMEM = TIME_DEFAULT_MONTH;
@@ -33,12 +33,20 @@ uint8_t ee_time_hour   EEMEM = TIME_DEFAULT_HOUR;
 uint8_t ee_time_minute EEMEM = TIME_DEFAULT_MINUTE;
 uint8_t ee_time_second EEMEM = TIME_DEFAULT_SECOND;
 
-// places to store the time and date display format
-uint8_t ee_time_timeformat_flags EEMEM = 0;
-uint8_t ee_time_timeformat_idx   EEMEM = TIME_TIMEFORMAT_HH_MM_SS_rolling;
+// places to store the date and time display format
+#if TIME_DEFAULT_AUTODST == TIME_AUTODST_USA
+uint8_t ee_time_dateformat       EEMEM =   TIME_DATEFORMAT_SHOWWDAY
+					 | TIME_DATEFORMAT_SHOWYEAR
+					 | TIME_DATEFORMAT_TEXT_USA;
+uint8_t ee_time_timeformat_flags EEMEM = TIME_TIMEFORMAT_12HOUR
+					 | TIME_TIMEFORMAT_SHOWAMPM;
+#else
 uint8_t ee_time_dateformat       EEMEM =   TIME_DATEFORMAT_SHOWWDAY
 					 | TIME_DATEFORMAT_SHOWYEAR
 					 | TIME_DATEFORMAT_TEXT_EU;
+uint8_t ee_time_timeformat_flags EEMEM = 0;
+#endif
+uint8_t ee_time_timeformat_idx   EEMEM = TIME_TIMEFORMAT_HH_MM_SS;
 
 // drift adjustment data
 uint8_t ee_time_drift_count EEMEM = 0;
@@ -520,6 +528,9 @@ uint8_t time_isdst_eu(int8_t rel_gmt) {
     // time changes at 1:00 GMT
     int8_t dst_hour = 1 + rel_gmt;
 
+    // time is an hour ahead of GMT during DST
+    if(time.status & TIME_DST) ++dst_hour;
+
     switch(time.month) {
 	case TIME_MAR:
 	    // dst begins on the last sunday in march
@@ -530,10 +541,8 @@ uint8_t time_isdst_eu(int8_t rel_gmt) {
 	    if(time.day < dst_day) return FALSE;
 	    if(time.day > dst_day) return TRUE;
 
-	    // at dst_hour, time jumps forward to dst_hour + 1,
-	    // so the time between is an invalid range a time in
-	    // this range probably means dst should be enabled,
-	    // but is not yet, so return true
+	    // dst is not in effecet if time is before 1am utc
+	    // dst is in effect otherwise
 	    if(time.hour <  dst_hour) {
 		return FALSE;
 	    } else {
@@ -550,13 +559,9 @@ uint8_t time_isdst_eu(int8_t rel_gmt) {
 	    if(time.day < dst_day) return TRUE;
 	    if(time.day > dst_day) return FALSE;
 
-	    // at dst_hour, time falls back to dst_hour - 1, so
-	    // the time in between is an ambiguous time range
-	    if(time.hour + 1 <  dst_hour) return TRUE;
-	    if(time.hour     >= dst_hour) return FALSE;
-
-	    // if time is ambiguous, return current dst state
-	    if(time.status & TIME_DST) {
+	    // dst is in effecet if time is before 1am utc
+	    // dst is not in effect otherwise
+	    if(time.hour < dst_hour) {
 		return TRUE;
 	    } else {
 		return FALSE;

@@ -40,8 +40,8 @@ volatile gps_t gps;
 
 
 // time offsets relative to gmt/utc 
-uint8_t ee_gps_rel_utc_hour   EEMEM = 0;
-uint8_t ee_gps_rel_utc_minute EEMEM = 0;
+uint8_t ee_gps_rel_utc_hour   EEMEM = TIME_DEFAULT_UTC_OFFSET_HOURS;
+uint8_t ee_gps_rel_utc_minute EEMEM = TIME_DEFAULT_UTC_OFFSET_MINUTES;
 
 
 // load time offsets from gmt/utc

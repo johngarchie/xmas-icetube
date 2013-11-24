@@ -67,21 +67,23 @@ testing each section after it is built.  See the Eagle schematics for the
 parts in each section.
 
 1.  Solder the "5V Power Supply" parts.  Connect the 9v adaptor and
-    verify that the power supply outputs 5v.
+    verify that the power supply outputs 5v; disconnect and proceed.
 
 2.  Solder the "Temperature Sensor" parts.  (It's easier to solder R9
     before inserting the microcontroller into its socket.)
 
-3.  Solder the "Microcontroller", "Battery Sensor", and "Speaker" parts.
-    Place the programming jumper across J1 and program the chip with the
-    xmas-icetube firmware.  Remove the jumper and connect the 9v adaptor:
-    the speaker should beep when powered for the first time.
+3.  Solder the "Microcontroller", "ISP Header", "Battery Sensor", and
+    "Speaker" parts.  Program the ATmega328P (see the firmware/README
+    file for details).  When powered with the AC adaptor, the speaker
+    should beep when powered for the first time.
 
 4.  Solder the "5VAC Cathode/Filament Supply" parts.  Measure the AC voltage
     between the two push-pull outputs (AC1 and AC2).  The push-pulls
     should be providing high frequency, square wave, alternating current,
-    which most multimeters cannot measure accurately.  So just verify that
-    AC1 and AC2 are providing alternating current.
+    which most multimeters cannot measure accurately.  Without a load,
+    the LM317 will not effectively regulate voltage anyway, so multimeter
+    accuracy does not matter.  So just verify that AC1 and AC2 are providing
+    alternating current.
 
 5.  Solder the "Tube 30-60VDC Boost Supply" parts.  Connect the 9v adaptor
     and verify that the boost circuit indeed provides 50-60 volts.
@@ -97,11 +99,9 @@ parts in each section.
     9v adaptor, set the time, disconnect the 9v adaptor for a few seconds,
     connect it again, and verify that the clock kept the correct time.
 
-9.  Solder the "Light Sensor" parts.  Connect the 9v adaptor and configure
-    the display brightness to auto ("cfg disp"/"disp bri"/"bri auto").  Set
-    the minimum brightness to zero ("b. min  0") and the maximum brightness
-    to 10 ("b. max 10).  Using a flashlight, lamp, or similar, verify that
-    the clock responds to changes in ambient light.
+9.  Solder the "Light Sensor" parts.  Connect the 9v adaptor, and using
+    a flashlight, lamp, or similar, verify that the clock responds to
+    changes in ambient light.
 
 10. Assemble the acrylic case and enjoy!
 
