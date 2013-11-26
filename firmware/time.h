@@ -55,8 +55,9 @@
 #define TIME_DRIFT_SAVE_DELAY 600  // seconds (10 min)
 
 // flags for time.status
-#define TIME_UNSET       0x01
-#define TIME_DST         0x02
+#define TIME_UNSET		0x01
+#define TIME_DST		0x02
+#define TIME_AUTODRIFT_INVALID	0x04
 
 // top nibble indicates DST
 #define TIME_AUTODST_MASK   0xF0
@@ -186,5 +187,8 @@ uint8_t time_isdst_usa(void);
 void time_autodrift(void);
 void time_newdrift(void);
 void time_loaddriftmedian(void);
+
+void time_autodrift_enable(void);
+void time_autodrift_disable(void);
 
 #endif

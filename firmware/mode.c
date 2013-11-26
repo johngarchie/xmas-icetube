@@ -473,6 +473,7 @@ void mode_semitick(void) {
 				     mode.tmp[MODE_TMP_SECOND]);
 			time_autodst(FALSE);
 		    }
+		    time_savetime();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 		    break;
 		case BUTTONS_PLUS:

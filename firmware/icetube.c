@@ -120,6 +120,8 @@ int main(void) {
 // triggered every second
 // counter0 is clocked by the clock crystal
 ISR(TIMER2_COMPB_vect) {
+    sei();  // allow nested interrupts
+
     if(system.status & SYSTEM_SLEEP) {
 	wdt_reset();
 

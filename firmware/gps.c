@@ -15,6 +15,7 @@
 #include "time.h"
 #include "usart.h"
 #include "alarm.h"
+#include "mode.h"
 
 
 #define FIELD_RECORD_START                  0
@@ -70,6 +71,12 @@ void gps_wake(void) {
 void gps_sleep(void) {
     // disable usart rx interrupt
     UCSR0B &= ~_BV(RXCIE0);
+
+    if(gps.status & GPS_SIGNAL_GOOD) {
+	// enable collection of automatic drift correction
+	// statistics while sleeping
+	time_autodrift_enable();
+    }
 }
 
 
@@ -78,7 +85,10 @@ void gps_tick(void) {
     if(gps.data_timer) {
 	--gps.data_timer;
     } else {
-	gps.status &= ~GPS_SIGNAL_GOOD;
+	if(gps.status & GPS_SIGNAL_GOOD) {
+	    gps.status &= ~GPS_SIGNAL_GOOD;
+	    time_autodrift_enable();
+	}
     }
 
     if(gps.warn_timer) --gps.warn_timer;
@@ -187,24 +197,28 @@ void gps_settime(void) {
 	    time_diff += (int32_t)24 * 60 * 60;
 	}
 
-	// if time has drifted by more than one second...
-	if(time_diff < -1 || 1 < time_diff) {
-	    // set time from gps
-	    time_settime(hour, minute, second);
-
-	    // ensure date is correct for new time
-	    if(year != time.year || month != time.month
-		    || day != time.day) {
-		time_setdate(year, month, day);
+	if(time_diff) {
+	    if(time_diff == 1) {
+		// move time forward by one tick to ensure
+		// alarm is not missed
+		time_tick();
+		alarm_tick();
+		mode_tick();
+		TCNT2 = 64;  // skip forward to mid-second
+	    } else {
+		time_settime(hour, minute, second);  // set time
+		TCNT2 = 64;  // skip forward to mid-second
 	    }
+
+	    // the subsecond wrangling above invalidates the running
+	    // automatic drift correction statistics
+	    time_autodrift_disable();
+
+	    TIFR2 = _BV(OCF2A);   // clear any pending per-second interrupt
 	}
 
-	// if date is incorrect and time is not near midnight
-	if((day != time.day || year != time.year || month != time.month)
-		&& (hour != 23 || minute != 59 || second != 59)
-		&& (hour !=  0 || minute != 0
-		    || (second != 0 && second != 1))) {
-	    // set date from gps
+	// ensure date is correct for new time
+	if(year != time.year || month != time.month || day != time.day) {
 	    time_setdate(year, month, day);
 	}
     } else {

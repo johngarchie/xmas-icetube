@@ -73,6 +73,7 @@ void time_init(void) {
     time.drift_adjust_timer  = 0;
     time.drift_delay_timer   = 0;
     time.drift_total_seconds = 0;
+    time.drift_frac_seconds  = 0;
     time.drift_delta_seconds = 0;
 
     // load drift_adjust
@@ -123,6 +124,7 @@ void time_sleep(void) {
     // power outage is brief, time will be restored from eeprom and the clock
     // will still have a semi-reasonable time.
     time_savetime();
+    time_savedate();
 }
 
 
@@ -186,26 +188,22 @@ void time_loadtimeformat(void) {
 
 // set current time
 void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
-    // pause clock while mucking with clock timer
-    // to prevent race conditions
-    TCCR2B = 0;
-
-    // delay until TCCR2B has been written
-    while(ASSR & _BV(TCR2BUB));
-
-    // stage time change for later drift correction
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-	// set fractional seconds to zero
-	uint8_t TCNT2_old = TCNT2;
-	TCNT2 = 0;
+	uint8_t TCNT2_old = TCNT2;  // save fractional seconds
+	TCNT2 = 0; // set fractional seconds to zero
 
-	// restart timer (clock with quartz oscillator divided by 256)
-	TCCR2B  = _BV(CS22) | _BV(CS21);
+	if(TIFR2 & _BV(OCF2A)) {  // if unprocessed second
+	    time_autodrift();     // process missed second now
+	    TIFR2 = _BV(OCF2A);   // clear interrupt flag
+	    TCNT2_old = 0;	  // assume at second start
+	}
 
 	// determine if clock drift estimate should be computed
-	if(time.status & TIME_UNSET) {
+	if(time.status & (TIME_UNSET | TIME_AUTODRIFT_INVALID)) {
 	    // reset drift monitoring variables
+	    time.drift_delay_timer   = 0;
 	    time.drift_total_seconds = 0;
+	    time.drift_frac_seconds  = 0;
 	    time.drift_delta_seconds = 0;
 	} else {
 	    // compute the time difference between old and new times
@@ -253,12 +251,6 @@ void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
 	time.second = second;
 
 	time.status &= ~TIME_UNSET;
-
-	// ensure TCNT2 and TCR2B write completes
-	while(ASSR & (_BV(TCN2UB) | _BV(TCR2BUB)));
-
-	// ensure no pending OCR2A compare match interrupt
-	TIFR2 = _BV(OCF2A);
     }
 }
 
@@ -277,7 +269,6 @@ void time_setdate(uint8_t year, uint8_t month, uint8_t day) {
 
 // add one second to current time
 void time_tick(void) {
-    //alarm_click();
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
 	++time.second;
 
@@ -301,6 +292,7 @@ void time_tick(void) {
 			    eeprom_write_byte(&ee_time_year, time.year);
 			}
 		    }
+		    time_savedate();
 		}
 	    }
 	}
@@ -772,6 +764,7 @@ void time_newdrift(void) {
 
     // reset drift monitor variables
     time.drift_total_seconds = 0;
+    time.drift_frac_seconds  = 0;
     time.drift_delta_seconds = 0;
 
     // do not record if abs(new_adj) is too small; too small a value means
@@ -834,4 +827,25 @@ void time_loaddriftmedian(void) {
 	    time.drift_adjust_timer = -time.drift_adjust;
 	}
     }
+}
+
+
+// enable collection of automatic drift correction statistics
+// (should only be called when time is known to be correct!)
+void time_autodrift_enable(void) {
+    // explicitly initialize drift variables
+    time.drift_delay_timer   = 0;
+    time.drift_total_seconds = 0;
+    time.drift_frac_seconds  = 0;
+    time.drift_delta_seconds = 0;
+
+    // clear autodrift disabled flag
+    time.status &= ~TIME_AUTODRIFT_INVALID;
+}
+
+
+// disable collection of automatic drift correction statistics
+void time_autodrift_disable(void) {
+    // set autodrift disabled flag
+    time.status |= TIME_AUTODRIFT_INVALID;
 }
