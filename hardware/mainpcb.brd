@@ -4481,7 +4481,7 @@ Please make sure your boards conform to these design rules.</description>
 <element name="L1" library="usbbuck" package="6000" value="2200uH" x="71.04" y="9.1186" smashed="yes">
 <attribute name="NAME" x="70.118" y="7.1086" size="1.27" layer="21" font="vector"/>
 </element>
-<element name="C6" library="rcl-ez" package="E3,5-8" value="22uF" x="85.518" y="16.8656" smashed="yes" rot="R180">
+<element name="C6" library="rcl-ez" package="E3,5-8" value="33uF" x="85.518" y="16.8656" smashed="yes" rot="R180">
 <attribute name="NAME" x="84.629" y="14.1986" size="1.27" layer="25" font="vector" ratio="10"/>
 <attribute name="VALUE" x="88.82" y="19.9136" size="1.27" layer="27" ratio="10" rot="R180"/>
 </element>
