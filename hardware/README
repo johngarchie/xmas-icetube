@@ -85,8 +85,9 @@ parts in each section.
     accuracy does not matter.  So just verify that AC1 and AC2 are providing
     alternating current.
 
-5.  Solder the "Tube 30-60VDC Boost Supply" parts.  Connect the 9v adaptor
-    and verify that the boost circuit indeed provides 50-60 volts.
+5.  Solder the "Tube 30-60VDC Boost Supply" parts.  Note that the joined leads
+    of Q2 should be oriented toward C6.  Connect the 9v adaptor and verify that
+    the boost circuit indeed provides 50-60 volts.
 
 6.  Solder the "VFD Anode/Segment Controller" and "VFD Tube / Side PCB"
     parts.  Attach the side board to the main board, connect the 9v
