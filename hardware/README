@@ -66,27 +66,37 @@ When assembling the parts, I suggest building the circuit incrementally and
 testing each section after it is built.  See the Eagle schematics for the
 parts in each section.
 
-1.  Solder the "5V Power Supply" parts.  Connect the 9v adaptor and
-    verify that the power supply outputs 5v; disconnect and proceed.
+1.  Solder the "5V Power Supply" parts.  Connect the 9v adaptor and verify
+    that the power supply outputs 5v; disconnect and proceed.
 
 2.  Solder the "Temperature Sensor" parts.  (It's easier to solder R9
     before inserting the microcontroller into its socket.)
 
 3.  Solder the "Microcontroller", "ISP Header", "Battery Sensor", and
-    "Speaker" parts.  Program the ATmega328P (see the firmware/README
-    file for details).  When powered with the AC adaptor, the speaker
-    should beep when powered for the first time.
+    "Speaker" parts.  Program the ATmega328P (see the firmware/README file
+    for details).  When powered with the AC adaptor, the speaker should
+    beep when powered for the first time.  Keep the AC adaptor connected
+    for at least ten seconds after hearing the beep.
 
-4.  Solder the "5VAC Cathode/Filament Supply" parts.  Measure the AC voltage
-    between the two push-pull outputs (AC1 and AC2).  The push-pulls
-    should be providing high frequency, square wave, alternating current,
-    which most multimeters cannot measure accurately.  Without a load,
-    the LM317 will not effectively regulate voltage anyway, so multimeter
-    accuracy does not matter.  So just verify that AC1 and AC2 are providing
-    alternating current.
+    If the speaker does not beep, ensure the programming jumper has been
+    removed and that the ATmega328P is properly programmed.  If the speaker
+    beeps repeatedly at 8 second intervals, the problem is most likely with
+    the crystal oscillator.  If the oscillator parts and connections are
+    good, cleaning excess rosin from the board with a toothbrush and
+    rubbing alcohol might fix the problem, but make sure the board is
+    completely dry before powering it again.
 
-5.  Solder the "Tube 30-60VDC Boost Supply" parts.  Connect the 9v adaptor
-    and verify that the boost circuit indeed provides 50-60 volts.
+4.  Solder the "5VAC Cathode/Filament Supply" parts.  Measure the AC
+    voltage between the two push-pull outputs (AC1 and AC2).  The
+    push-pulls should be providing high frequency, square wave, alternating
+    current, which most multimeters cannot measure accurately.  Without a
+    load, the LM317 will not effectively regulate voltage anyway, so
+    multimeter accuracy does not matter.  So just verify that AC1 and AC2
+    are providing alternating current.
+
+5.  Solder the "Tube 30-60VDC Boost Supply" parts.  Note that the joined
+    leads of Q2 should be oriented toward C6.  Connect the 9v adaptor and
+    verify that the boost circuit indeed provides 50-60 volts.
 
 6.  Solder the "VFD Anode/Segment Controller" and "VFD Tube / Side PCB"
     parts.  Attach the side board to the main board, connect the 9v
@@ -95,9 +105,18 @@ parts in each section.
 7.  Solder the "Buttons and Alarm Switch" parts.  Connect the 9v adaptor
     and verify that the buttons and alarm switch function properly.
 
-8.  Solder the "Battery Backup" parts and insert a battery.  Connect the
-    9v adaptor, set the time, disconnect the 9v adaptor for a few seconds,
-    connect it again, and verify that the clock kept the correct time.
+8.  Solder the "Battery Backup" parts and insert a battery, but before
+    soldiering the battery case, apply a small amount of solder to the
+    battery's ground connection (large square pad).  A small amount of
+    solder will some height to the square pad connection and ensure a good
+    connection between the battery and ground.
+
+    Connect the 9v adaptor, set the time, disconnect the 9v adaptor for ten
+    minutes, connect it again, and verify that the clock kept the correct
+    time.  Because the clock is extremely power-efficient during sleep, the
+    capacitors store enough charge to keep the clock running for 3-5
+    minutes.  Leaving the clock unplugged for ten minutes ensures that the
+    backup battery is actually in use.
 
 9.  Solder the "Light Sensor" parts.  Connect the 9v adaptor, and using
     a flashlight, lamp, or similar, verify that the clock responds to
