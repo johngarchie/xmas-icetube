@@ -153,21 +153,7 @@ ISR(TIMER2_COMPB_vect) {
 // pwm output from timer0 controls boost power
 ISR(TIMER0_OVF_vect) {
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
-	static uint8_t varcounter = 1;
-	if(varcounter && !--varcounter) {
-	    varcounter = display_varsemitick();
-	}
-#ifdef TEMPERATURE_SENSOR
-	while(temp.missed_ovf) {
-	    --temp.missed_ovf;
-	    if(varcounter && !--varcounter) {
-		varcounter = display_varsemitick();
-	    }
-	}
-#endif  // TEMPERATURE_SENSOR
-    }
-
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	// display code needs additional control over multiplexing
 	display_semisemitick();
 
 	// interupt just returns 31 out of 32 times

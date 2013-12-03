@@ -5,6 +5,8 @@
 #include <avr/pgmspace.h>  // for accessing data in program memory
 
 #include "config.h"  // for configuration macros
+#include "temp.h"    // to compensate for timing errors
+		     // while determining temperature
 
 
 #define DISPLAY_SIZE 9
@@ -64,6 +66,7 @@ enum {
 typedef struct {
     uint8_t status;                 // display status flags
 
+    uint8_t multiplex_div;	    // the multiplexing timer
     uint8_t trans_type;             // current transition type
     uint8_t trans_timer;            // current transition timer
     uint8_t prebuf[DISPLAY_SIZE];   // future display contents
@@ -106,10 +109,13 @@ typedef struct {
     uint8_t off_timer;
 
 #ifdef VFD_TO_SPEC
+    uint8_t filament_timer;   // timer for generating filament current
+    uint8_t filament_div;     // divider counter for filament frequency
+    uint8_t filament_div_max; // max value for divider counter
+
 #ifndef OCR0B_PWM_DISABLE
     uint8_t OCR0B_value;
 #endif  // ~OCR0B_PWM_DISABLE
-    uint8_t filament_timer;  // timer for generating filament current
 #endif  // VFD_TO_SPEC
 
 #ifndef SEGMENT_MULTIPLEXING
@@ -136,99 +142,155 @@ void display_semitick(void);
 
 // toggle push-pull outputs to generate alternating current on vfd fillament
 inline void display_semisemitick(void) {
-#ifdef VFD_TO_SPEC
-    if(!(display.status & DISPLAY_DISABLED)) {
-#ifdef FILAMENT_CURRENT_DC
-#if defined(FILAMENT_VOLTAGE_3_3)
-	switch(display.filament_timer) {
-	    case 0:
-		PORTC &= ~_BV(PC2);
-		PORTC |=  _BV(PC3);
-	    case 1:
-		++display.filament_timer;
-		break;
-	    default:
-		PORTC &= ~_BV(PC2);
-		PORTC &= ~_BV(PC3);
-		display.filament_timer = 0;
-		break;
+    // multiplex the display
+    if(display.multiplex_div && !--display.multiplex_div) {
+	display.multiplex_div = display_varsemitick();
+    }
+#ifdef TEMPERATURE_SENSOR
+    while(temp.missed_ovf) {
+	--temp.missed_ovf;
+	if(display.multiplex_div && !--display.multiplex_div) {
+	    display.multiplex_div = display_varsemitick();
 	}
-#elif defined(FILAMENT_VOLTAGE_2_5)  // && ~FILAMENT_VOLTAGE_3_3
-	switch(display.filament_timer) {
-	    case 0:
-		PORTC &= ~_BV(PC2);
-		PORTC |=  _BV(PC3);
-		++display.filament_timer;
-		break;
-	    default:
-		PORTC &= ~_BV(PC2);
-		PORTC &= ~_BV(PC3);
-		display.filament_timer = 0;
-		break;
-	}
-#else  // ~FILAMENT_VOLTAGE_3_3 && ~FILAMENT_VOLTAGE_2_5 
-	PORTC &= ~_BV(PC2);
-	PORTC |=  _BV(PC3);
-#endif  // FILAMENT_VOLTAGE
+    }
+#endif  // TEMPERATURE_SENSOR
 
-#else  // ~FILAMENT_CURRENT_DC
+    // generate ac-filament current as required
+#if defined(VFD_TO_SPEC)
+    if(!(display.status & DISPLAY_DISABLED)) {
+	if( display.filament_div && !--display.filament_div ) {
+#if defined(FILAMENT_CURRENT_DC_FWD)
+#if defined(FILAMENT_VOLTAGE_3_3)
+	    switch(display.filament_timer) {
+		case 0:
+		    PORTC &= ~_BV(PC2);
+		    PORTC |=  _BV(PC3);
+		case 1:
+		    ++display.filament_timer;
+		    break;
+		default:
+		    PORTC &= ~_BV(PC2);
+		    PORTC &= ~_BV(PC3);
+		    display.filament_timer = 0;
+		    break;
+	    }
+#elif defined(FILAMENT_VOLTAGE_2_5) // && !defined(FILAMENT_VOLTAGE_3_3)
+	    switch(display.filament_timer) {
+		case 0:
+		    PORTC &= ~_BV(PC2);
+		    PORTC |=  _BV(PC3);
+		    ++display.filament_timer;
+		    break;
+		default:
+		    PORTC &= ~_BV(PC2);
+		    PORTC &= ~_BV(PC3);
+		    display.filament_timer = 0;
+		    break;
+	    }
+#else  // ~FILAMENT_VOLTAGE_3_3 && ~FILAMENT_VOLTAGE_2_5 
+	    PORTC &= ~_BV(PC2);
+	    PORTC |=  _BV(PC3);
+#endif  // FILAMENT_VOLTAGE_*
+
+#elif defined(FILAMENT_CURRENT_DC_REV) // && !defined(FILAMENT_CURRENT_DC_FWD)
+
+#if defined(FILAMENT_VOLTAGE_3_3)
+	    switch(display.filament_timer) {
+		case 0:
+		    PORTC |=  _BV(PC2);
+		    PORTC &= ~_BV(PC3);
+		case 1:
+		    ++display.filament_timer;
+		    break;
+		default:
+		    PORTC &= ~_BV(PC2);
+		    PORTC &= ~_BV(PC3);
+		    display.filament_timer = 0;
+		    break;
+	    }
+#elif defined(FILAMENT_VOLTAGE_2_5) // && !defined(FILAMENT_VOLTAGE_3_3)
+	    switch(display.filament_timer) {
+		case 0:
+		    PORTC |=  _BV(PC2);
+		    PORTC &= ~_BV(PC3);
+		    ++display.filament_timer;
+		    break;
+		default:
+		    PORTC &= ~_BV(PC2);
+		    PORTC &= ~_BV(PC3);
+		    display.filament_timer = 0;
+		    break;
+	    }
+#else  // ~FILAMENT_VOLTAGE_3_3 && ~FILAMENT_VOLTAGE_2_5 
+	    PORTC |=  _BV(PC2);
+	    PORTC &= ~_BV(PC3);
+#endif  // FILAMENT_VOLTAGE_*
+
+#else  // ~FLIAMENT_CURRENT_DC_REV && ~FILAMENT_CURRENT_DC_FWD
 
 #ifdef FILAMENT_VOLTAGE_3_3
-	switch(display.filament_timer) {
-	    case 0:
-		PORTC &= ~_BV(PC2);
-		PORTC |=  _BV(PC3);
-		++display.filament_timer;
-		break;
-	    case 1:
-		PORTC |=  _BV(PC2);
-		PORTC &= ~_BV(PC3);
-		++display.filament_timer;
-		break;
-	    default:
-		PORTC &= ~_BV(PC2);
-		PORTC &= ~_BV(PC3);
-		display.filament_timer = 0;
-		break;
-	}
-#elif defined(FILAMENT_VOLTAGE_2_5)  // && ~FILAMENT_VOLTAGE_3_3
-	switch(display.filament_timer) {
-	    case 0:
-		PORTC |=  _BV(PC2);
-		PORTC &= ~_BV(PC3);
-		++display.filament_timer;
-		break;
-	    case 1:
-		PORTC &= ~_BV(PC2);
-		PORTC &= ~_BV(PC3);
-		++display.filament_timer;
-		break;
-	    case 2:
-		PORTC &= ~_BV(PC2);
-		PORTC |=  _BV(PC3);
-		++display.filament_timer;
-		break;
-	    default:
-		PORTC &= ~_BV(PC2);
-		PORTC &= ~_BV(PC3);
-		display.filament_timer = 0;
-		break;
-	}
+	    switch(display.filament_timer) {
+		case 0:
+		    PORTC &= ~_BV(PC2);
+		    PORTC |=  _BV(PC3);
+		    ++display.filament_timer;
+		    break;
+		case 1:
+		    PORTC |=  _BV(PC2);
+		    PORTC &= ~_BV(PC3);
+		    ++display.filament_timer;
+		    break;
+		default:
+		    PORTC &= ~_BV(PC2);
+		    PORTC &= ~_BV(PC3);
+		    display.filament_timer = 0;
+		    break;
+	    }
+#elif defined(FILAMENT_VOLTAGE_2_5) // && !defined(FILAMENT_VOLTAGE_3_3)
+	    switch(display.filament_timer) {
+		case 0:
+		    PORTC |=  _BV(PC2);
+		    PORTC &= ~_BV(PC3);
+		    ++display.filament_timer;
+		    break;
+		case 1:
+		    PORTC &= ~_BV(PC2);
+		    PORTC &= ~_BV(PC3);
+		    ++display.filament_timer;
+		    break;
+		case 2:
+		    PORTC &= ~_BV(PC2);
+		    PORTC |=  _BV(PC3);
+		    ++display.filament_timer;
+		    break;
+		default:
+		    PORTC &= ~_BV(PC2);
+		    PORTC &= ~_BV(PC3);
+		    display.filament_timer = 0;
+		    break;
+	    }
 #else // ~FILAMENT_VOLTAGE_3_3 && ~FILAMENT_VOLTAGE_2_5
-	switch(display.filament_timer) {
-	    case 0:
-		PORTC |=  _BV(PC2);
-		PORTC &= ~_BV(PC3);
-		++display.filament_timer;
-		break;
-	    default:
-		PORTC &= ~_BV(PC2);
-		PORTC |=  _BV(PC3);
-		display.filament_timer = 0;
-		break;
-	}
+	    switch(display.filament_timer) {
+		case 0:
+		    PORTC |=  _BV(PC2);
+		    PORTC &= ~_BV(PC3);
+		    ++display.filament_timer;
+		    break;
+		default:
+		    PORTC &= ~_BV(PC2);
+		    PORTC |=  _BV(PC3);
+		    display.filament_timer = 0;
+		    break;
+	    }
 #endif  // FILAMENT_VOLTAGE_3_3
-#endif // FILAMENT_CURRENT_DC
+#endif // FILAMENT_CURRENT_DC_*
+
+#ifdef FILAMENT_FREQUENCY_DIV
+	    display.filament_div = FILAMENT_FREQUENCY_DIV;
+#else  // ~FILAMENT_FREQUENCY_DIV
+	    display.filament_div = 1;
+#endif // FILAMENT_FREQUENCY_DIV
+	}
     }
 #endif  // VFD_TO_SPEC
 }

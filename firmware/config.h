@@ -270,25 +270,53 @@
 
 // TO-SPEC FILAMENT DRIVER METHOD
 //
-// The options below should only be used with the to-spec hack above,
-// if at all.  To drive the filament to specifications, neither of the
-// following macros should be defined.
+// The options below should only be used with the to-spec hack above.
+// To drive the filament to specifications, do not define any of the
+// filament current or voltage macros.
 //
-// Defining the FILAMENT_DRIVE_DC macro will drive the display with
-// direct current instead of alternating current.
+// Some tubes may make a humming or whining sound when driven at with
+// AC.  If that noise is unacceptable, it might be worth trying to
+// divide the frequency with the FILAMENT_FREQUENCY_DIV macro.  For
+// example, if FILAMENT_FREQUENCY_DIV is defined as 3, the AC
+// frequency will be 12/3 = 4 kHz.  The AC frequency may be divided by
+// any value below 256.
+//
+// Although not to-spec, a sure-fire way to eliminate hum is to simply
+// drive the filament with DC.  With a high boost voltage, there
+// should not be a noticable brightness gradient.
+//
+// Defining the FILAMENT_DRIVE_DC_FWD macro will drive the display
+// with direct current instead of alternating current.  Current will
+// flow from the right to left of the display.  Defining the
+// FILAMENT_DRIVE_DC_REV macro will use direct current flowing from
+// the left to right of the display.
 //
 // Defining either FILAMENT_VOLTAGE_3_3 or FILAMENT_VOLTAGE_2_5 will
 // reduce the filament voltage to either 3.3 or 2.5 volts,
-// respectively.  Voltage is reduced through pulse width modulation.
+// respectively.  Voltage is reduced by reducing the duty cycle from
+// 100% to 66% or 50%.  These macros also affect drive frequency; if
+// the FILAMENT_FREQUENCY_DIV macro is undefined (or defined as 1),
+// the frequency will be approximately
 //
-// And again, defining any of the macros below deliberately runs the
-// filament outside the IV-18 specifications.  These macros are mainly
-// provided for testing purposes.  But if the redish glow of the
-// filament is bothersome, reducing the filament voltage might be
-// worthwhile even though doing so may cause cathode poisoning.
+//              ALTERNATING CURRENT    DIRECT CURRENT
+// 5.0 VOLTS          13.0 kHz              --
+// 3.3 VOLTS           9.0 kHz             9.0 kHz
+// 2.5 VOLTS           6.5 kHz            13.0 kHz
+//
+// And again, defining any of the voltage or current macros below
+// deliberately runs the filament outside the IV-18 specifications.
+// These macros are mainly provided for testing purposes.  But if the
+// reddish glow of the filament is bothersome, reducing the filament
+// voltage might be worthwhile even though doing so may cause cathode
+// poisoning.  Another option to reduce the reddish glow is to have
+// the case made from blue tinted acrylic.
 //
 //
-// #define FILAMENT_CURRENT_DC
+// #define FILAMENT_FREQUENCY_DIV 3
+//
+// #define FILAMENT_CURRENT_DC_FWD
+// #define FILAMENT_CURRENT_DC_REV
+//
 // #define FILAMENT_VOLTAGE_3_3
 // #define FILAMENT_VOLTAGE_2_5
 

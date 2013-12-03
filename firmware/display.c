@@ -257,6 +257,13 @@ void display_init(void) {
     // disable digital circuitry on photoresistor pins
     DIDR0 |= _BV(ADC5D) | _BV(ADC4D);
 
+    display.multiplex_div = 1;  // multiplexing divider
+
+#ifdef VFD_TO_SPEC
+    display.filament_div   = 1;  // ac-frquency divider
+    display.filament_timer = 1;  // ac-generation timer
+#endif  // VFD_TO_SPEC
+
 #ifdef AUTOMATIC_DIMMER
     // set initial photo_avg to maximum ambient light
     display.photo_avg = UINT16_MAX;
