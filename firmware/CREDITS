@@ -12,6 +12,9 @@
   * Ray Ramirez contributed code, made useful suggestions, and
     provided helpful advice.
 
+  * Phil DeGruy had several useful suggestions and helped fix a bug
+    in the automatic dimming code.
+
   * Russell Walker suggested the "rolling colons" time display.
 
   * Justin Hayes suggested improvements to the per-digit brightness

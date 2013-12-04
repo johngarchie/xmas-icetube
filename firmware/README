@@ -166,7 +166,7 @@ http://forums.adafruit.com/viewtopic.php?f=41&t=43998
 
 :: GPS Timekeeping ::
 http://forums.adafruit.com/viewtopic.php?f=41&t=36873
-http://www.ladyada.net/make/icetube/mods.html
+http://learn.adafruit.com/ice-tube-clock-kit/mods
 http://forums.adafruit.com/viewtopic.php?f=41&t=32660
 
 :: Extended Battery Life ::
@@ -257,7 +257,7 @@ correction method is quite robust:
 
 
 :: Unstable Crystal Oscillator ::
-
+http://www.ladyada.net/make/icetube/mods.html
 Oscillator caps C8 and C9 are a bit large.  Usually this only means
 that the clock consistently runs slow, losing a few seconds each day.
 When the time is periodically corrected, the automatic drift

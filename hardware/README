@@ -1,17 +1,100 @@
-########################
-## xmas-icetube Clock ##
-########################
+####################################
+## xmas-icetube Hardware Revision ##
+####################################
 
-The xmas-icetube clock is a revision of the Adafruit Ice Tube Clock and is
-discussed in the following thread:
+The xmas-icetube hardware revision is a redesign of the Adafruit Ice Tube
+Clock and is discussed in the following thread:
 
-    http://forums.adafruit.com/viewtopic.php?f=41&t=43836
+    http://forums.adafruit.com/viewtopic.php?t=43836
 
 The current versions of the xmas-icetube custom parts are:
 
   - main board   (Rev. D)
   - side board   (Rev. C)
   - acrylic case (Rev. A)
+
+
+##############
+## Features ##
+##############
+
+The xmas-icetube revision has the following improvements over the original
+Adafruit design.  Although all of the following features are incorporated
+into the xmas-icetube board, many of the links given are oriented toward
+modifying the original Adafruit clock to include the corresponding
+features.  Those discussions are still relevant to the xmas-icetube
+revision, however.
+
+* IV-18 tube driven to specifications:  The Adafruit design runs the IV-18
+  in a way that results in inconsistent illumination across the display,
+  and on some tubes, the effect is quite noticeable.  The original IV-18
+  also caused early problems with cathode poisoning.  Driving the display
+  as the designers intended ensures uniform illumination and minimizes the
+  problem of cathode poisoning.
+
+  http://forums.adafruit.com/viewtopic.php?t=23586
+  http://forums.adafruit.com/viewtopic.php?t=41811
+
+  
+* Automatic dimming:  A photoresistor allows automatic dimming as
+  appropriate for the ambient lighting.  The Adafruit design does, however,
+  have an expansion area that can also be used to this end.
+
+  http://forums.adafruit.com/viewtopic.php?t=12932
+
+
+* 25-fold reduction in sleep current:  Unless the clock is without power
+  for over a year, the battery should never need replacement.
+
+  http://forums.adafruit.com/viewtopic.php?t=36697  
+
+
+* Temperature compensated timekeeping:  A DS18B20 temperature sensor next
+  to the clock crystal allows the software to compensate for temperature-
+  related timekeeping error.  When combined with software-based drift
+  correction, the resulting accuracy should be comparable to a temperature
+  compensated quartz oscillator.
+
+  http://forums.adafruit.com/viewtopic.php?t=43998
+  http://forums.adafruit.com/viewtopic.php?f=41&t=12720
+
+
+* GPS solder points:  Through-hold solder points allow easier installation
+  of an external GPS unit for time synchronization.
+
+  http://forums.adafruit.com/viewtopic.php?t=36873
+  http://learn.adafruit.com/ice-tube-clock-kit/mods
+
+  Alternatively, these solder points may also be used for installing a
+  dedicated temperature compensated crystal oscillator instead of the
+  DS18B20 temperature sensor above.
+
+  http://forums.adafruit.com/viewtopic.php?&t=14941
+
+
+* Robust in-system programming:  The clock may be programmed regardless of
+  whether the display and side board are installed.  I recommend powering
+  the clock with external power during programming, but a programming
+  jumper provides a way to force the clock into sleep mode to ensure minimal
+  power consumption if powered by the programmer instead.  I recommend
+  using the jumper if using the AVR Dragon programmer, as the Dragon can
+  barely provide enough power for programming alone.  But the jumper is
+  unnecessary for most programmers including the Adafruit USBtinyISP.
+
+  http://forums.adafruit.com/viewtopic.php?t=41975
+
+
+* Robust microcontroller environment:  The microcontroller now has a
+  decoupling capacitor and 10K pull-up on the reset pin, both of which
+  should make it less sensitive to electrical noise.  The Adafruit design
+  did not seem to have any problems related to electrical noise, but the
+  new capacitor and pull-up ensures reliable operation.
+
+
+Finally, although the xmas-icetube firmware is compatible with *both* the
+original Adafruit clock and the xmas-icetube hardware revision, the
+xmas-icetube revision is not compatible with firmwares developed
+specifically for the Adafruit clock.
 
 
 ##############################
@@ -118,9 +201,11 @@ parts in each section.
     minutes.  Leaving the clock unplugged for ten minutes ensures that the
     backup battery is actually in use.
 
-9.  Solder the "Light Sensor" parts.  Connect the 9v adaptor, and using
-    a flashlight, lamp, or similar, verify that the clock responds to
-    changes in ambient light.
+9.  Solder the "Light Sensor" parts.  So the clock can accurately gauge
+    ambient lighting, install the photoresistor such that it points towards
+    the front of the clock and away from the tube.  Connect the 9v adaptor,
+    and using a flashlight, lamp, or similar, verify that the clock
+    responds to changes in ambient light.
 
 10. Assemble the acrylic case and enjoy!
 
@@ -149,22 +234,27 @@ only made minor adjustments to her design.  Adafruit forum user Daygecko
 also deserves credit for finding clear machine nuts and bolts from
 McMaster-Carr, which give the assembled case a cleaner look.
 
-While creating the xmas-icetube board revision, I had fruitful discussions
-with both Phil DeGruy (PhilD13) and Russ Walker (Russell27), mostly in
-regard to properly driving the IV-18 tube.  Phil also took the time to
-review my design and suggest several alternative components, which was
-especially helpful.
+Phil DeGruy (PhilD13) reviewed my initial design and suggested several
+components; the ZVN2110A and ZVP2001A MOSFETs in particular were
+particularly useful for generating AC for the IV-18 filament.  Phil also
+found many alternative parts for the bill of materials which cost less than
+my original selections.
 
-Because I am inexperienced in electronics design, I feel compelled to add
-the following disclaimer:  Those cited in this section cannot be faulted
-for any bugs in the xmas-icetube hardware design.
+I also had fruitful discussions with both Phil DeGruy and Russell Walker
+(Russell27), mostly  in regard to properly driving the IV-18 tube.  Phil
+and Russell built their own xmas-icetube clocks and provide useful feedback
+on the overall design.
+
+Because I am inexperienced in electronics design, I must add the following
+disclaimer:  Those cited in this section cannot be faulted for any bugs in
+the xmas-icetube hardware revision.
 
 
 #############
 ## License ##
 #############
 
-The xmas-icetube clock revision may be used under the Attribution-
+The xmas-icetube hardware revision may be used under the Attribution-
 ShareAlike 3.0 (CC BY-SA 3.0), available from Creative Commons:
 
     http://creativecommons.org/licenses/by-sa/3.0/
