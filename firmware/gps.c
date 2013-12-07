@@ -71,12 +71,6 @@ void gps_wake(void) {
 void gps_sleep(void) {
     // disable usart rx interrupt
     UCSR0B &= ~_BV(RXCIE0);
-
-    if(gps.status & GPS_SIGNAL_GOOD) {
-	// enable collection of automatic drift correction
-	// statistics while sleeping
-	time_autodrift_enable();
-    }
 }
 
 
@@ -85,10 +79,7 @@ void gps_tick(void) {
     if(gps.data_timer) {
 	--gps.data_timer;
     } else {
-	if(gps.status & GPS_SIGNAL_GOOD) {
-	    gps.status &= ~GPS_SIGNAL_GOOD;
-	    time_autodrift_enable();
-	}
+	gps.status &= ~GPS_SIGNAL_GOOD;
     }
 
     if(gps.warn_timer) --gps.warn_timer;
@@ -197,29 +188,19 @@ void gps_settime(void) {
 	    time_diff += (int32_t)24 * 60 * 60;
 	}
 
-	if(time_diff) {
-	    if(time_diff == 1) {
-		// move time forward by one tick to ensure
-		// alarm is not missed
-		time_tick();
-		alarm_tick();
-		mode_tick();
-		TCNT2 = 64;  // skip forward to mid-second
-	    } else {
-		time_settime(hour, minute, second);  // set time
-		TCNT2 = 64;  // skip forward to mid-second
-	    }
-
-	    // the subsecond wrangling above invalidates the running
-	    // automatic drift correction statistics
-	    time_autodrift_disable();
-
-	    TIFR2 = _BV(OCF2A);   // clear any pending per-second interrupt
+	if(time_diff && time_diff != 1) {
+	    // note: this code will never be called if near an alarm
+	    // time, so we don't have to worry about missing an alarm
+	    // by skipping forward over it
+	    time_settime(hour, minute, second);
+	    mode_tick();  // refresh display to show new time
 	}
 
 	// ensure date is correct for new time
-	if(year != time.year || month != time.month || day != time.day) {
-	    time_setdate(year, month, day);
+        // if date is incorrect and time is not near midnight
+	if((day != time.day || year != time.year || month != time.month)
+		&& (hour != 23 || minute != 59 || second != 59)) {
+	    time_setdate(year, month, day); // set date from gps
 	}
     } else {
 	gps.status &= ~GPS_SIGNAL_GOOD;

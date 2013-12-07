@@ -189,18 +189,41 @@ void time_loadtimeformat(void) {
 // set current time
 void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+	GTCCR |= _BV(PSRSYNC);      // reset timer prescaler
 	uint8_t TCNT2_old = TCNT2;  // save fractional seconds
-	TCNT2 = 0; // set fractional seconds to zero
+	TCNT2 = 0;                  // reset fractional seconds
 
-	if(TIFR2 & _BV(OCF2A)) {  // if unprocessed second
-	    time_autodrift();     // process missed second now
-	    TIFR2 = _BV(OCF2A);   // clear interrupt flag
+	// defer setting drift adjustment to allow correction of an
+	// incorrectly set time; also ensures calls to autodrift
+	// below will not process any delayed time correction
+	time.drift_delay_timer = TIME_DRIFT_SAVE_DELAY;
+
+	if(TIFR2 & _BV(OCF2A)) {  // if missed second
+	    time_autodrift();     // process missed second
+	    ++time.second;        // add to current time (ok if >60)
+	    TIFR2 = _BV(OCF2A);   // clear per-second interrupt
 	    TCNT2_old = 0;	  // assume at second start
 	}
 
+	// maintain count of lost fractional seconds
+	time.drift_frac_seconds += TCNT2_old;
+
+	// since crystal timer prescaler is reset, we lose (on average)
+	// half of a fractional second each time the time is set, so
+	// compensate by adding a full fractional second on odd seconds
+	if(time.second & 0x01) ++time.drift_frac_seconds;
+
+	// when fractional seconds make one full second, process
+	// the missed second with the drift correction code
+	if(time.drift_frac_seconds >= 127) {
+	    time.drift_frac_seconds -= 127;
+	    time_autodrift();  // process missed second
+	    ++time.second;     // add to current time (ok if >60)
+	}
+
 	// determine if clock drift estimate should be computed
-	if(time.status & (TIME_UNSET | TIME_AUTODRIFT_INVALID)) {
-	    // reset drift monitoring variables
+	if(time.status & TIME_UNSET) {
+	    // reset drift monitoring statistics
 	    time.drift_delay_timer   = 0;
 	    time.drift_total_seconds = 0;
 	    time.drift_frac_seconds  = 0;
@@ -229,20 +252,6 @@ void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
 	    if(time.drift_delta_seconds < (int32_t)-12 * 60 * 60) {
 		time.drift_delta_seconds += (int32_t)24 * 60 * 60;
 	    }
-
-	    // defer setting drift adjustment to allow
-	    // correction of an incorrectly set time
-	    time.drift_delay_timer = TIME_DRIFT_SAVE_DELAY;
-
-	    // tally fractional seconds
-	    time.drift_frac_seconds += TCNT2_old;
-
-	    // when fractional seconds make one full second, process
-	    // the missed second with the drift correction code
-	    if(time.drift_frac_seconds >= 127) {
-		time.drift_frac_seconds -= 127;
-		time_autodrift();
-	    }
 	}
 
 	// set the new time
@@ -250,6 +259,7 @@ void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
 	time.minute = minute;
 	time.second = second;
 
+	// ensure unset flag is cleared
 	time.status &= ~TIME_UNSET;
     }
 }
@@ -292,7 +302,6 @@ void time_tick(void) {
 			    eeprom_write_byte(&ee_time_year, time.year);
 			}
 		    }
-		    time_savedate();
 		}
 	    }
 	}
@@ -652,18 +661,18 @@ uint8_t time_isdst_usa(void) {
 // manages drift correction
 void time_autodrift(void) {
     // adjust timekeeping according to current drift_adjust
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 	++time.drift_total_seconds;  // seconds since clock last set
     }
 
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 	if(time.drift_adjust_timer) {
 	    // seconds until next drift correction
 	    --time.drift_adjust_timer;
 	}
     }
 
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 	// set timer2 top value to adjust duration of next second
 	if(!time.drift_adjust_timer && time.drift_adjust > 0) {
 	    // reset drift correction timer
@@ -701,7 +710,7 @@ void time_autodrift(void) {
 	return;
     }
 
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 	// if drift adjustment calculation deferred and timer expires,
 	// calculate and store new adjustment and update drift_adjust
 	if(time.drift_delay_timer) {
@@ -710,10 +719,8 @@ void time_autodrift(void) {
 		// calculate and save new drift adjustment
 		time_newdrift();
 
-		NONATOMIC_BLOCK(NONATOMIC_FORCEOFF) {
-		    // load new median adjustment
-		    time_loaddriftmedian();
-		}
+		// load new median adjustment
+		time_loaddriftmedian();
 	    }
 	}
     }
@@ -827,25 +834,4 @@ void time_loaddriftmedian(void) {
 	    time.drift_adjust_timer = -time.drift_adjust;
 	}
     }
-}
-
-
-// enable collection of automatic drift correction statistics
-// (should only be called when time is known to be correct!)
-void time_autodrift_enable(void) {
-    // explicitly initialize drift variables
-    time.drift_delay_timer   = 0;
-    time.drift_total_seconds = 0;
-    time.drift_frac_seconds  = 0;
-    time.drift_delta_seconds = 0;
-
-    // clear autodrift disabled flag
-    time.status &= ~TIME_AUTODRIFT_INVALID;
-}
-
-
-// disable collection of automatic drift correction statistics
-void time_autodrift_disable(void) {
-    // set autodrift disabled flag
-    time.status |= TIME_AUTODRIFT_INVALID;
 }

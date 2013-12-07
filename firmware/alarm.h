@@ -33,7 +33,7 @@
 #define ALARM_DEBOUNCE_TIME 40  // semiseconds
 
 // maximum allowed time difference for alarm_nearalarm()
-#define ALARM_NEAR_THRESHOLD 2  // seconds
+#define ALARM_NEAR_THRESHOLD 5  // seconds
 
 
 // flags for alarm.status
