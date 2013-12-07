@@ -72,6 +72,8 @@ uint8_t semitick_successful = 1;
 int main(void) {
     cli();  // disable interrupts until system initialized
 
+    //OSCCAL = 0;
+
     // initialize the system: each init function leaves
     // the system in a low-power configuration
     system_init();
@@ -120,30 +122,30 @@ int main(void) {
 // triggered every second
 // counter0 is clocked by the clock crystal
 ISR(TIMER2_COMPB_vect) {
-    sei();  // allow nested interrupts
+    NONATOMIC_BLOCK(NONATOMIC_FORCEOFF) {
+	if(system.status & SYSTEM_SLEEP) {
+	    wdt_reset();
 
-    if(system.status & SYSTEM_SLEEP) {
-	wdt_reset();
+	    system_tick();
+	    time_tick();
+	    alarm_tick();
+	    piezo_tick();
+	    temp_tick();
+	} else {
+	    if(semitick_successful) wdt_reset();
+	    semitick_successful = 0;
 
-	system_tick();
-	time_tick();
-	alarm_tick();
-	piezo_tick();
-	temp_tick();
-    } else {
-	if(semitick_successful) wdt_reset();
-	semitick_successful = 0;
-
-	system_tick();
-	time_tick();
-	buttons_tick();
-	alarm_tick();
-	piezo_tick();
-	mode_tick();
-	display_tick();
-	gps_tick();
-	usart_tick();
-	temp_tick();
+	    system_tick();
+	    time_tick();
+	    buttons_tick();
+	    alarm_tick();
+	    piezo_tick();
+	    mode_tick();
+	    display_tick();
+	    gps_tick();
+	    usart_tick();
+	    temp_tick();
+	}
     }
 }
 

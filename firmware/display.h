@@ -72,6 +72,13 @@ typedef struct {
     uint8_t prebuf[DISPLAY_SIZE];   // future display contents
     uint8_t postbuf[DISPLAY_SIZE];  // current display contents
 
+    uint16_t colon_timer;	    // transition timer for colon animations
+    uint8_t  colon_prebuf;	    // bitmask for colon indexes
+    uint8_t  colon_postbuf;	    // bitmask for colon indexes
+    uint8_t  colon_style_idx;	    // the selected colon style index
+    uint16_t colon_frame;	    // current colon frame data
+    uint8_t  colon_frame_idx;	    // current colon frame index
+
 #ifdef AUTOMATIC_DIMMER
     int8_t  bright_min;             // minimum display brightness
     int8_t  bright_max;             // maximum display brightness
@@ -298,6 +305,12 @@ inline void display_semisemitick(void) {
 void display_savestatus(void);
 void display_loadstatus(void);
 
+void display_savecolonstyle(void);
+void display_loadcolonstyle(void);
+void display_nextcolonstyle(void);
+void display_nextcolonframe(void);
+void display_updatecolons(void);
+
 void display_loadbright(void);
 void display_savebright(void);
 
@@ -331,7 +344,6 @@ void display_twodigit_rightadj(uint8_t idx, int8_t n);
 void display_twodigit_leftadj(uint8_t idx, int8_t n);
 void display_twodigit_zeropad(uint8_t idx, int8_t n);
 void display_char(uint8_t idx, char c);
-void display_rolling(uint8_t idx, uint8_t rolling_idx);
 void display_clear(uint8_t idx);
 
 void display_clearall(void);

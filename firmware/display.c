@@ -46,7 +46,8 @@ volatile display_t display;
 
 
 // permanent place to store display brightness
-uint8_t ee_display_status     EEMEM = DISPLAY_ANIMATED;
+uint8_t ee_display_status EEMEM = DISPLAY_ANIMATED;
+uint8_t ee_display_colon_style_idx EEMEM = 0;
 #ifdef AUTOMATIC_DIMMER
 uint8_t ee_display_bright_min EEMEM = 0;
 uint8_t ee_display_bright_max EEMEM = 10;
@@ -160,14 +161,6 @@ const uint8_t number_segments[] PROGMEM = {
 };
 
 
-// codes for rolling colon time separators
-const uint8_t rolling_segments[] PROGMEM = {
-    SEG_A | SEG_D,
-    SEG_B | SEG_E,
-    SEG_C | SEG_F,
-};
-
-
 // vfd digit selection wires are on these MAX6921 pins
 const uint8_t vfd_digit_pins[] PROGMEM = {
     3,  // digit 9 (dash & circle)
@@ -191,6 +184,75 @@ const uint8_t vfd_segment_pins[] PROGMEM = {
     14, // segment C
     17, // segment B
     19, // segment A
+};
+
+// the following macro encodes the various colon frames
+// delay is time to display the segment (in ~70 ms units)
+// prevdec is true if the decimal of the previous digit should be lit
+// segs is the colon character to display
+#define COLON_FRAME(delay, prevdec, segs) ((delay << 9) | (prevdec ? 0x0100 : 0x0000) | segs)
+
+// COLON_END is the terminator for a set of colon frames
+#define COLON_FRAME_END COLON_FRAME(0, 0, 0)
+
+// the following macros extract the various fields of a colon frame
+#define COLON_DELAY(frame) ((frame >> 3) & 0xFE00)
+#define COLON_PREVDEC(frame) (frame & 0x0100)
+#define COLON_SEGS(frame) (frame & 0x00FF)
+
+// codes for rolling colon time separators
+const uint16_t colon_space[] PROGMEM = {
+    COLON_FRAME(8, FALSE, 0),
+    COLON_FRAME_END,
+};
+
+// codes for rolling colon time separators
+const uint16_t colon_figure_eight[] PROGMEM = {
+    COLON_FRAME(8, FALSE, SEG_A),
+    COLON_FRAME(8, FALSE, SEG_B),
+    COLON_FRAME(8, FALSE, SEG_G),
+    COLON_FRAME(8, FALSE, SEG_E),
+    COLON_FRAME(8, FALSE, SEG_D),
+    COLON_FRAME(8, FALSE, SEG_C),
+    COLON_FRAME(8, FALSE, SEG_G),
+    COLON_FRAME(8, FALSE, SEG_F),
+    COLON_FRAME_END,
+};
+
+// codes for rolling colon time separators
+const uint16_t colon_lower_circle_roll[] PROGMEM = {
+    COLON_FRAME(8, FALSE, SEG_G),
+    COLON_FRAME(8, FALSE, SEG_C),
+    COLON_FRAME(8, FALSE, SEG_D),
+    COLON_FRAME(8, FALSE, SEG_E),
+    COLON_FRAME_END,
+};
+
+// codes for rolling colon time separators
+const uint16_t colon_2segment_circle_roll[] PROGMEM = {
+    COLON_FRAME(8, FALSE, SEG_A | SEG_D),
+    COLON_FRAME(8, FALSE, SEG_B | SEG_E),
+    COLON_FRAME(8, FALSE, SEG_C | SEG_F),
+    COLON_FRAME_END,
+};
+
+// codes for rolling colon time separators
+const uint16_t colon_vertical_bounce[] PROGMEM = {
+    COLON_FRAME(8, FALSE, SEG_A),
+    COLON_FRAME(8, FALSE, SEG_G),
+    COLON_FRAME(8, FALSE, SEG_D),
+    COLON_FRAME(8, FALSE, SEG_G),
+    COLON_FRAME_END,
+};
+
+// program pointers to rolling colon styles
+#define COLON_SEQUENCES_SIZE 5
+const PROGMEM uint16_t* const colon_styles[] PROGMEM = {
+    colon_space,
+    colon_figure_eight,
+    colon_lower_circle_roll,
+    colon_2segment_circle_roll,
+    colon_vertical_bounce,
 };
 
 
@@ -293,6 +355,8 @@ void display_init(void) {
     DDRC  |=  _BV(PC2) |  _BV(PC3);  // set as output
     PORTC &= ~_BV(PC2) & ~_BV(PC3);  // pull to ground
 #endif  // VFD_TO_SPEC
+
+    display_loadcolonstyle();
 }
 
 
@@ -1158,6 +1222,8 @@ void display_semitick(void) {
 			display.postbuf[i] = display.prebuf[i];
 		    }
 
+		    display.colon_postbuf = display.colon_prebuf;
+
 		    display.trans_type = DISPLAY_TRANS_NONE;
 		}
 	    }
@@ -1212,6 +1278,16 @@ void display_semitick(void) {
 	    }
 	}
     }
+
+    // handle the animated colons
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	if(display.trans_type == DISPLAY_TRANS_NONE) {
+	    if(++display.colon_timer >= COLON_DELAY(display.colon_frame)) {
+		display_nextcolonframe();
+		display.colon_timer = 0;
+	    }
+	}
+    }
 }
 
 
@@ -1229,6 +1305,93 @@ void display_loadstatus(void) {
 }
 
 
+// save selected colon style
+void display_savecolonstyle(void) {
+    eeprom_write_byte(&ee_display_colon_style_idx, display.colon_style_idx);
+}
+
+
+// load selected colon style
+void display_loadcolonstyle(void) {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	display.colon_style_idx = eeprom_read_byte(&ee_display_colon_style_idx);
+	if(display.colon_style_idx >= COLON_SEQUENCES_SIZE) {
+	    display.colon_style_idx = 0;
+	}
+	display.colon_frame_idx = 0;
+	display.colon_timer = 0;
+	display_updatecolons();
+    }
+}
+
+
+// change to next colon style
+void display_nextcolonstyle(void) {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	if(++display.colon_style_idx >= COLON_SEQUENCES_SIZE) {
+	    display.colon_style_idx = 0;
+	}
+
+	display.colon_frame_idx = 0;
+	display.colon_timer     = 0;
+
+	display_nextcolonframe();
+    }
+}
+
+
+// move to next colon frame
+void display_nextcolonframe(void) {
+    ATOMIC_BLOCK(ATOMIC_FORCEON) { 
+	// fetch current colon style from program memory
+	uint16_t* PROGMEM colon_ptr = (uint16_t* PROGMEM) pgm_read_word(
+		&(colon_styles[display.colon_style_idx]));
+
+	// if any time has elapsed, move to next colon frame
+	if(display.colon_timer) ++display.colon_frame_idx;
+
+	// fetch next colon frame from program memory
+	display.colon_frame = pgm_read_word(
+		&(colon_ptr[display.colon_frame_idx]));
+
+	if(display.colon_frame == COLON_FRAME_END) {
+	    display.colon_frame_idx = 0;
+	    display.colon_frame = pgm_read_word(
+		    &(colon_ptr[display.colon_frame_idx]));
+	}
+
+	display_updatecolons();
+    }
+}
+
+
+// updates display for colon separators
+void display_updatecolons(void) {
+    // apply style to colon positions
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	for(uint8_t bit=1, idx=8; bit; bit <<= 1, --idx) {
+	    if(bit & display.colon_prebuf) {
+		display.prebuf[idx] = COLON_SEGS(display.colon_frame);
+		if(COLON_PREVDEC(display.colon_frame)) {
+		    display.prebuf[idx-1] |= SEG_H;
+		} else {
+		    display.prebuf[idx-1] &= ~SEG_H;
+		}
+	    }
+
+	    if(bit & display.colon_postbuf) {
+		display.postbuf[idx] = COLON_SEGS(display.colon_frame);
+		if(COLON_PREVDEC(display.colon_frame)) {
+		    display.postbuf[idx-1] |= SEG_H;
+		} else {
+		    display.postbuf[idx-1] &= ~SEG_H;
+		}
+	    }
+	}
+    }
+}
+
+
 // clear the given display position
 void display_clear(uint8_t idx) {
     display.prebuf[idx] = DISPLAY_SPACE;
@@ -1240,6 +1403,8 @@ void display_clearall(void) {
     for(uint8_t i = 0; i < DISPLAY_SIZE; ++i) {
 	display.prebuf[i] = DISPLAY_SPACE;
     }
+
+    display.colon_prebuf = 0;
 }
 
 
@@ -1438,6 +1603,9 @@ void display_setbrightness(int8_t level) {
 
 // display digit (n) on display position (idx)
 void display_digit(uint8_t idx, uint8_t n) {
+    // clear colon char, if any
+    display.colon_prebuf &= ~_BV(8 - idx);
+
     display.prebuf[idx] = pgm_read_byte( &(number_segments[(n % 10)]) );
 
     if(n == 9 && (display.status & DISPLAY_ALTNINE)) {
@@ -1501,6 +1669,15 @@ void display_twodigit_zeropad(uint8_t idx, int8_t n) {
 
 // display character (c) at display position (idx)
 void display_char(uint8_t idx, char c) {
+    // process colon
+    if(c == ':') {
+	display.colon_prebuf |= _BV(8 - idx);
+	display.prebuf[idx] = COLON_SEGS(display.colon_frame);
+	return;
+    } else {
+	display.colon_prebuf &= ~_BV(8 - idx);
+    }
+
     if('a' <= c && c <= 'z') {
 	if(display.status & DISPLAY_ALTALPHA) {
 	    display.prebuf[idx] = pgm_read_byte(&(letter_segments_alt[c-'a']));
@@ -1531,12 +1708,6 @@ void display_char(uint8_t idx, char c) {
 		break;
 	}
     }
-}
-
-
-// display rolling colon (rolling_idx) at display position (idx)
-void display_rolling(uint8_t idx, uint8_t rolling_idx) {
-    display.prebuf[idx] = pgm_read_byte(&(rolling_segments[rolling_idx]));
 }
 
 
@@ -1628,6 +1799,8 @@ void display_transition(uint8_t type) {
 		    for(uint8_t i = 0; i < DISPLAY_SIZE; ++i) {
 			display.postbuf[i] = display.prebuf[i];
 		    }
+
+		    display.colon_postbuf = display.colon_prebuf;
 
 		    display.trans_type = DISPLAY_TRANS_NONE;
 		    break;

@@ -1694,8 +1694,20 @@ void mode_semitick(void) {
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
-		    mode_update(MODE_CFGREGN_TIMEFMT_SHOWDST,
-			        DISPLAY_TRANS_UP);
+		    switch(time.timeformat_idx) {
+			case TIME_TIMEFORMAT_HH_MM_SS:
+			case TIME_TIMEFORMAT_HH_MM_dial:
+			case TIME_TIMEFORMAT_HH_MM:
+			case TIME_TIMEFORMAT_HH_MM_PM:
+			case TIME_TIMEFORMAT_HH_MM_P:
+			    mode_update(MODE_CFGREGN_TIMEFMT_COLON,
+					DISPLAY_TRANS_INSTANT);
+			    break;
+			default:
+			    mode_update(MODE_CFGREGN_TIMEFMT_SHOWDST,
+					DISPLAY_TRANS_UP);
+			    break;
+		    }
 		    break;
 		case BUTTONS_PLUS:
 		    if(time.timeformat_flags & TIME_TIMEFORMAT_12HOUR) {
@@ -1719,7 +1731,7 @@ void mode_semitick(void) {
 		    time.timeformat_idx = *mode.tmp;
 
 		    mode_update(MODE_CFGREGN_TIMEFMT_FORMAT,
-			        DISPLAY_TRANS_INSTANT);
+				DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
@@ -1746,6 +1758,30 @@ void mode_semitick(void) {
 		    break;
 	    }
 	    break;
+	case MODE_CFGREGN_TIMEFMT_COLON:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    time_loadtimeformat();
+		    display_loadcolonstyle();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    mode_update(MODE_CFGREGN_TIMEFMT_SHOWDST,
+			        DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    display_nextcolonstyle();
+		    mode_update(MODE_CFGREGN_TIMEFMT_COLON,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			time_loadtimeformat();
+			display_loadcolonstyle();
+		    }
+		    break;
+	    }
+	    break;
 	case MODE_CFGREGN_TIMEFMT_SHOWDST:
 	    switch(btn) {
 		case BUTTONS_MENU:
@@ -1765,6 +1801,7 @@ void mode_semitick(void) {
 		    }
 #else
 		    time_savetimeformat();
+		    display_savecolonstyle();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 #endif  // GPS_TIMEKEEPING
 		    break;
@@ -1776,6 +1813,7 @@ void mode_semitick(void) {
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
 			time_loadtimeformat();
+			display_loadcolonstyle();
 		    }
 		    break;
 	    }
@@ -1789,6 +1827,7 @@ void mode_semitick(void) {
 		    break;
 		case BUTTONS_SET:
 		    time_savetimeformat();
+		    display_savecolonstyle();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 		    break;
 		case BUTTONS_PLUS:
@@ -1799,6 +1838,7 @@ void mode_semitick(void) {
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
 			time_loadtimeformat();
+			display_loadcolonstyle();
 		    }
 		    break;
 	    }
@@ -2467,6 +2507,9 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	case MODE_CFGREGN_TIMEFMT_FORMAT:
 	    mode_time_display_tick();
 	    break;
+	case MODE_CFGREGN_TIMEFMT_COLON:
+	    display_pstr(0, PSTR("colon  :"));
+	    break;
 	case MODE_CFGREGN_TIMEFMT_SHOWDST:
 	    pstr_ptr = PSTR("dst");
 	    if(time.timeformat_flags & TIME_TIMEFORMAT_SHOWDST) {
@@ -2553,11 +2596,13 @@ void mode_time_display_tick(void) {
 
     switch(time.timeformat_idx) {
 	case TIME_TIMEFORMAT_HH_MM_SS:
-	case TIME_TIMEFORMAT_HH_MM_SS_rolling:
+	    display_char(3, ':');
 	    display_twodigit_zeropad(4, time.minute);
+	    display_char(6, ':');
 	    display_twodigit_zeropad(7, time.second);
 	    break;
 	case TIME_TIMEFORMAT_HH_MM_dial:
+	    display_char(3, ':');
 	    display_twodigit_zeropad(4, time.minute);
 	    display_dial(7, time.second);
 	    break;
@@ -2570,12 +2615,15 @@ void mode_time_display_tick(void) {
 	    display_twodigit_zeropad(7, 0);
 	    break;
 	case TIME_TIMEFORMAT_HH_MM:
+	    display_char(4, ':');
 	    display_twodigit_zeropad(5, time.minute);
 	    break;
 	case TIME_TIMEFORMAT_HH_MM_PM:
 	    display_char(8, 'm');
 	case TIME_TIMEFORMAT_HH_MM_P:
+	    display_char(3, ':');
 	    display_twodigit_zeropad(4, time.minute);
+	    display_char(6, ':');
 	    display_char(7, (time.hour < 12 ? 'a' : 'p'));
 	    break;
 	case TIME_TIMEFORMAT_HHMMSSPM:
@@ -2633,23 +2681,8 @@ void mode_time_display_tick(void) {
 
 // updates the time display every semitick
 void mode_time_display_semitick(void) {
-    static uint16_t rolling_delay = 0;
-    static uint8_t  rolling_idx   = 0;
-
-
-    switch(time.timeformat_idx) {
-	case TIME_TIMEFORMAT_HH_MM_SS_rolling:
-	    if(!(++rolling_delay & 0x1FF)) {
-		if(++rolling_idx > DISPLAY_ROLLING_MAX) {
-		    rolling_idx = 0;
-		}
-	    }
-	    display_rolling(3, rolling_idx);
-	    display_rolling(6, rolling_idx);
-	    break;
-	case TIME_TIMEFORMAT_HHMMSS_split:
-	    display_twodigit_zeropad(7, (((uint16_t)100 * TCNT2) >> 7));
-	    break;
+    if(time.timeformat_idx == TIME_TIMEFORMAT_HHMMSS_split) {
+	display_twodigit_zeropad(7, (((uint16_t)100 * TCNT2) >> 7));
     }
 }
 
