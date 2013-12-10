@@ -14,13 +14,14 @@
 #define DISPLAY_OFF_TIMEOUT 60
 
 // status flags for display.status
-#define DISPLAY_ANIMATED     0x01  // animated display transitions
-#define DISPLAY_ZEROPAD      0x02  // zero-pad all numbers
-#define DISPLAY_ALTNINE      0x04  // alternative display for 9s
-#define DISPLAY_ALTALPHA     0x08  // alternative capital alphabet
-#define DISPLAY_PULSING      0x10  // display brightness pulsing
-#define DISPLAY_PULSE_DOWN   0x20  // display brightness dimming
-#define DISPLAY_DISABLED     0x40  // display disabled
+#define DISPLAY_ANIMATED	0x01  // animated display transitions
+#define DISPLAY_ZEROPAD		0x02  // zero-pad all numbers
+#define DISPLAY_ALTNINE		0x04  // alternative display for 9s
+#define DISPLAY_ALTALPHA	0x08  // alternative capital alphabet
+#define DISPLAY_PULSING		0x10  // display brightness pulsing
+#define DISPLAY_PULSE_DOWN	0x20  // display brightness dimming
+#define DISPLAY_DISABLED	0x40  // display disabled
+#define DISPLAY_HIDEDOTS	0x80  // hide flashing dot separators
 
 // savable settings in lower nibble of display.status
 #define DISPLAY_SETTINGS_MASK 0x0F
@@ -62,6 +63,10 @@ enum {
 #define DISPLAY_TRANS_LR_DELAY 20  // (semiticks)
 #define DISPLAY_TRANS_UD_DELAY 50  // (semiticks)
 
+// duration of blinking dot times
+#define DISPLAY_DOTFLASH_SLOW_TIME  800  // (semiticks)
+#define DISPLAY_DOTFLASH_FAST_TIME  415  // (semiticks)
+
 
 typedef struct {
     uint8_t status;                 // display status flags
@@ -72,12 +77,16 @@ typedef struct {
     uint8_t prebuf[DISPLAY_SIZE];   // future display contents
     uint8_t postbuf[DISPLAY_SIZE];  // current display contents
 
-    uint16_t colon_timer;	    // transition timer for colon animations
-    uint8_t  colon_prebuf;	    // bitmask for colon indexes
-    uint8_t  colon_postbuf;	    // bitmask for colon indexes
+    int16_t  colon_timer;	    // transition timer for colon animations
+    uint8_t  colon_prebuf;	    // bitmask for future colon indexes
+    uint8_t  colon_postbuf;	    // bitmask for future colon indexes
     uint8_t  colon_style_idx;	    // the selected colon style index
     uint16_t colon_frame;	    // current colon frame data
     uint8_t  colon_frame_idx;	    // current colon frame index
+
+    int16_t  dot_timer;		    // transition timer for blinking dots
+    uint8_t  dot_prebuf;	    // bitmask for future dot indexes
+    uint8_t  dot_postbuf;	    // bitmask for current dot indexes
 
 #ifdef AUTOMATIC_DIMMER
     int8_t  bright_min;             // minimum display brightness
@@ -308,8 +317,12 @@ void display_loadstatus(void);
 void display_savecolonstyle(void);
 void display_loadcolonstyle(void);
 void display_nextcolonstyle(void);
+void display_loadcolonframe(void);
 void display_nextcolonframe(void);
 void display_updatecolons(void);
+
+void display_nextdotstyle(void);
+void display_updatedots(void);
 
 void display_loadbright(void);
 void display_savebright(void);
@@ -349,6 +362,7 @@ void display_clear(uint8_t idx);
 void display_clearall(void);
 void display_dotselect(uint8_t idx_start, uint8_t idx_end);
 void display_dot(uint8_t idx, uint8_t show);
+void display_dotsep(uint8_t idx, uint8_t show);
 void display_dash(uint8_t idx, uint8_t show);
 void display_dial(uint8_t idx, uint8_t seconds);
 

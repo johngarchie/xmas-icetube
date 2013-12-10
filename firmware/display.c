@@ -1222,6 +1222,7 @@ void display_semitick(void) {
 			display.postbuf[i] = display.prebuf[i];
 		    }
 
+		    display.dot_postbuf   = display.dot_prebuf;
 		    display.colon_postbuf = display.colon_prebuf;
 
 		    display.trans_type = DISPLAY_TRANS_NONE;
@@ -1283,8 +1284,26 @@ void display_semitick(void) {
     ATOMIC_BLOCK(ATOMIC_FORCEON) {
 	if(display.trans_type == DISPLAY_TRANS_NONE) {
 	    if(++display.colon_timer >= COLON_DELAY(display.colon_frame)) {
-		display_nextcolonframe();
 		display.colon_timer = 0;
+		NONATOMIC_BLOCK(NONATOMIC_FORCEOFF) {
+		    display_nextcolonframe();
+		}
+	    }
+	}
+    }
+
+    // handle blinking dot separators
+    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	if(display.trans_type == DISPLAY_TRANS_NONE) {
+	    if(    ((time.timeformat_flags & TIME_TIMEFORMAT_DOTFLASH_SLOW)
+		      && ++display.dot_timer >= DISPLAY_DOTFLASH_SLOW_TIME)
+		|| ((time.timeformat_flags & TIME_TIMEFORMAT_DOTFLASH_FAST)
+		      && ++display.dot_timer >= DISPLAY_DOTFLASH_FAST_TIME)) {
+		display.status ^= DISPLAY_HIDEDOTS;
+		display.dot_timer = 0;
+		NONATOMIC_BLOCK(NONATOMIC_FORCEOFF) {
+		    display_updatedots();
+		}
 	    }
 	}
     }
@@ -1320,8 +1339,9 @@ void display_loadcolonstyle(void) {
 	}
 	display.colon_frame_idx = 0;
 	display.colon_timer = 0;
-	display_updatecolons();
     }
+
+    display_updatecolons();
 }
 
 
@@ -1335,20 +1355,17 @@ void display_nextcolonstyle(void) {
 	display.colon_frame_idx = 0;
 	display.colon_timer     = 0;
 
-	display_nextcolonframe();
+	display_loadcolonframe();
     }
 }
 
 
-// move to next colon frame
-void display_nextcolonframe(void) {
-    ATOMIC_BLOCK(ATOMIC_FORCEON) { 
+// load colon frame data given display.colon_frame_idx
+void display_loadcolonframe(void) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 	// fetch current colon style from program memory
 	uint16_t* PROGMEM colon_ptr = (uint16_t* PROGMEM) pgm_read_word(
 		&(colon_styles[display.colon_style_idx]));
-
-	// if any time has elapsed, move to next colon frame
-	if(display.colon_timer) ++display.colon_frame_idx;
 
 	// fetch next colon frame from program memory
 	display.colon_frame = pgm_read_word(
@@ -1359,33 +1376,84 @@ void display_nextcolonframe(void) {
 	    display.colon_frame = pgm_read_word(
 		    &(colon_ptr[display.colon_frame_idx]));
 	}
+    }
 
+    NONATOMIC_BLOCK(NONATOMIC_RESTORESTATE) {
 	display_updatecolons();
+    }
+}
+
+
+// move to next colon frame
+void display_nextcolonframe(void) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+	++display.colon_frame_idx;
+	display_loadcolonframe();
     }
 }
 
 
 // updates display for colon separators
 void display_updatecolons(void) {
-    // apply style to colon positions
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-	for(uint8_t bit=1, idx=8; bit; bit <<= 1, --idx) {
-	    if(bit & display.colon_prebuf) {
-		display.prebuf[idx] = COLON_SEGS(display.colon_frame);
-		if(COLON_PREVDEC(display.colon_frame)) {
-		    display.prebuf[idx-1] |= SEG_H;
-		} else {
-		    display.prebuf[idx-1] &= ~SEG_H;
-		}
+    for(uint8_t bit=1, idx=8; bit; bit <<= 1, --idx) {
+	if(bit & display.colon_prebuf) {
+	    display.prebuf[idx] = COLON_SEGS(display.colon_frame);
+	    if(COLON_PREVDEC(display.colon_frame)) {
+		display.prebuf[idx-1] |= SEG_H;
+	    } else {
+		display.prebuf[idx-1] &= ~SEG_H;
 	    }
+	}
 
-	    if(bit & display.colon_postbuf) {
-		display.postbuf[idx] = COLON_SEGS(display.colon_frame);
-		if(COLON_PREVDEC(display.colon_frame)) {
-		    display.postbuf[idx-1] |= SEG_H;
-		} else {
-		    display.postbuf[idx-1] &= ~SEG_H;
-		}
+	if(bit & display.colon_postbuf) {
+	    display.postbuf[idx] = COLON_SEGS(display.colon_frame);
+	    if(COLON_PREVDEC(display.colon_frame)) {
+		display.postbuf[idx-1] |= SEG_H;
+	    } else {
+		display.postbuf[idx-1] &= ~SEG_H;
+	    }
+	}
+    }
+}
+
+
+// switch to next dot-separator style
+void display_nextdotstyle(void) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+	if(time.timeformat_flags & TIME_TIMEFORMAT_DOTFLASH_SLOW) {
+	    time.timeformat_flags &= ~TIME_TIMEFORMAT_DOTFLASH_SLOW;
+	    time.timeformat_flags |=  TIME_TIMEFORMAT_DOTFLASH_FAST;
+	} else if(time.timeformat_flags & TIME_TIMEFORMAT_DOTFLASH_FAST) {
+	    time.timeformat_flags &= ~TIME_TIMEFORMAT_DOTFLASH_SLOW;
+	    time.timeformat_flags &= ~TIME_TIMEFORMAT_DOTFLASH_FAST;
+	} else {
+	    time.timeformat_flags |=  TIME_TIMEFORMAT_DOTFLASH_SLOW;
+	    time.timeformat_flags &= ~TIME_TIMEFORMAT_DOTFLASH_FAST;
+	}
+
+	display.status &= ~DISPLAY_HIDEDOTS;
+	display.dot_timer = 0;
+    }
+}
+
+
+// updates display for colon separators
+void display_updatedots(void) {
+    // apply style to colon positions
+    for(uint8_t bit=1, idx=7; bit; bit <<= 1, --idx) {
+	if(bit & display.dot_prebuf) {
+	    if(display.status & DISPLAY_HIDEDOTS) {
+		display.prebuf[idx] &= ~SEG_H;
+	    } else {
+		display.prebuf[idx] |= SEG_H;
+	    }
+	}
+
+	if(bit & display.dot_postbuf) {
+	    if(display.status & DISPLAY_HIDEDOTS) {
+		display.postbuf[idx] &= ~SEG_H;
+	    } else {
+		display.postbuf[idx] |= SEG_H;
 	    }
 	}
     }
@@ -1404,6 +1472,7 @@ void display_clearall(void) {
 	display.prebuf[i] = DISPLAY_SPACE;
     }
 
+    display.dot_prebuf   = 0;
     display.colon_prebuf = 0;
 }
 
@@ -1603,6 +1672,9 @@ void display_setbrightness(int8_t level) {
 
 // display digit (n) on display position (idx)
 void display_digit(uint8_t idx, uint8_t n) {
+    // clear blinking dot, if any
+    display.dot_prebuf &= ~_BV(7 - idx);
+
     // clear colon char, if any
     display.colon_prebuf &= ~_BV(8 - idx);
 
@@ -1669,6 +1741,9 @@ void display_twodigit_zeropad(uint8_t idx, int8_t n) {
 
 // display character (c) at display position (idx)
 void display_char(uint8_t idx, char c) {
+    // clear blinking dot, if any
+    display.dot_prebuf &= ~_BV(7 - idx);
+
     // process colon
     if(c == ':') {
 	display.colon_prebuf |= _BV(8 - idx);
@@ -1722,6 +1797,7 @@ void display_dotselect(uint8_t idx_start, uint8_t idx_end) {
 }
 
 
+// shows or hides dot at given index
 // if show is true, displays dot at specified display position (idx)
 // if show is false, clears dot at specified display position (idx)
 void display_dot(uint8_t idx, uint8_t show) {
@@ -1729,6 +1805,28 @@ void display_dot(uint8_t idx, uint8_t show) {
 	display.prebuf[idx] |= DISPLAY_DOT;
     } else {
 	display.prebuf[idx] &= ~DISPLAY_DOT;
+    }
+}
+
+
+// shows or hides dot separator at given index (a dot separator can flash)
+// if show is true, displays dot separator at specified display position (idx)
+// if show is false, clears dot separator at specified display position (idx)
+void display_dotsep(uint8_t idx, uint8_t show) {
+    if(show) {
+	display.dot_prebuf |= _BV(7 - idx);
+
+	if(display.status & DISPLAY_HIDEDOTS) {
+	    display.prebuf[idx] &= ~DISPLAY_DOT;
+	} else {
+	    display.prebuf[idx] |= DISPLAY_DOT;
+	}
+    } else {
+	if(display.dot_prebuf & _BV(7 - idx)) {
+	    display.prebuf[idx] &= ~DISPLAY_DOT;
+	}
+
+	display.dot_prebuf &= ~_BV(7 - idx);
     }
 }
 
@@ -1800,6 +1898,7 @@ void display_transition(uint8_t type) {
 			display.postbuf[i] = display.prebuf[i];
 		    }
 
+		    display.dot_postbuf   = display.dot_prebuf;
 		    display.colon_postbuf = display.colon_prebuf;
 
 		    display.trans_type = DISPLAY_TRANS_NONE;

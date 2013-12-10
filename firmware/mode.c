@@ -57,43 +57,43 @@ void mode_wake(void) {
 
 // called each second; updates current mode as required
 void mode_tick(void) {
-    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-	switch(mode.state) {
-	    case MODE_TIME_DISPLAY:
-		// update time display for each tick of the clock
-		if(time.status & TIME_UNSET && time.second & 0x01) {
-		   if(system.initial_mcusr & _BV(WDRF)) {
-		       display_pstr(0, PSTR("wdt rset"));
-		   } else if(system.initial_mcusr & _BV(EXTRF)) {
-		       display_pstr(0, PSTR("ext rset"));
-		   } else if(system.initial_mcusr & _BV(PORF)) {
-		       display_pstr(0, PSTR("pwr rset"));
-		   } else if(system.initial_mcusr & _BV(BORF)) {
-		       display_pstr(0, PSTR("bod rset"));
-		   } else {
-		       display_pstr(0, PSTR("oth rset"));
-		   }
-		   display_transition(DISPLAY_TRANS_INSTANT);
-               } else if(system.status & SYSTEM_LOW_BATTERY
-                         && time.second & 0x01) {
-                   display_pstr(0, PSTR("bad batt"));
-                   display_transition(DISPLAY_TRANS_INSTANT);
-#ifdef GPS_TIMEKEEPING
-		} else if(gps.data_timer && !gps.warn_timer
-			  && time.second & 0x01) {
-		    display_pstr(0, PSTR("gps lost"));
-		    display_transition(DISPLAY_TRANS_INSTANT);
-#endif  // GPS_TIMEKEEPING
+    switch(mode.state) {
+	case MODE_TIME_DISPLAY:
+	    // update time display for each tick of the clock
+	    if(time.status & TIME_UNSET && time.second & 0x01) {
+		if(system.initial_mcusr & _BV(WDRF)) {
+		    display_pstr(0, PSTR("wdt rset"));
+		} else if(system.initial_mcusr & _BV(EXTRF)) {
+		    display_pstr(0, PSTR("ext rset"));
+		} else if(system.initial_mcusr & _BV(PORF)) {
+		    display_pstr(0, PSTR("pwr rset"));
+		} else if(system.initial_mcusr & _BV(BORF)) {
+		    display_pstr(0, PSTR("bod rset"));
 		} else {
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_INSTANT);
+		    display_pstr(0, PSTR("oth rset"));
 		}
-		break;
-	    case MODE_CFGREGN_TIMEFMT_FORMAT:
+		display_transition(DISPLAY_TRANS_INSTANT);
+	    } else if(system.status & SYSTEM_LOW_BATTERY
+		    && time.second & 0x01) {
+		display_pstr(0, PSTR("bad batt"));
+		display_transition(DISPLAY_TRANS_INSTANT);
+#ifdef GPS_TIMEKEEPING
+	    } else if(gps.data_timer && !gps.warn_timer
+		    && time.second & 0x01) {
+		display_pstr(0, PSTR("gps lost"));
+		display_transition(DISPLAY_TRANS_INSTANT);
+#endif  // GPS_TIMEKEEPING
+	    } else {
+		mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_INSTANT);
+	    }
+	    break;
+	case MODE_CFGREGN_TIMEFMT_FORMAT:
+	    ATOMIC_BLOCK(ATOMIC_FORCEON) {
 		if((mode.timer & 0x00FF) < 0xFF - BLINK_OFF_SEMITICKS) {
 		    mode_time_display_tick();
 		}
-		break;
-	}
+	    }
+	    break;
     }
 }
 
@@ -142,7 +142,6 @@ void mode_semitick(void) {
 		    }
 #endif  // GPS_TIMEKEEPING
 		    mode_time_display_semitick();
-		    display_transition(DISPLAY_TRANS_INSTANT);
 		    sei();
 		    break;
 	    }
@@ -1703,6 +1702,12 @@ void mode_semitick(void) {
 			    mode_update(MODE_CFGREGN_TIMEFMT_COLON,
 					DISPLAY_TRANS_INSTANT);
 			    break;
+			case TIME_TIMEFORMAT_HHMMSS_split:
+			case TIME_TIMEFORMAT_HHMMSSPM:
+			case TIME_TIMEFORMAT_HHMMSSP:
+			    mode_update(MODE_CFGREGN_TIMEFMT_DOT,
+					DISPLAY_TRANS_INSTANT);
+			    break;
 			default:
 			    mode_update(MODE_CFGREGN_TIMEFMT_SHOWDST,
 					DISPLAY_TRANS_UP);
@@ -1772,6 +1777,30 @@ void mode_semitick(void) {
 		case BUTTONS_PLUS:
 		    display_nextcolonstyle();
 		    mode_update(MODE_CFGREGN_TIMEFMT_COLON,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			time_loadtimeformat();
+			display_loadcolonstyle();
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_CFGREGN_TIMEFMT_DOT:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    time_loadtimeformat();
+		    display_loadcolonstyle();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    mode_update(MODE_CFGREGN_TIMEFMT_SHOWDST,
+			        DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    display_nextdotstyle();
+		    mode_update(MODE_CFGREGN_TIMEFMT_DOT,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
@@ -2508,7 +2537,11 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    mode_time_display_tick();
 	    break;
 	case MODE_CFGREGN_TIMEFMT_COLON:
-	    display_pstr(0, PSTR("colon  :"));
+	    display_pstr(0, PSTR("sep  a:b"));
+	    break;
+	case MODE_CFGREGN_TIMEFMT_DOT:
+	    display_pstr(0, PSTR("sep   ab"));
+	    display_dotsep(7, TRUE);
 	    break;
 	case MODE_CFGREGN_TIMEFMT_SHOWDST:
 	    pstr_ptr = PSTR("dst");
@@ -2607,11 +2640,11 @@ void mode_time_display_tick(void) {
 	    display_dial(7, time.second);
 	    break;
 	case TIME_TIMEFORMAT_HHMMSS_split:
-	    display_dot(2, TRUE);
+	    display_dotsep(2, TRUE);
 	    display_twodigit_zeropad(3, time.minute);
-	    display_dot(4, TRUE);
+	    display_dotsep(4, TRUE);
 	    display_twodigit_zeropad(5, time.second);
-	    display_dot(6, TRUE);
+	    display_dotsep(6, TRUE);
 	    display_twodigit_zeropad(7, 0);
 	    break;
 	case TIME_TIMEFORMAT_HH_MM:
@@ -2623,17 +2656,16 @@ void mode_time_display_tick(void) {
 	case TIME_TIMEFORMAT_HH_MM_P:
 	    display_char(3, ':');
 	    display_twodigit_zeropad(4, time.minute);
-	    display_char(6, ':');
 	    display_char(7, (time.hour < 12 ? 'a' : 'p'));
 	    break;
 	case TIME_TIMEFORMAT_HHMMSSPM:
 	    display_char(8, 'm');
 	case TIME_TIMEFORMAT_HHMMSSP:
-	    display_dot(2, TRUE);
+	    display_dotsep(2, TRUE);
 	    display_twodigit_zeropad(3, time.minute);
-	    display_dot(4, TRUE);
+	    display_dotsep(4, TRUE);
 	    display_twodigit_zeropad(5, time.second);
-	    display_dot(6, TRUE);
+	    display_dotsep(6, TRUE);
 	    display_char(7, (time.hour < 12 ? 'a' : 'p'));
 	    break;
 	default:
@@ -2683,6 +2715,9 @@ void mode_time_display_tick(void) {
 void mode_time_display_semitick(void) {
     if(time.timeformat_idx == TIME_TIMEFORMAT_HHMMSS_split) {
 	display_twodigit_zeropad(7, (((uint16_t)100 * TCNT2) >> 7));
+	// update display manually to save microcontroller cycles
+	display.postbuf[8] = display.prebuf[8];
+	display.postbuf[7] = display.prebuf[7];
     }
 }
 

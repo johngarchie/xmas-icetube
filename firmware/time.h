@@ -85,14 +85,17 @@ enum {
 };
 
 
-// time format flags for time.timeformat
-#define TIME_TIMEFORMAT_12HOUR   0x80
-#define TIME_TIMEFORMAT_SHOWAMPM 0x40
-#define TIME_TIMEFORMAT_SHOWDST  0x20
+// time format flags for time.timeformat_flags
+#define TIME_TIMEFORMAT_12HOUR		0x80
+#define TIME_TIMEFORMAT_SHOWAMPM	0x40
+#define TIME_TIMEFORMAT_SHOWDST		0x20
 #ifdef GPS_TIMEKEEPING
-#define TIME_TIMEFORMAT_SHOWGPS   0x10
+#define TIME_TIMEFORMAT_SHOWGPS		0x10
 #endif  // GPS_TIMEKEEPING
+#define TIME_TIMEFORMAT_DOTFLASH_SLOW	0x08
+#define TIME_TIMEFORMAT_DOTFLASH_FAST	0x04
 
+// time format values for time.timeformat_idx
 enum {
     TIME_TIMEFORMAT_HH_MM_SS,
     TIME_TIMEFORMAT_HH_MM_dial,
