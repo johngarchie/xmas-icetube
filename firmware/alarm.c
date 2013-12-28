@@ -1,6 +1,6 @@
 // alarm.c  --  alarm functionality
 //
-//    PD2               alarm switch
+//    PD2               alarm button
 //
 
 
@@ -9,6 +9,7 @@
 #include <avr/eeprom.h>       // for accessing data in eeprom
 #include <avr/power.h>        // for enabling/disabling microcontroller modules
 #include <util/delay_basic.h> // for the _delay_loop_1() macro
+#include <avr/interrupt.h>    // for defining interrupt handlers
 
 
 #include "alarm.h"
@@ -82,22 +83,12 @@ void alarm_init(void) {
 
 // initialize alarm after sleep
 void alarm_wake(void) {
-    // configure alarm switch pin
+    // configure alarm button pin
     DDRD  &= ~_BV(PD2); // set as input pin
     PORTD |=  _BV(PD2); // enable pull-up resistor
 
     // give system time to update PIND
     _delay_loop_1(2);
-
-    // set initial alarm status from alarm switch
-    if(PIND & _BV(PD2)) {
-	alarm.status |= ALARM_SET;
-    } else {
-	if(alarm.status & ALARM_SOUNDING) piezo_alarm_stop();
-	alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING & ~ALARM_SNOOZE;
-	display.status &= ~DISPLAY_PULSING;
-	display_autodim();
-    }
 
     if(alarm.status & ALARM_SOUNDING) {
 	// lower volume which may be raised above
@@ -110,7 +101,7 @@ void alarm_wake(void) {
 
 // prepare alarm for sleep
 void alarm_sleep(void) {
-    // clamp alarm switch pin to ground
+    // clamp alarm button pin to ground
     PORTD &= ~_BV(PD2); // disable pull-up resistor
     DDRD  |=  _BV(PD2); // set as ouput, clamped to ground
 
@@ -143,13 +134,6 @@ void alarm_tick(void) {
 
     // sound alarm if alarm should be triggered
     if(is_alarm_trigger) {
-	if(system.status & SYSTEM_SLEEP) {
-	    // briefly waking the alarm will update
-	    // alarm.status from the alarm switch
-	    alarm_wake();
-	    alarm_sleep();
-	}
-
 	// sound alarm if alarm is set
 	if(alarm.status & ALARM_SET) {
 	    alarm.alarm_timer = 0;
@@ -163,6 +147,17 @@ void alarm_tick(void) {
 		// wake user immediately to reduce alarm time,
 		// save power, and extend coin battery life
 		alarm.volume = alarm.volume_max;
+
+		// configure alarm button pin as input
+		// so alarm may be turned off
+		DDRD  &= ~_BV(PD2); // set as input pin
+		PORTD |=  _BV(PD2); // enable pull-up resistor
+
+		// give system time to update PIND
+		_delay_loop_1(2);
+
+		// enable interrupt to process alarm button
+		EIMSK |= _BV(INT0);
 	    } else {
 		// set initial volume for progressive alarm
 		alarm.volume = alarm.volume_min;
@@ -174,11 +169,6 @@ void alarm_tick(void) {
 	    // ensure display is enabled if power present
 	    display_onbutton();
 	}
-    } else if(alarm.status & ALARM_SOUNDING && system.status & SYSTEM_SLEEP) {
-	// if alarm sounding and system sleeping, query alarm switch
-	// (briefly waking updates alarm.status from the alarm switch)
-	alarm_wake();
-	alarm_sleep();
     }
 
     // manage sounding alarm
@@ -231,33 +221,31 @@ void alarm_tick(void) {
 }
 
 
-// queries alarm switch and updates alarm status
+// queries alarm button and updates alarm status
 void alarm_semitick(void) {
-    // update alarm status if alarm switch has changed
     static uint8_t alarm_debounce = 0;
 
+    // toggle alarm state when alarm button is pressed
     if(PIND & _BV(PD2)) {
-	if(alarm.status & ALARM_SET) {
-	    alarm_debounce = 0;
-	} else {
-	    if(++alarm_debounce >= ALARM_DEBOUNCE_TIME) {
-		alarm.status |= ALARM_SET;
-		mode_alarmset();
-		display_onbutton();
-	    }
-	}
+	alarm_debounce = 0;
     } else {
-	if(alarm.status & ALARM_SET) {
-	    if(++alarm_debounce >= ALARM_DEBOUNCE_TIME) {
-		if(alarm.status & ALARM_SOUNDING) piezo_alarm_stop();
-		alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING & ~ALARM_SNOOZE;
-		display.status &= ~DISPLAY_PULSING;
-		display_autodim();
-		mode_alarmoff();
-		display_onbutton();
+	if(alarm_debounce <= ALARM_DEBOUNCE_TIME) {
+	    if(alarm_debounce == ALARM_DEBOUNCE_TIME) {
+		if(alarm.status & ALARM_SET) {
+		    if(alarm.status & ALARM_SOUNDING) piezo_alarm_stop();
+		    alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING
+			            & ~ALARM_SNOOZE;
+		    display.status &= ~DISPLAY_PULSING;
+		    display_autodim();
+		    mode_alarmoff();
+		    display_onbutton();
+		} else {
+		    alarm.status |= ALARM_SET;
+		    mode_alarmset();
+		    display_onbutton();
+		}
 	    }
-	} else {
-	    alarm_debounce = 0;
+	    ++alarm_debounce;
 	}
     }
 }
@@ -362,4 +350,24 @@ uint8_t alarm_nearalarm(void) {
     }
 
     return FALSE;
+}
+
+
+// process alarm button presses while sleeping
+// triggered when alarm button is pressed (goes low) during sleep
+ISR(INT0_vect) {
+    // disable this interrupt
+    EIMSK &= ~_BV(INT0);
+
+    if(system.status & SYSTEM_SLEEP) {  // if still sleeping
+	// disable alarm button input
+	PORTD &= ~_BV(PD2); // disable pull-up resistor
+	DDRD  |=  _BV(PD2); // set as ouput, clamped to ground
+
+	// turn off the currently sounding alarm
+	if(alarm.status & ALARM_SOUNDING) piezo_alarm_stop();
+	alarm.status &= ~ALARM_SET & ~ALARM_SOUNDING & ~ALARM_SNOOZE;
+	display.status &= ~DISPLAY_PULSING;
+	display_autodim();
+    }
 }
