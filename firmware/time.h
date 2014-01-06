@@ -57,6 +57,7 @@
 // flags for time.status
 #define TIME_UNSET		0x01
 #define TIME_DST		0x02
+#define TIME_SCROLLING_DATE	0x04
 
 // top nibble indicates DST
 #define TIME_AUTODST_MASK   0xF0
@@ -110,7 +111,11 @@ enum {
 
 typedef struct {
     uint8_t status;            // timekeeping status flags
+
     uint8_t dateformat;        // date format flags
+    uint8_t scroll_delay;      // how long to display the time before
+    			       // displaying the date marquee-style
+
     uint8_t timeformat_flags;  // time format flags
     uint8_t timeformat_idx;    // time format index
 
