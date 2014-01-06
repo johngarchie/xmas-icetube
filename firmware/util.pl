@@ -18,7 +18,7 @@ sub time_is_dst_usa();
 sub time_is_dst_eu();
 
 
-if(@ARGV && $ARGV[0] eq "fuse") {
+if(@ARGV && ($ARGV[0] eq "fuse" || $ARGV[0] eq "vfuse")) {
     # read fuse settings
     my $line = <STDIN>;
     $line = <STDIN>;
@@ -34,10 +34,16 @@ if(@ARGV && $ARGV[0] eq "fuse") {
     $extended_fuse &= 0x07;
 
     # print avrdude fuse bit options
-    printf "-u -U lfuse:w:0x%02X:m\n", $low_fuse;
-    printf "-u -U hfuse:w:0x%02X:m\n", $high_fuse;
-    printf "-u -U efuse:w:0x%02X:m\n", $extended_fuse;
-} elsif(@ARGV && $ARGV[0] eq "lock") {
+    if($ARGV[0] eq "fuse") {
+	printf "-u -U lfuse:w:0x%02X:m\n", $low_fuse;
+	printf "-u -U hfuse:w:0x%02X:m\n", $high_fuse;
+	printf "-u -U efuse:w:0x%02X:m\n", $extended_fuse;
+    } elsif($ARGV[0] eq "vfuse") {
+	printf "-u -U lfuse:v:0x%02X:m\n", $low_fuse;
+	printf "-u -U hfuse:v:0x%02X:m\n", $high_fuse;
+	printf "-u -U efuse:v:0x%02X:m\n", $extended_fuse;
+    }
+} elsif(@ARGV && ($ARGV[0] eq "lock" || $ARGV[0] eq "vlock")) {
     # read lock byte
     my $line = <STDIN>;
     $line = <STDIN>;
@@ -51,7 +57,11 @@ if(@ARGV && $ARGV[0] eq "fuse") {
     $lock_byte &= 0x3F;
 
     # print avrdude lock bit options
-    printf "-U lock:w:0x%02X:m\n", $lock_byte;
+    if($ARGV[0] eq "lock") {
+	printf "-U lock:w:0x%02X:m\n", $lock_byte;
+    } elsif($ARGV[0] eq "vlock") {
+	printf "-U lock:v:0x%02X:m\n", $lock_byte;
+    }
 } elsif(@ARGV && $ARGV[0] eq "time") {
     my @timeData = localtime(time);
 
