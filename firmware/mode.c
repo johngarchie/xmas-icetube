@@ -2582,7 +2582,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		    pstr_ptr = PSTR("eet");
 		    break;
 		default:  // GMT
-		    pstr_ptr = PSTR("utc");
+		    pstr_ptr = PSTR("wet");
 		    break;
 	    }
 

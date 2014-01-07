@@ -46,11 +46,12 @@ volatile display_t display;
 
 
 // permanent place to store display brightness
-uint8_t ee_display_status EEMEM = DISPLAY_ANIMATED;
+uint8_t ee_display_status EEMEM =   DISPLAY_ANIMATED | DISPLAY_ALTNINE 
+			          | DISPLAY_ALTALPHA;
 uint8_t ee_display_colon_style_idx EEMEM = 0;
 #ifdef AUTOMATIC_DIMMER
 uint8_t ee_display_bright_min EEMEM = 0;
-uint8_t ee_display_bright_max EEMEM = 10;
+uint8_t ee_display_bright_max EEMEM = 8;
 uint8_t ee_display_off_threshold EEMEM = 0;
 #else
 uint8_t ee_display_brightness EEMEM = 1;
