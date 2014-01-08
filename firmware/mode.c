@@ -84,7 +84,18 @@ void mode_tick(void) {
 		display_transition(DISPLAY_TRANS_INSTANT);
 #endif  // GPS_TIMEKEEPING
 	    } else {
-		mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_INSTANT);
+		if(time.scroll_delay && time.second % time.scroll_delay == 1) {
+		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+			time.status |= TIME_SCROLLING_DATE;
+		    }
+		    if(time.dateformat & TIME_DATEFORMAT_SHOWWDAY) {
+			mode_update(MODE_DAYOFWEEK_DISPLAY, DISPLAY_TRANS_LEFT);
+		    } else {
+			mode_update(MODE_MONTHDAY_DISPLAY, DISPLAY_TRANS_LEFT);
+		    }
+		} else {
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_INSTANT);
+		}
 	    }
 	    break;
 	case MODE_CFGREGN_TIMEFMT_FORMAT:
@@ -147,22 +158,51 @@ void mode_semitick(void) {
 	    }
 	    return;  // no timout; skip code below
 	case MODE_DAYOFWEEK_DISPLAY:
-	    if(btn || ++mode.timer > 1250) {
+	    if(btn == BUTTONS_MENU && time.status & TIME_SCROLLING_DATE) {
+		ATOMIC_BLOCK(ATOMIC_FORCEON) {
+		    time.status &= ~TIME_SCROLLING_DATE;
+		}
+		mode_update(MODE_SETALARM_MENU, DISPLAY_TRANS_UP);
+	    } else if(btn || ++mode.timer > 1250) {
 		mode_update(MODE_MONTHDAY_DISPLAY, DISPLAY_TRANS_LEFT);
 	    }
 	    return;  // time ourselves; skip code below
 	case MODE_MONTHDAY_DISPLAY:
-	    if(btn || ++mode.timer > 1250) {
+	    if(btn == BUTTONS_MENU && time.status & TIME_SCROLLING_DATE) {
+		ATOMIC_BLOCK(ATOMIC_FORCEON) {
+		    time.status &= ~TIME_SCROLLING_DATE;
+		}
+		mode_update(MODE_SETALARM_MENU, DISPLAY_TRANS_UP);
+	    } else if(btn || ++mode.timer > 1250) {
 		if(time.dateformat & TIME_DATEFORMAT_SHOWYEAR) {
 		    mode_update(MODE_YEAR_DISPLAY, DISPLAY_TRANS_LEFT);
 		} else {
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    if(time.status & TIME_SCROLLING_DATE) {
+			ATOMIC_BLOCK(ATOMIC_FORCEON) {
+			    time.status &= ~TIME_SCROLLING_DATE;
+			}
+			mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_LEFT);
+		    } else {
+			mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    }
 		}
 	    }
 	    return;  // time ourselves; skip code below
 	case MODE_YEAR_DISPLAY:
-	    if(btn || ++mode.timer > 1250) {
-		mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+	    if(btn == BUTTONS_MENU && time.status & TIME_SCROLLING_DATE) {
+		ATOMIC_BLOCK(ATOMIC_FORCEON) {
+		    time.status &= ~TIME_SCROLLING_DATE;
+		}
+		mode_update(MODE_SETALARM_MENU, DISPLAY_TRANS_UP);
+	    } else if(btn || ++mode.timer > 1250) {
+		if(time.status & TIME_SCROLLING_DATE) {
+		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+			time.status &= ~TIME_SCROLLING_DATE;
+		    }
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_LEFT);
+		} else {
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		}
 	    }
 	    return;  // time ourselves; skip code below
 	case MODE_ALARMSET_DISPLAY:
@@ -1918,8 +1958,8 @@ void mode_semitick(void) {
 			    break;
 			default:
 			    time.dateformat &= ~TIME_DATEFORMAT_SHOWYEAR;
-			    time_savedateformat();
-			    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+			    mode_update(MODE_CFGREGN_DATEFMT_AUTOSCROLL,
+				        DISPLAY_TRANS_UP);
 			    break;
 		    }
 		    break;
@@ -1956,12 +1996,47 @@ void mode_semitick(void) {
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
-		    time_savedateformat();
-		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    mode_update(MODE_CFGREGN_DATEFMT_AUTOSCROLL,
+			        DISPLAY_TRANS_UP);
 		    break;
 		case BUTTONS_PLUS:
 		    time.dateformat ^= TIME_DATEFORMAT_SHOWYEAR;
 		    mode_update(MODE_CFGREGN_DATEFMT_SHOWYEAR,
+			        DISPLAY_TRANS_INSTANT);
+		    break;
+		default:
+		    if(mode.timer == MODE_TIMEOUT) {
+			time_loaddateformat();
+		    }
+		    break;
+	    }
+	    break;
+	case MODE_CFGREGN_DATEFMT_AUTOSCROLL:
+	    switch(btn) {
+		case BUTTONS_MENU:
+		    time_loaddateformat();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
+		    break;
+		case BUTTONS_SET:
+		    time_savedateformat();
+		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
+		    break;
+		case BUTTONS_PLUS:
+		    switch(time.scroll_delay) {
+			case 0:
+			    time.scroll_delay = 10;
+			    break;
+			case 10:
+			    time.scroll_delay = 30;
+			    break;
+			case 30:
+			    time.scroll_delay = 60;
+			    break;
+			default:
+			    time.scroll_delay = 0;
+			    break;
+		    }
+		    mode_update(MODE_CFGREGN_DATEFMT_AUTOSCROLL,
 			        DISPLAY_TRANS_INSTANT);
 		    break;
 		default:
@@ -2507,7 +2582,7 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 		    pstr_ptr = PSTR("eet");
 		    break;
 		default:  // GMT
-		    pstr_ptr = PSTR("utc");
+		    pstr_ptr = PSTR("wet");
 		    break;
 	    }
 
@@ -2583,6 +2658,15 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    }
 
 	    mode_texttext_display(PSTR("year"), pstr_ptr);
+	    break;
+	case MODE_CFGREGN_DATEFMT_AUTOSCROLL:
+	    pstr_ptr = PSTR("auto");
+
+	    if(time.scroll_delay) {
+		mode_textnum_display(pstr_ptr, time.scroll_delay);
+	    } else {
+		mode_texttext_display(pstr_ptr, PSTR("off"));
+	    }
 	    break;
 	case MODE_CFGREGN_MISCFMT_MENU:
 	    display_pstr(0, PSTR("misc fmt"));

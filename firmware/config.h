@@ -60,7 +60,7 @@
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=12932
 //   http://forums.adafruit.com/viewtopic.php?p=219736#p219736
 //
-// #define AUTOMATIC_DIMMER
+#define AUTOMATIC_DIMMER
 
 
 // GPS TIMEKEEPING
@@ -75,7 +75,7 @@
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=32660
 //
 //
-// #define GPS_TIMEKEEPING
+#define GPS_TIMEKEEPING
 
 
 // USART BAUD RATE

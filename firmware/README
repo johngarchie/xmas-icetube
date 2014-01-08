@@ -139,6 +139,22 @@ the included Makefile:
         % make install-eeprom
         % make install-lock
 
+(5) Verify Successful Programming (Optional)
+
+    To ensure that the chip has been successfully programmed, one
+    may check the chip data against what should have been installed
+    in the previous step:
+
+        % make verify-all
+
+    One may also verify the individual sections of programmed memory.
+    The following commands are equivalent to "make verify-all":
+
+        % make verify-fuse
+        % make verify-flash
+        % make verify-eeprom
+        % make verify-lock
+
 
 #####################
 ## USING THE CLOCK ##
@@ -159,6 +175,7 @@ optional feature in detail.
 
 :: Automatic Display Dimming ::
 http://forums.adafruit.com/viewtopic.php?f=41&t=12932
+http://forums.adafruit.com/viewtopic.php?p=219736#p219736
 
 :: Temperature Compensated Timekeeping ::
 http://forums.adafruit.com/viewtopic.php?f=41&t=14941

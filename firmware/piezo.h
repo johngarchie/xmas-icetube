@@ -40,7 +40,7 @@
 #define PIEZO_SOUND_JOLLY_GOOD 0x70
 #define PIEZO_SOUND_MAX        0x70
 
-#define PIEZO_DEFAULT_SOUND PIEZO_SOUND_BEEPS_HIGH
+#define PIEZO_DEFAULT_SOUND PIEZO_SOUND_PULSE_HIGH
 
 // the day to play the christmas alarm
 #define XMAS_ALARM_MONTH 12

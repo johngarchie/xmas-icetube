@@ -40,7 +40,8 @@ turn a sounding alarm off.
 ## MENU SETTINGS ##
 ###################
 
-The avilable menu settings are described below.
+Because of the many configuration options, the menus options are arranged in a
+nested structure.
 
 "set alar"
   "alarm 1 " / "alarm 2 " / "alarm 3 "
@@ -158,16 +159,41 @@ The avilable menu settings are described below.
     may configure automatic enabling and disabling of DST by United States
     ("dst usa") or European Union ("dst eu") rules.
 
+    When using the European Union rules the user must also specify the time
+    zone as Western European Time ("zone wet"), Central European Time
+    ("zone cet"), or Eastern European Time ("zone eet").
+
   "set zone"
     Configure the timezone relative to UTC/GMT.  This option is only available
     with the GPS timekeeping mod and is used to convert UTC/GMT time from the
-    GPS to local time.
+    GPS to local time.  The time offset is for standard time and does
+    not include the extra hour for daylight savings time.
 
   "time fmt"
-    Configure the time format.
+    Configure the time format.  First, specify if the time format should be
+    displayed in a 12-hour or 24-hour format with "hours 12" or "hours 24".
+    Second, select the format of the time display.  Third, select how colons
+    in the time format should be displayed ("sep  a:b").  Fourth, specify if 
+    daylight savings time should be shown with "dst show" or "dst hide".
+    If compiled with GPS support, a fifth option might allow you to show if
+    the GPS is receiving data with "gps show" or "gps hide".
+
+    The two binary indicators are the leftmost indicator circle and rightmost
+    final decimal point.  Depending on the specified time format, these
+    indicators will show AM/PM, DST, or GPS.  Because there are only two binary
+    indicators, it is not possible to enable all three indicators at once.
 
   "date fmt"
-    Configure the date format.
+    Configure the date format.  First, specify if the weekday should be shown
+    with "wday  on" or "wday off".  Second, select the format of the month-day
+    display.  Third, specify if the year should be shown with "year  on" or
+    "year off".  Fourth and finally, specify if the date should be
+    automatically shown at regular intervals of 10, 30, or 60 seconds
+    ("auto off", "auto  10", "auto 30", "auto 60").
 
   "misc fmt"
-    Configure how numbers and letters are displayed.
+    Configure how numbers and letters are displayed.  First, select whether
+    single digit numbers should be displayed with a leading zero with
+    "zero   0" or "zero  00".  Second, select how the number nine should
+    be displayed with "nine  9".  Third and finally, select the font for
+    characters with "char  eg" or "ChAr  EG".

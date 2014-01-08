@@ -1,12 +1,17 @@
 # This Makefile defines the following targets:
 #
 # all (default):   compiles program
-# install:         installs flash and eeprom
+# install:         installs flash and eeprom (deprecated)
 # install-all:     installs fuse bits, flash, eeprom, and lock bit
+# verify-all:      verifies fuse bits, flash, eeprom, and lock bit
 # install-fuse:    sets fuse bits
+# verify-fuse:     verifies fuse bits
 # install-flash:   uploads flash memory
+# verify-flash:    verifies flash memory
 # install-eeprom:  uploads eeprom memory
+# verify-eeprom:   verifies eeprom memory
 # install-lock:    sets lock bits
+# verify-lock:     verifies lock bits
 # clean:	   removes build files
 
 # project name
@@ -82,7 +87,7 @@ $(PROJECT)_flash.hex: $(PROJECT).elf
 
 # extract eeprom data from compiled code
 $(PROJECT)_eeprom.hex: $(PROJECT).elf
-	$(AVROBJCOPY) $(AVROBJCOPYOPT) -j .eeprom -O ihex $< $@
+	$(AVROBJCOPY) $(AVROBJCOPYOPT) --change-section-lma .eeprom=0 -j .eeprom -O ihex $< $@
 
 # extract lock bits from compiled code
 $(PROJECT)_lock.hex: $(PROJECT).elf
@@ -106,23 +111,54 @@ install-all: $(addprefix $(PROJECT),_fuse.hex _flash.hex _eeprom.hex _lock.hex)
 		-U eeprom:w:$(PROJECT)_eeprom.hex:i \
 		`./$(UTILSCRIPT) lock < $(PROJECT)_lock.hex`
 
+# verifies everything--fuses, flash, eeprom, and lock
+verify-all: $(addprefix $(PROJECT),_fuse.hex _flash.hex _eeprom.hex _lock.hex)
+	-@echo $(AVRDUDE) $(AVRDUDEOPT) \
+		`./$(UTILSCRIPT) vfuse < $(PROJECT)_fuse.hex` \
+		-U flash:v:$(PROJECT)_flash.hex:i \
+		-U eeprom:v:$(PROJECT)_eeprom.hex:i \
+		`./$(UTILSCRIPT) vlock < $(PROJECT)_lock.hex`
+	-@$(AVRDUDE) $(AVRDUDEOPT) \
+		`./$(UTILSCRIPT) vfuse < $(PROJECT)_fuse.hex` \
+		-U flash:v:$(PROJECT)_flash.hex:i \
+		-U eeprom:v:$(PROJECT)_eeprom.hex:i \
+		`./$(UTILSCRIPT) vlock < $(PROJECT)_lock.hex`
+
 # set fuse bits on avr chip
 install-fuse: $(PROJECT)_fuse.hex $(UTILSCRIPT)
 	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) fuse < $<`
 	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) fuse < $<`
 
+# verify fuse bits on avr chip
+verify-fuse: $(PROJECT)_fuse.hex $(UTILSCRIPT)
+	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) vfuse < $<`
+	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) vfuse < $<`
+
 # install executable code to avr chip
 install-flash: $(PROJECT)_flash.hex
 	$(AVRDUDE) $(AVRDUDEOPT) -U flash:w:$<:i
+
+# verify executable code on avr chip
+verify-flash: $(PROJECT)_flash.hex
+	$(AVRDUDE) $(AVRDUDEOPT) -U flash:v:$<:i
 
 # install eeprom data to avr chip
 install-eeprom: $(PROJECT)_eeprom.hex
 	$(AVRDUDE) $(AVRDUDEOPT) -U eeprom:w:$<:i
 
+# verify eeprom data on avr chip
+verify-eeprom: $(PROJECT)_eeprom.hex
+	$(AVRDUDE) $(AVRDUDEOPT) -U eeprom:v:$<:i
+
 # set lock bits on avr chip
 install-lock: $(PROJECT)_lock.hex $(UTILSCRIPT)
 	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) lock < $<`
 	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) lock < $<`
+
+# verify lock bits on avr chip
+verify-lock: $(PROJECT)_lock.hex $(UTILSCRIPT)
+	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) vlock < $<`
+	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) vlock < $<`
 
 # delete build files
 clean:

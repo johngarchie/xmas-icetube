@@ -54,9 +54,14 @@ volatile piezo_t piezo;
 // which otherwise does not exits
 #define PAUSE(timing)     N(0,0,timing)  // silence
 
+// 4100 Hz is the resonant frequency of the piezo element, so the
+// sound is loudest at this frequency
 #define BEEP_HIGH(timing) N(1,0,timing)  // 4100 Hz beep
 #define BEEP_HIGH_TOP     1951
 
+// 1367 Hz is 1/3 of the resonant frequency, minimizing distructive
+// interference from the natural piezo oscillation, so this lower
+// frequency is still fairly loud
 #define BEEP_LOW(timing)  N(3,0,timing)  // 1367 Hz beep
 #define BEEP_LOW_TOP      5854
 

@@ -46,6 +46,7 @@ uint8_t ee_time_dateformat       EEMEM =   TIME_DATEFORMAT_SHOWWDAY
 					 | TIME_DATEFORMAT_TEXT_EU;
 uint8_t ee_time_timeformat_flags EEMEM = 0;
 #endif
+uint8_t ee_time_scroll_delay     EEMEM = 0;
 uint8_t ee_time_timeformat_idx   EEMEM = TIME_TIMEFORMAT_HH_MM_SS;
 
 // drift adjustment data
@@ -162,13 +163,15 @@ void time_loadstatus(void) {
 
 // save date format
 void time_savedateformat(void) {
-    eeprom_write_byte(&ee_time_dateformat, time.dateformat);
+    eeprom_write_byte(&ee_time_dateformat,   time.dateformat);
+    eeprom_write_byte(&ee_time_scroll_delay, time.scroll_delay);
 }
 
 
 // load date format
 void time_loaddateformat(void) {
-    time.dateformat = eeprom_read_byte(&ee_time_dateformat);
+    time.dateformat   = eeprom_read_byte(&ee_time_dateformat);
+    time.scroll_delay = eeprom_read_byte(&ee_time_scroll_delay);
 }
 
 
