@@ -185,7 +185,8 @@ void system_check_battery(void) {
     uint8_t  adc_good = 0, adc_count = 0;
 
     // the analog-to-digital converter may take a while to converge
-    while(adc_good < 3 && ++adc_count <= 25) {
+    while(adc_good < SYSTEM_BATTERY_GOOD_CONV
+	    && adc_count++ < SYSTEM_BATTERY_MAX_CONV) {
        ADCSRA |= _BV(ADSC);            // start adc conversion
        while(ADCSRA & _BV(ADSC));      // wait for result
        adc_curr = ADC;                 // save current value
@@ -193,7 +194,8 @@ void system_check_battery(void) {
                                        // difference from previous value
 
        // if negligable error, result is good
-       if(-4 <= adc_err && adc_err <= 4) {
+       if(-SYSTEM_BATTERY_ADC_ERROR <= adc_err
+	       && adc_err <= SYSTEM_BATTERY_ADC_ERROR) {
            ++adc_good;    // count consecutative good results
        } else {
            adc_good = 0;  // otherwise reset result counter
