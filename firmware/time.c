@@ -50,9 +50,18 @@ uint8_t ee_time_scroll_delay     EEMEM = 0;
 uint8_t ee_time_timeformat_idx   EEMEM = TIME_TIMEFORMAT_HH_MM_SS;
 
 // drift adjustment data
+#ifndef AUTODRIFT_CONSTANT
+#ifdef AUTODRIFT_PRELOAD
+uint8_t ee_time_drift_count EEMEM = 1;
+uint8_t ee_time_drift_idx   EEMEM = 1;
+int16_t ee_time_drift_table[] EEMEM
+    = { AUTODRIFT_PRELOAD, [1 ... TIME_DRIFT_TABLE_SIZE - 1] = 0 };
+#else
 uint8_t ee_time_drift_count EEMEM = 0;
 uint8_t ee_time_drift_idx   EEMEM = 0;
 int16_t ee_time_drift_table[TIME_DRIFT_TABLE_SIZE] EEMEM;
+#endif  // AUTODRIFT_PRELOAD
+#endif  // ~AUTODRIFT_CONSTANT
 
 
 // load time from eeprom, setup counter2 with clock crystal
@@ -70,15 +79,21 @@ void time_init(void) {
     if(time.month == 0) time.month = 1;
     if(time.day   == 0) time.day   = 1;
 
+
+#ifdef AUTODRIFT_CONSTANT
+    time.drift_adjust = AUTODRIFT_CONSTANT;
+    time.drift_adjust_timer = 0;
+#else  // ~AUTODRIFT_CONSTANT
+    // load drift_adjust
+    time_loaddriftmedian();
+
     // explicitly initialize drift variables
     time.drift_adjust_timer  = 0;
     time.drift_delay_timer   = 0;
     time.drift_total_seconds = 0;
     time.drift_frac_seconds  = 0;
     time.drift_delta_seconds = 0;
-
-    // load drift_adjust
-    time_loaddriftmedian();
+#endif  // AUTODRIFT_CONSTANT
 
     time_loadstatus();
     time_loaddateformat();
@@ -193,9 +208,12 @@ void time_loadtimeformat(void) {
 void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 	GTCCR |= _BV(PSRSYNC);      // reset timer prescaler
+#ifndef AUTODRIFT_CONSTANT
 	uint8_t TCNT2_old = TCNT2;  // save fractional seconds
+#endif  // ~AUTODRIFT_CONSTANT
 	TCNT2 = 0;                  // reset fractional seconds
 
+#ifndef AUTODRIFT_CONSTANT
 	// defer setting drift adjustment to allow correction of an
 	// incorrectly set time; also ensures calls to autodrift
 	// below will not process any delayed time correction
@@ -256,6 +274,7 @@ void time_settime(uint8_t hour, uint8_t minute, uint8_t second) {
 		time.drift_delta_seconds += (int32_t)24 * 60 * 60;
 	    }
 	}
+#endif  // ~AUTODRIFT_CONSTANT
 
 	// set the new time
 	time.hour   = hour;
@@ -663,10 +682,12 @@ uint8_t time_isdst_usa(void) {
 
 // manages drift correction
 void time_autodrift(void) {
+#ifndef AUTODRIFT_CONSTANT
     // adjust timekeeping according to current drift_adjust
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 	++time.drift_total_seconds;  // seconds since clock last set
     }
+#endif  // ~AUTODRIFT_CONSTANT
 
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 	if(time.drift_adjust_timer) {
@@ -713,6 +734,7 @@ void time_autodrift(void) {
 	return;
     }
 
+#ifndef AUTODRIFT_CONSTANT
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 	// if drift adjustment calculation deferred and timer expires,
 	// calculate and store new adjustment and update drift_adjust
@@ -727,9 +749,11 @@ void time_autodrift(void) {
 	    }
 	}
     }
+#endif  // ~AUTODRIFT_CONSTANT
 }
 
 
+#ifndef AUTODRIFT_CONSTANT
 // calculates and saves new drift value
 // ***interrupts must be disabled while calling this function***
 void time_newdrift(void) {
@@ -838,3 +862,4 @@ void time_loaddriftmedian(void) {
 	}
     }
 }
+#endif  // ~AUTODRIFT_CONSTANT
