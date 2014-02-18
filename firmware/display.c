@@ -201,13 +201,12 @@ const uint8_t vfd_segment_pins[] PROGMEM = {
 #define COLON_PREVDEC(frame) (frame & 0x0100)
 #define COLON_SEGS(frame) (frame & 0x00FF)
 
-// codes for rolling colon time separators
+// codes for various time separators
 const uint16_t colon_space[] PROGMEM = {
     COLON_FRAME(8, FALSE, 0),
     COLON_FRAME_END,
 };
 
-// codes for rolling colon time separators
 const uint16_t colon_figure_eight[] PROGMEM = {
     COLON_FRAME(8, FALSE, SEG_A),
     COLON_FRAME(8, FALSE, SEG_B),
@@ -220,7 +219,6 @@ const uint16_t colon_figure_eight[] PROGMEM = {
     COLON_FRAME_END,
 };
 
-// codes for rolling colon time separators
 const uint16_t colon_lower_circle_roll[] PROGMEM = {
     COLON_FRAME(8, FALSE, SEG_G),
     COLON_FRAME(8, FALSE, SEG_C),
@@ -229,7 +227,6 @@ const uint16_t colon_lower_circle_roll[] PROGMEM = {
     COLON_FRAME_END,
 };
 
-// codes for rolling colon time separators
 const uint16_t colon_2segment_circle_roll[] PROGMEM = {
     COLON_FRAME(8, FALSE, SEG_A | SEG_D),
     COLON_FRAME(8, FALSE, SEG_B | SEG_E),
@@ -237,7 +234,6 @@ const uint16_t colon_2segment_circle_roll[] PROGMEM = {
     COLON_FRAME_END,
 };
 
-// codes for rolling colon time separators
 const uint16_t colon_vertical_bounce[] PROGMEM = {
     COLON_FRAME(8, FALSE, SEG_A),
     COLON_FRAME(8, FALSE, SEG_G),
@@ -246,14 +242,30 @@ const uint16_t colon_vertical_bounce[] PROGMEM = {
     COLON_FRAME_END,
 };
 
+const uint16_t colon_vertical_fall[] PROGMEM = {
+    COLON_FRAME(8, FALSE, SEG_A),
+    COLON_FRAME(8, FALSE, SEG_G),
+    COLON_FRAME(8, FALSE, SEG_D),
+    COLON_FRAME(8, FALSE, 0),
+    COLON_FRAME_END,
+};
+
+const uint16_t colon_blink[] PROGMEM = {
+    COLON_FRAME(8, FALSE, SEG_A | SEG_D),
+    COLON_FRAME(8, FALSE, 0),
+    COLON_FRAME_END,
+};
+
 // program pointers to rolling colon styles
-#define COLON_SEQUENCES_SIZE 5
+#define COLON_SEQUENCES_SIZE 7
 const PROGMEM uint16_t* const colon_styles[] PROGMEM = {
     colon_space,
     colon_figure_eight,
     colon_lower_circle_roll,
     colon_2segment_circle_roll,
     colon_vertical_bounce,
+    colon_vertical_fall,
+    colon_blink,
 };
 
 
