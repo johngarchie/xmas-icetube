@@ -27,7 +27,7 @@ discussions are still relevant to the xmas-icetube revision, however.
 * IV-18 tube driven to specifications:  The Adafruit design runs the IV-18
   in a way that results in inconsistent illumination across the display,
   and on some tubes, the effect is quite noticeable.  The original IV-18
-  drived also accelerated the process of cathode poisoning.  Driving the
+  drive also accelerated the process of cathode poisoning.  Driving the
   IV-18 as the designers intended ensures uniform illumination and makes
   the tube less prone to cathode poisoning.
 
@@ -59,7 +59,7 @@ discussions are still relevant to the xmas-icetube revision, however.
   http://forums.adafruit.com/viewtopic.php?f=41&t=12720
 
 
-* GPS solder points:  Through-hold solder points allow easier installation
+* GPS solder points:  Through-hole solder points allow easier installation
   of an external GPS unit for time synchronization.
 
   http://forums.adafruit.com/viewtopic.php?t=36873
@@ -85,10 +85,9 @@ discussions are still relevant to the xmas-icetube revision, however.
 
 
 * Robust microcontroller environment:  The microcontroller now has a
-  decoupling capacitor and 10K pull-up on the reset pin, both of which
-  should make it less sensitive to electrical noise.  The Adafruit design
-  did not seem to have any problems related to electrical noise, but the
-  new capacitor and pull-up ensures reliable operation.
+  decoupling capacitor and 10K pull-up on the reset pin.  These
+  components make the clock less sensitive to electrical noise and
+  ensure reliable operation.
 
 
 Finally, although the xmas-icetube firmware is compatible with *both* the
@@ -210,17 +209,6 @@ parts in each section.
 10. Assemble the acrylic case and enjoy!
 
 
-#####################
-## Original Design ##
-#####################
-
-The original Adafruit Ice Tube Clock board was designed by Limor Fried
-(Lady Ada) of Adafruit.  The case was designed by Amanda Wozniak (w0z).
-The original design files are available via GitHub:
-
-    https://github.com/adafruit/Ice-Tube-Clock/
-
-
 ######################
 ## Acknowledgements ##
 ######################
@@ -236,7 +224,7 @@ McMaster-Carr, which give the assembled case a cleaner look.
 
 Phil DeGruy (PhilD13) reviewed my initial design and suggested several
 components; the ZVN2110A and ZVP2001A MOSFETs in particular were
-particularly useful for generating AC for the IV-18 filament.  Phil
+especially useful for generating AC for the IV-18 filament.  Phil
 also found many alternative parts for the bill of materials which cost
 less than my original selections.
 

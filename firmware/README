@@ -245,16 +245,38 @@ This method is also described in the following thread:
 
 :: Dim Digits ::
 
-The per-digit brightness control in the xmas-icetube firmware provides
-one way to increase the brightness of dim digits, but increasing
-current across the VFD filament often produces better results.  The
-most straightforward way to increase filament current is to replace
-R3 with a jumper:
+The per-digit brightness control in the xmas-icetube firmware provides one
+way to increase the brightness of dim digits, but a dim initial or final
+digit is typically caused by low voltage across the VFD filament.  The
+easiest way to increase filament current is to replace R3 with a jumper:
 
   http://forums.adafruit.com/viewtopic.php?p=179107#p179107
 
-In addition to replacing R3 with a jumper, I also recommend replacing
-Q3 with a better MOSFET, such as a ZVP2110A.
+That solution seems to work well in practice, but also causes the voltage
+provided to the VFD driver chip to drop below the minimum allowed voltage
+specified in the datasheet.  A better solution is to replace Q3 with a
+P-FET that outputs more current to the filament.  I recommend using the
+ZVP2110A available from Digi-Key or Mouser.
+
+
+:: Flaky Segments ::
+
+On some Adafruit clocks, display segments are flaky.  The exact symptoms
+vary depending on the particular clock, but most commonly, the clock will
+start normally and segments will quickly stop working until few or no
+segments are active.  The following thread describes this problem and
+several solutions in more detail:
+
+  http://forums.adafruit.com/viewtopic.php?f=41&t=47733
+
+The flaky digit problem can be solved by replacing Q3.  Although Adafruit
+will provide a free replacement for Q3, I recommend replacing Q3 with a
+better P-FET, such as the ZVP2110A available from Digi-Key or Mouser.
+
+By providing additional current across the VFD filament, the ZVP2110A will
+also eliminate the dim digit problem described in the previous trouble
+shooting entry.  In addition, the ZVP2110A extend tube life by slowing
+cathode poisoning.
 
 
 :: Nonfunctional Drift Correction ::

@@ -347,7 +347,7 @@
 // of an unmodified Adafruit Ice Tube Clock.  To compensate, the clock
 // must make 3 * 128 = 384 corrections per day, since each correction
 // is 1/128 second.  Those corrections must be made over one day or
-// 24 * 60 * 60 = 86400 seconds.  Therefore, the clock should
+// 24 * 60 * 60 = 86400 seconds.  Therefore, the clock should make
 // corrections at intervals of 86400 / 384 = 255 seconds.  Because the
 // clock runs slow, the drift correction value should be positive 255.
 //

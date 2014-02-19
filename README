@@ -1,50 +1,47 @@
-The firmware README is now located in the firmware directory:
-
-  https://github.com/johngarchie/xmas-icetube/blob/master/firmware
-
-
 ########################
 ## XMAS-ICETUBE CLOCK ##
 ########################
 
-The xmas-icetube clock is a revision of the Adafruit Ice Tube Clock v1.1,
-but the software has been completely rewritten and the circuit board
-extensively revised.  The case and overall look of the clock is nearly
-identical to the original design, however.
+The xmas-icetube clock is a revision of the Adafruit Ice Tube Clock
+v1.1, but the software has been completely rewritten and the circuit
+board extensively revised.  The case and overall look of the clock is
+nearly identical to the original design, however.
 
-The xmas-icetube firmware runs on *both* the Adafruit Ice Tube Clock v1.1
-and the xmas-icetube revision.  Since most users will be using the
-xmas-icetube firmware on the Adafruit Ice Tube Clock v1.1, the default
-firmware configuration is set for the Adafruit clock with no hardware
-modifications.  See the README file in the firmware directory for more
-information on how to configure the xmas-icetube firmware.
+The xmas-icetube firmware runs on *both* the Adafruit Ice Tube Clock
+v1.1 and the xmas-icetube revision.  Since most users will be using
+the xmas-icetube firmware on the Adafruit Ice Tube Clock v1.1, the
+default firmware configuration is set for the Adafruit clock with no
+hardware modifications.  See the README file in the firmware/
+directory for more information on how to configure and install the
+xmas-icetube firmware.
 
 
-####################################
-## XMAS-ICETUBE USER ENDORCEMENTS ##
-####################################
+###################
+## USER FEEDBACK ##
+###################
 
-Below is a collection of comments from Adafruit forum users:
+Below is a selection of comments posted on the Adafruit Clocks
+forum.  They are listed in reverse chronological order.  And to
+everyone quoted below:  Thank you all for the kind words!
 
 "Every mod works beautifully...  The code truly is clever...
 [John's] code is so clean that it's easy to add things."
     --rcb
-    http://forums.adafruit.com/viewtopic.php?p=244224#p244224
+      http://forums.adafruit.com/viewtopic.php?p=244224#p244224
 
 "This firmware is really cool. I highly recommend anyone with an
 ATmega328p lying around to program it with this firmware and use
 it instead of the one that comes with the kit."
-
     --motocoder
-    http://forums.adafruit.com/viewtopic.php?p=243916#p243916
+      http://forums.adafruit.com/viewtopic.php?p=243916#p243916
 
 "[John] has done a lot of nice work and added a lot of features.
 I can recommend his firmware as an upgrade..."
     --adafruit_support_bill,
       http://forums.adafruit.com/viewtopic.php?p=211476#p211476
 
-"Also, may I just say that I LOVE your firmware, and for about 2
-weeks I was still finding new options and features in the menu."
+"...I LOVE your firmware, and for about 2 weeks I was still
+finding new options and features in the menu."
     --wildtang3nt
       http://forums.adafruit.com/viewtopic.php?p=204665#p204665
 
@@ -52,7 +49,7 @@ weeks I was still finding new options and features in the menu."
 you from giving it a try. It's the most feature complete Ice-Tube
 Clock firmware to date."
     --revnull
-    http://forums.adafruit.com/viewtopic.php?p=180609#p180609
+      http://forums.adafruit.com/viewtopic.php?p=180609#p180609
 
 
 ##############
@@ -88,13 +85,3 @@ original Adafruit design:
 * Without external power, the alarm sounds with loud high frequency beeps.
   The only way to turn the alarm on or off is with the alarm switch.
   Snooze is not supported.
-
-
-#################
-## Directories ##
-#################
-
-This project includes the following directories:
-
-  - hardware/  contains the xmas-icetube hardware revision.
-  - firmware/  contains the xmas-icetube firmware.
