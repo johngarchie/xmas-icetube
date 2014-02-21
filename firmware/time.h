@@ -135,6 +135,7 @@ typedef struct {
     // drift_adjust_timer equals abs(drift_adjust), time is adjusted by
     // 1/128 seconds and the timer is reset to zero
 
+#ifndef AUTODRIFT_CONSTANT
     int32_t drift_delta_seconds; // when clock is set, the difference between
     // the old and new time accumulates here; drift_delta_seconds is reset
     // to zero when drift_total_seconds is reset
@@ -147,6 +148,7 @@ typedef struct {
     // drift adjustment using drift_delta_seconds and drift_total_seconds
 
     uint8_t drift_frac_seconds;  // monitors fractional seconds from time sets
+#endif  // ~AUTODRIFT_CONSTANT
 } time_t;
 
 
@@ -191,7 +193,10 @@ uint8_t time_isdst_eu(int8_t rel_gmt);
 uint8_t time_isdst_usa(void);
 
 void time_autodrift(void);
+
+#ifndef AUTODRIFT_CONSTANT
 void time_newdrift(void);
 void time_loaddriftmedian(void);
+#endif  // ~AUTODRIFT_CONSTANT
 
 #endif

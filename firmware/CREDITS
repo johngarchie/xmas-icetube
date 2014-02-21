@@ -2,12 +2,14 @@
 ## ACKNOWLEDGEMENTS ##
 ######################
 
+Loads of people deserve mention for their contribution to the xmas-icetube
+firmware.  If I've forgotten anyone in the list below, please let me know!
+
   * Limor Fried and the Adafruit team, of course, design and
     manufacture the wonderful Ice Tube Clock clock kit.
 
   * The Adafruit hacker community deserves oodles of credit for their
-    insights, discussions, and feedback in the Adafruit Clocks forums:
-    http://forums.adafruit.com/viewforum.php?f=41
+    insights, discussions, and feedback in the Adafruit Clocks forums.
 
   * Ray Ramirez contributed code, made useful suggestions, and
     provided helpful advice.
@@ -24,7 +26,7 @@
     disabling the display at scheduled times to extend the IV-18 tube
     lifetime.
 
-  * Jeremy Fitzhardinge's iceclock was the inspiration for the display
+  * Jeremy Fitzhardinge's firmware was the inspiration for the display
     transitions and display pulsing during alarm and snooze.
 
   * William Phelps's firmware was the inspiration for the progressive

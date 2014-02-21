@@ -23,17 +23,17 @@ time display, canceling any changes that may have been made.
 While in the configuration menu and a menu label is displayed, the "set"
 button will open the displayed category or setting.  While in the
 configuration menu and a setting is displayed, the "set" button saves the
-selected setting and either proceeds to the next setting or returns to the
-time display.
+selected setting and either proceeds to the next related setting or returns
+to the time display.
 
 While in the configuration menu and a menu label is displayed, the "+"
 button moves to the next menu label.  While in the configuration menu and a
 setting is displayed, the "+" button moves to the next possible value for
 that setting.
 
-The "alarm" switch turns any and all enabled alarms on or off.  When the
-alarm sounds, any button will enable snooze.  Only the alarm switch will
-turn a sounding alarm off.
+The "alarm" switch turns enabled alarms on or off.  When the alarm sounds,
+pressing any button will enable snooze.  Only the alarm switch will turn a
+sounding alarm off.
 
 
 ###################
@@ -67,11 +67,11 @@ nested structure.
     or For He's a Jolly Good Fellow ("jly good").
 
   "a. volume"  
-    Set the alarm volume or enable progressive alarm ("vol prog").  With the
-    progressive alarm option, the user is prompted for the minimum volume
-    ("v. min XX"), maximum volume ("v. max XX"), and ramp time in minutes
-    ("time XX").  The alarm will start at the minimum volume and gradually
-    reach the maximum volume over the specified ramp time.
+    Set the alarm volume or enable the progressive alarm ("vol prog").  With
+    the progressive alarm option, also set the minimum volume ("v. min XX"),
+    maximum volume ("v. max XX"), and ramp time in minutes ("time XX").  The
+    alarm will start at the minimum volume and gradually reach the maximum
+    volume over the specified ramp time.
 
   "a. snooze"
     Change the snooze time (minutes).
@@ -112,17 +112,19 @@ nested structure.
     inconsistent digit brightness.  In addition to the standard
     single-button commands, the per-digit brightness controls also
     respond to two multi-button commands:
+
       (1) Pressing "set" and "+" simultaneously resets the brightness of
 	  the current digit to the minimum (default) value.
+
       (2) Pressing "menu" and "+" simultaneously resets the brightness of
 	  all digits to the minimum (default) value.
 
   "auto off" -- Automatic Display Off
     Some users may wish to inactivate the display when no one is around, as
-    doing so will extend VFD lifetime.  Other users may wish to inactivate the
-    display at night, as extra light can interfere with sleep.  When the
-    display is inactive, pressing any button will enable the display on for
-    one minute.
+    doing so should extend VFD lifetime.  Other users may wish to inactivate
+    the display at night, as extra light can interfere with sleep.  When the
+    display is inactive, pressing any button will enable the display for one
+    minute.
 
     "off dark"
       Enable or disable automatic inactivation at night (when dark).
@@ -167,14 +169,14 @@ nested structure.
     Configure the timezone relative to UTC/GMT.  This option is only available
     with the GPS timekeeping mod and is used to convert UTC/GMT time from the
     GPS to local time.  The time offset is for standard time and does
-    not include the extra hour for daylight savings time.
+    not include the extra hour for daylight saving time.
 
   "time fmt"
     Configure the time format.  First, specify if the time format should be
     displayed in a 12-hour or 24-hour format with "hours 12" or "hours 24".
     Second, select the format of the time display.  Third, select how colons
     in the time format should be displayed ("sep  a:b").  Fourth, specify if 
-    daylight savings time should be shown with "dst show" or "dst hide".
+    daylight saving time should be shown with "dst show" or "dst hide".
     If compiled with GPS support, a fifth option might allow you to show if
     the GPS is receiving data with "gps show" or "gps hide".
 

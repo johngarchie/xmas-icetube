@@ -7,12 +7,40 @@
 #include "config.h"  // for configuration macros
 
 
-// time to wait after entering sleep mode before checking battery.
-// system voltage takes about 3 minutes to drop to battery level
-// so 600 seconds (10 minutes) is playing it safe
+// LOW BATTERY WARNING / MEASURING BATTERY VOLTAGE
+//
+// The microcontroller can measure system voltage through the
+// analog-to-digital converter (ADC), so battery voltage is
+// determined by measuring system voltage during sleep after
+// voltage falls to the battery level.  The analog-to-digital
+// converter (ADC) is unreliable when it first starts, so battery
+// voltage is checked repeatedly until the ADC gives consistent
+// results.  The following macros control the battery voltage
+// measurement algorithm.
+
+// how long to wait after going to sleep before measuring battery
+// voltage.  with the extended battery hack, system voltage may
+// take 3-5 minutes to drop to the battery level, so 600 seconds
+// (10 minutes) should be a safe choice
 #define SYSTEM_BATTERY_CHECK_DELAY 600  // seconds
 
+// how many consecutive good ADC readings must be read before
+// using the final reading to estimate battery voltage
+#define SYSTEM_BATTERY_GOOD_CONV 3
 
+// how close must an ADC reading be to the previous reading to be
+// considered good; each unit is roughly 0.23% or 0.006v.  a
+// value of 4 corresponds to a battery level that is within
+// within ~1% or ~0.025v of the previous value
+#define SYSTEM_BATTERY_ADC_ERROR 4
+
+// how many ADC conversions should be attempted before giving up
+// and using the final reading to estimate battery voltage
+#define SYSTEM_BATTERY_MAX_CONV 16
+
+
+// CRYSTAL ROBUSTNESS / PREVENTING SLEEP LOCKUPS
+//
 // if the crystal oscillator is not running while the system sleeps the
 // system will not wake.  for robustness, the watchdog timer is only
 // disabled after the following time delay

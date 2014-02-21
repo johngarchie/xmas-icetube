@@ -136,8 +136,8 @@
 
 // BIRTHDAY ALARM
 //
-// If BDAY_ALARM_MONTH and BDAY_ALARM_DAY are defined, the alarm sound
-// on that day will always be "For He's a Jolly Good Fellow,"
+// If BDAY_ALARM_MONTH and BDAY_ALARM_DAY are defined, the alarm
+// sound on that day will always be "For He's a Jolly Good Fellow,"
 // regardless of the alarm sound set in the menus.
 //
 //
@@ -319,6 +319,57 @@
 //
 // #define FILAMENT_VOLTAGE_3_3
 // #define FILAMENT_VOLTAGE_2_5
+
+
+// AUTOMATIC DRIFT CORRECTION
+//
+// As the user changes the time to correct for time drift, the clock
+// will eventually determine how fast or slow the crystal oscillates.
+// The clock will eventually use this information to correct time
+// drift.  The automatic drift correction algorithm is described in
+// the following post:
+//
+//   http://forums.adafruit.com/viewtopic.php?p=178611#p178611
+//
+// If one already knows how fast or slow the clock runs without drift
+// correction, one might wish to preload this information so that the
+// clock will keep accurate time immediately after flashing.
+//
+// The desired drift correction is defined by a single number.  The
+// magnitude (absolute value) defines how often a 1/128 second
+// correction must be made.  If the clock is slow, time must be
+// adjusted *forward*, so the sign should be *positive*.  If the clock
+// is fast, time must be adjusted *back*, so the sign should be
+// *negative*.  A drift correction value of zero indicates that no
+// drift correction should be performed.
+//
+// For example, assume a clock runs slow by 3 seconds per day, typical
+// of an unmodified Adafruit Ice Tube Clock.  To compensate, the clock
+// must make 3 * 128 = 384 corrections per day, since each correction
+// is 1/128 second.  Those corrections must be made over one day or
+// 24 * 60 * 60 = 86400 seconds.  Therefore, the clock should make
+// corrections at intervals of 86400 / 384 = 255 seconds.  Because the
+// clock runs slow, the drift correction value should be positive 255.
+//
+// Defining a drift correction value with AUTODRIFT_PRELOAD enables
+// drift correction by the specified amount immediately after
+// programming.  But the clock will still determine if it is running
+// fast or slow with the user changes the time.  This behavior will
+// allow the clock to automatically refine the preloaded drift
+// correction value and adapt to changes crystal frequency over time.
+//
+// Defining a drift correction value with AUTODRIFT_CONSTANT also
+// enables drift correction immediately after programming, but the
+// clock will always use the specified drift correction value.  The
+// clock will not automatically determine if it is running fast or
+// slow when the user changes the time. 
+//
+// Defining the AUTODRIFT_CONSTANT macro as zero will completely
+// disable automatic drift correction.
+//
+//
+// #define AUTODRIFT_PRELOAD  255
+// #define AUTODRIFT_CONSTANT 0
 
 
 // DEBUGGING FEATURES
