@@ -452,6 +452,9 @@ void display_sleep(void) {
     // disable Timer/Counter0
     TCCR0A = TCCR0B = 0;
 
+    // ensure no pending "semitick" interrupt
+    TIFR0 |= _BV(TOV0);
+
     PORTD &= ~_BV(PD6); // boost fet off (pull low)
 #ifndef XMAS_DESIGN
     PORTD |=  _BV(PD3); // MAX6921 power off (pull high)
