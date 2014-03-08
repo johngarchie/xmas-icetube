@@ -1,25 +1,21 @@
 ###########################
-## xmas-icetube Firmware ##
+## XMAS-ICETUBE FIRMWARE ##
 ###########################
 
-My father gave me an Ice Tube Clock kit from Adafruit as a Christmas gift
-last year.  As an excuse to learn AVR programming, I started playing with
-the software.  Eventually, none of the original code remained and the project
-became a feature-rich reimplementation of the original Adafruit firmware.
-
-  John Archie <www.jarchie.com>
-  December 27, 2012
+The xmas-icetube firmware is a complete reimplementation of the Adafruit
+Ice Tube Clock firmware and runs on *both* the Adafruit Ice Tube Clock v1.1
+and the xmas-icetube hardware revision.  Since most users will be using the
+xmas-icetube firmware on the Adafruit Ice Tube Clock v1.1, the default
+firmware configuration is set for the Adafruit clock.
 
 
 ##############
 ## FEATURES ##
 ##############
 
-This firmware works with the Adafruit Ice Tube Clock v1.1 as well as the
-xmas-icetube hardware revision.  Many of the features in the xmas-icetube
-firmware were first implemented in other firmware projects; see the CREDITS
-file for details.  This firmware boasts the following improvements over the
-official Adafruit firmware:
+Many of the features in the xmas-icetube firmware were first implemented in
+other firmware projects; see the CREDITS file for details.  This firmware
+boasts the following improvements over the official Adafruit firmware:
 
   - animated display transitions
   - multiple time and date formats
@@ -45,12 +41,13 @@ official Adafruit firmware:
   - optionally disable display at night (when dark)*
   - IV-18 VFD tube driven to specifications*
 
-*  These hacks require hardware modification and support must be enabled by
-   uncommenting macros in config.h.  See the HACKS AND MODS section of this
-   file as well as the comments in config.h for more information.
+*  For the Adafruit Ice Tube Clock v1.1, these hacks require hardware
+   modification and support must be enabled by uncommenting macros in
+   config.h.  See the HACKS AND MODS section of this file as well as the
+   comments in config.h for more information.
 
 
-For Ice Tube Clock hackers, this firmware has
+For clock hackers, this firmware has
 
     (1) compatibility with the ATMEGA328P,
     (2) a pseudo object-oriented design,
@@ -247,8 +244,11 @@ This method is also described in the following thread:
 
 The per-digit brightness control in the xmas-icetube firmware provides one
 way to increase the brightness of dim digits, but a dim initial or final
-digit is typically caused by low voltage across the VFD filament.  The
-easiest way to increase filament current is to replace R3 with a jumper:
+digit is typically caused by low voltage across the VFD filament:
+
+  http://forums.adafruit.com/viewtopic.php?f=41&t=50699
+
+The easiest way to increase filament current is to jumper R3:
 
   http://forums.adafruit.com/viewtopic.php?p=179107#p179107
 
@@ -258,25 +258,31 @@ specified in the datasheet.  A better solution is to replace Q3 with a
 P-FET that outputs more current to the filament.  I recommend using the
 ZVP2110A available from Digi-Key or Mouser.
 
+Another good alternative is to replace Q3 with a PN2907A and resistor:
+
+  http://forums.adafruit.com/viewtopic.php?f=41&t=43908
+
 
 :: Flaky Segments ::
 
 On some Adafruit clocks, display segments are flaky.  The exact symptoms
 vary depending on the particular clock, but most commonly, the clock will
 start normally and segments will quickly stop working until few or no
-segments are active.  The following thread describes this problem and
-several solutions in more detail:
+segments are active.  Also common is a display that only shows one or two
+blinking segments.  The following threads describe the flaky segment
+problem and several solutions in more detail:
 
   http://forums.adafruit.com/viewtopic.php?f=41&t=47733
+  http://forums.adafruit.com/viewtopic.php?f=41&t=49619
+  http://forums.adafruit.com/viewtopic.php?f=41&t=50823
 
-The flaky digit problem can be solved by replacing Q3.  Although Adafruit
+The flaky segment problem can be solved by replacing Q3.  Although Adafruit
 will provide a free replacement for Q3, I recommend replacing Q3 with a
 better P-FET, such as the ZVP2110A available from Digi-Key or Mouser.
 
 By providing additional current across the VFD filament, the ZVP2110A will
-also eliminate the dim digit problem described in the previous trouble
-shooting entry.  In addition, the ZVP2110A extend tube life by slowing
-cathode poisoning.
+eliminate the dim digit problem described in the previous trouble shooting
+entry; it will also extend tube life by slowing cathode poisoning.
 
 
 :: Nonfunctional Drift Correction ::
@@ -315,3 +321,11 @@ reset ("rset") the clock.  The most straightforward solution to this
 problem is to replace C8 and C9 with 10 pF caps:
 
   http://forums.adafruit.com/viewtopic.php?p=189366#p189366
+
+
+#############
+## LICENSE ##
+#############
+
+The xmas-icetube firmware may be used as described in the LICENSE file.
+
