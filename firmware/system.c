@@ -142,7 +142,6 @@ void system_sleep_loop(void) {
     } while(system_power() == SYSTEM_BATTERY);
 
     wdt_enable(WDTO_8S);
-    wdt_reset();
 
     // enable analog comparator interrupt
     ACSR = _BV(ACBG) | _BV(ACIE) | _BV(ACI);

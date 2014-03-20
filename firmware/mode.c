@@ -1512,34 +1512,37 @@ void mode_semitick(void) {
 		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
-		case BUTTONS_SET:
-		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-			uint8_t autodst = *mode.tmp & TIME_AUTODST_MASK;
+		case BUTTONS_SET: ;
+		    uint8_t new_autodst = *mode.tmp & TIME_AUTODST_MASK;
 
-			if(autodst) {
-			    time_autodst(FALSE);
-			} else {
-			    if(*mode.tmp & TIME_DST) {
-				time_dston(TRUE);
-			    } else {
-				time_dstoff(TRUE);
+		    switch(new_autodst) {
+			case TIME_AUTODST_USA:
+			    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+				time.status &= ~TIME_AUTODST_MASK;
+				time.status |= new_autodst;
+				time_savestatus();
+				time_autodst(FALSE);
 			    }
-			}
-
-			time.status = *mode.tmp;
-			time_savestatus();
-
-			switch(autodst) {
-			    case TIME_AUTODST_USA:
-			    case TIME_AUTODST_NONE:
-				mode_update(MODE_TIME_DISPLAY,
-					    DISPLAY_TRANS_UP);
-				break;
-			    default:  // GMT, CET, or EET
-				mode_update(MODE_CFGREGN_SETDST_ZONE,
-					    DISPLAY_TRANS_UP);
-				break;
-			}
+			    mode_update(MODE_TIME_DISPLAY,
+				    DISPLAY_TRANS_UP);
+			    break;
+			case TIME_AUTODST_NONE:
+			    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+				time.status &= ~TIME_AUTODST_MASK;
+				time_savestatus();
+				if(*mode.tmp & TIME_DST) {
+				    time_dston(TRUE);
+				} else {
+				    time_dstoff(TRUE);
+				}
+			    }
+			    mode_update(MODE_TIME_DISPLAY,
+				    DISPLAY_TRANS_UP);
+			    break;
+			default:  // GMT, CET, or EET
+			    mode_update(MODE_CFGREGN_SETDST_ZONE,
+				    DISPLAY_TRANS_UP);
+			    break;
 		    }
 		    break;
 		case BUTTONS_PLUS:
@@ -1592,9 +1595,10 @@ void mode_semitick(void) {
 		    break;
 		case BUTTONS_SET:
 		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-			time.status = *mode.tmp;
-			time_autodst(FALSE);
+			time.status &= ~TIME_AUTODST_MASK;
+			time.status |= *mode.tmp & TIME_AUTODST_MASK;
 			time_savestatus();
+			time_autodst(FALSE);
 		    }
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 		    break;

@@ -481,22 +481,22 @@ void time_autodst(uint8_t adj_time) {
 // enable dst; if adj_time is true and dst is
 // not already enabled, adjust time accordingly
 void time_dston(uint8_t adj_time) {
-    if(adj_time && !(time.status & TIME_DST)) {
-	time_springforward();
+    if(!(time.status & TIME_DST)) {
+	time.status |= TIME_DST;  // set dst
+	time_savestatus();        // and save
+	if(adj_time) time_springforward();
     }
-
-    time.status |= TIME_DST;
 }
 
 
 // disable dst; if adj_time is true and dst is
 // not already enabled, adjust time accordingly
 void time_dstoff(uint8_t adj_time) {
-    if(adj_time && time.status & TIME_DST) {
-	time_fallback();
+    if(time.status & TIME_DST) {
+	time.status &= ~TIME_DST;  // unset dst
+	time_savestatus();         // and save
+	if(adj_time) time_fallback();
     }
-
-    time.status &= ~TIME_DST;
 }
 
 

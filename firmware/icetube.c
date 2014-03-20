@@ -204,7 +204,7 @@ ISR(ANALOG_COMP_vect) {
     usart_sleep();    // disable usart
     piezo_sleep();    // adjust buzzer timer for slower clock
     temp_sleep();     // disable temperature sensor
-    system_sleep();   // does nothing
+    system_sleep();   // set sleep timer to zero
 
     // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
     // An 8 or 4 MHz clock is unstable at 1.7v, but a 2 MHz clock is okay:
@@ -219,12 +219,12 @@ ISR(ANALOG_COMP_vect) {
     sei();  // allow interrupts
 
     system_wake();   // does nothing
-    temp_wake();     // enable temperature sensor
+    temp_wake();     // does nothing
     piezo_wake();    // adjust buzzer for faster clock
-    mode_wake();     // update display contents when necessary
-    buttons_wake();  // enable button pull-ups
+    mode_wake();     // update display contents
+    buttons_wake();  // enable button inputs & pull-ups
     alarm_wake();    // enable alarm switch pull-up
-    usart_wake();    // enable and configure usart
+    usart_wake();    // enable usart
     gps_wake();      // enable usart rx interrupt
     display_wake();  // start boost timer and enable display
 }
