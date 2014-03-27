@@ -240,6 +240,22 @@ This method is also described in the following thread:
   http://forums.adafruit.com/viewtopic.php?p=184722#p184722
 
 
+:: Other Programming Failures ::
+
+First, ensure that the hardware is connected properly, as described in the
+installation instructions above.  Second, double check the Makefile
+configuration section, paying particular attention to the AVRISP and
+AVRDUDEOPT macros.  Third, try programming the chip at a lower bit rate by
+changing the "-B 2" option to "-B 25" in the AVRDUDEOPT macro:
+
+  AVRDUDEOPT ?= -B 25 -P usb -c $(AVRISP) -p $(AVRMCU)
+
+Fourth, if the chip cannot be programmed in the clock, try programming it
+in a development board such as the Arduino Uno.  Finally, it's possible
+that the chip is somehow damaged or bricked; usually, the simplest solution
+is to simply replace the ATmega328p with a new chip and try again.
+
+
 :: Dim Digits ::
 
 The per-digit brightness control in the xmas-icetube firmware provides one
@@ -269,12 +285,15 @@ On some Adafruit clocks, display segments are flaky.  The exact symptoms
 vary depending on the particular clock, but most commonly, the clock will
 start normally and segments will quickly stop working until few or no
 segments are active.  Also common is a display that only shows one or two
-blinking segments.  The following threads describe the flaky segment
-problem and several solutions in more detail:
+blinking segments.  But occasionally the symptoms are more bizarre such as
+a display with all digits and segments continuously lit or a single digit
+going blank at a certain time.  The following threads describe the flaky
+segment problem and several solutions in more detail:
 
   http://forums.adafruit.com/viewtopic.php?f=41&t=47733
   http://forums.adafruit.com/viewtopic.php?f=41&t=49619
   http://forums.adafruit.com/viewtopic.php?f=41&t=50823
+  http://forums.adafruit.com/viewtopic.php?f=41&t=51207
 
 The flaky segment problem can be solved by replacing Q3.  Although Adafruit
 will provide a free replacement for Q3, I recommend replacing Q3 with a
