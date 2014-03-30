@@ -258,25 +258,29 @@ is to simply replace the ATmega328p with a new chip and try again.
 
 :: Dim Digits ::
 
-The per-digit brightness control in the xmas-icetube firmware provides one
-way to increase the brightness of dim digits, but a dim initial or final
-digit is typically caused by low voltage across the VFD filament:
+The per-digit brightness control in the xmas-icetube firmware provides
+one way to increase the brightness of dim digits.
 
-  http://forums.adafruit.com/viewtopic.php?f=41&t=50699
+With Adafruit clocks, a dim initial or final digit is almost
+invariably due to insufficient filament current.  In those cases,
+increasing filament current usually produces better results, but
+increasing current may also introduce a brightness gradient across the
+display when the menu-configured brightness level is low.  To find the
+optimal current for a given clock, a good approach is to gradually
+increase current across the filament until all digits have consistent
+brightness at the highest menu-configured brightness setting:
 
-The easiest way to increase filament current is to jumper R3:
+First, upgrade Q3 to a FET capable of supplying more current.  One
+such FET is the ZVP2110A available from Digi-Key or Mouser.  If the
+digit remains dim after upgrading Q3, replace R3 with an 11 ohm
+resistor to further increase current.  And if the digit is still dim,
+replace R3 with a jumper.
 
-  http://forums.adafruit.com/viewtopic.php?p=179107#p179107
-
-That solution seems to work well in practice, but also causes the voltage
-provided to the VFD driver chip to drop below the minimum allowed voltage
-specified in the datasheet.  A better solution is to replace Q3 with a
-P-FET that outputs more current to the filament.  I recommend using the
-ZVP2110A available from Digi-Key or Mouser.
-
-Another good alternative is to replace Q3 with a PN2907A and resistor:
-
-  http://forums.adafruit.com/viewtopic.php?f=41&t=43908
+Note that Q3 provides power to both the filament and VFD driver chip.
+Replacing R3 with a jumper or smaller resistor without first upgrading
+Q3 will increase filament current, but might also result in an
+insufficient logic supply voltage to the VFD driver chip.  That, in
+turn, could cause faulty display operation.
 
 
 :: Flaky Segments ::
@@ -297,11 +301,11 @@ segment problem and several solutions in more detail:
 
 The flaky segment problem can be solved by replacing Q3.  Although Adafruit
 will provide a free replacement for Q3, I recommend replacing Q3 with a
-better P-FET, such as the ZVP2110A available from Digi-Key or Mouser.
+better FET, such as the ZVP2110A available from Digi-Key or Mouser.
 
-By providing additional current across the VFD filament, the ZVP2110A will
-eliminate the dim digit problem described in the previous trouble shooting
-entry; it will also extend tube life by slowing cathode poisoning.
+By providing additional current across the VFD filament, the ZVP2110A
+will also eliminate the dim digit problem described in the previous
+entry as well as extending tube life by slowing cathode poisoning.
 
 
 :: Nonfunctional Drift Correction ::
@@ -323,23 +327,36 @@ correction method is quite robust:
     http://forums.adafruit.com/viewtopic.php?p=178611#p178611
 
 
-:: Unstable Crystal Oscillator ::
+:: Crystal Oscillator Problems ("wdt rset") ::
 
-In the Adafruit kit, oscillator caps C8 and C9 are a bit large.
-Usually this only means that the clock consistently runs slow, losing
-a few seconds each day.  When the time is periodically corrected, the
-automatic drift correction detects that the clock is running slow and
-compensates timekeeping accordingly.
+The ATmega328p is more prone to oscillator issues than the ATmega168v,
+and users occasionally encounter oscillator problems after upgrading.
 
-Much less commonly, the quartz oscillator will not function--or much
-worse--operate intermittently.  Faulty operation causes time loss
-and/or clock resets.  After such a reset, the clock will periodically
-display "wdt rset" to warn of time loss.  This message indicates that
-the watchdog timer ("wdt") has expired and the watchdog circuit has
-reset ("rset") the clock.  The most straightforward solution to this
-problem is to replace C8 and C9 with 10 pF caps:
+Oscillator problems usually result in inconsistent timekeeping; the
+clock may keep time one day, but not another.  When oscillator
+problems are severe, the microcontroller's watchdog circuit will
+detect that time is not advancing and reset the clock in an attempt to
+fix the problem.  After such a reset, the clock will beep and display
+"wdt rset" to indicate possible time loss due to a watchdog reset.
 
-  http://forums.adafruit.com/viewtopic.php?p=189366#p189366
+Fixing oscillator issues requires some trial and error, but following
+the procedure below will likely fix the problem.
+
+First, excess flux or burnt flux can cause oscillator problems.
+Sometimes cleaning the board thoroughly with flux cleaner--or simply
+alcohol and a toothbrush--will solve the problem.
+
+Second, the 20 pF oscillator capacitors included in the Adafruit kit
+are a bit large.  Replacing C8 and C9 with with 10 pF caps will
+sometimes fix the oscillator.
+
+Finally, replacing the crystal will sometimes resolve the issue.  The
+replacement should be another 32.768 kHz crystal with a 12.5 pF load
+capacitance and equivalent series resistance of 30 kOhm or less.  The
+AB38T-32.768KHZ is a good choice and is available from Digi-Key or
+Mouser.  When soldering the crystal, there should be at least 1 mm
+between the case and circuit board to ensure that solder will not flow
+through the board and contact the metallic crystal housing.
 
 
 #############
