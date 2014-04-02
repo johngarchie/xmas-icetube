@@ -83,6 +83,13 @@ void mode_tick(void) {
 		display_pstr(0, PSTR("gps lost"));
 		display_transition(DISPLAY_TRANS_INSTANT);
 #endif  // GPS_TIMEKEEPING
+#ifdef TEMPERATURE_SENSOR
+	    } else if(system.sleep_wake_timer > 2
+		    && temp.status & TEMP_CONV_INVALID
+		    && time.second & 0x01) {
+		display_pstr(0, PSTR("temp err"));
+		display_transition(DISPLAY_TRANS_INSTANT);
+#endif  // TEMPERATURE_SENSOR
 	    } else {
 		if(time.scroll_delay && time.second % time.scroll_delay == 1) {
 		    ATOMIC_BLOCK(ATOMIC_FORCEON) {

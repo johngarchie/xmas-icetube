@@ -63,7 +63,7 @@ enum {
 typedef struct {
     uint8_t  status;         // system status flags
     uint8_t  initial_mcusr;  // initial value of MCUSR register
-    uint32_t sleep_timer;    // amount of time in sleep mode
+    uint32_t sleep_wake_timer;    // amount of time in sleep or wake mode
 } system_t;
 
 
@@ -72,7 +72,7 @@ extern volatile system_t system;
 
 void system_init(void);
 
-inline void system_wake(void) {};
+void system_wake(void);
 void system_sleep(void);
 
 inline void system_tick(void) { 
@@ -82,8 +82,9 @@ inline void system_tick(void) {
     // comparator needs a few microseconds to start
     if(system.status & SYSTEM_SLEEP) {
        ACSR = _BV(ACBG);
-       ++system.sleep_timer;  // and increment sleep timer
     }
+
+   ++system.sleep_wake_timer;  // and increment sleep/wake timer
 };
 
 inline void system_semitick(void) {};

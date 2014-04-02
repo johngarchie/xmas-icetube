@@ -70,9 +70,15 @@ void system_init(void) {
 }
 
 
-// when clock goes to sleep, restart sleep timer
+// when clock goes to sleep, restart sleep/wake timer
 void system_sleep(void) {
-    system.sleep_timer = 0;
+    system.sleep_wake_timer = 0;
+}
+
+
+// when clock wakes, restart sleep/wake timer
+void system_wake(void) {
+    system.sleep_wake_timer = 0;
 }
 
 
@@ -99,12 +105,12 @@ void system_sleep_loop(void) {
 	    // disable watchdog after five seconds to ensure
 	    // quartz crystal is running reasonably well
 	    // (otherwise, the clock will fail to wake from sleep)
-	    if(system.sleep_timer == SYSTEM_WDT_DISABLE_DELAY) {
+	    if(system.sleep_wake_timer == SYSTEM_WDT_DISABLE_DELAY) {
 		wdt_disable();
 	    }
 
 	    // check battery status after specified delay
-	    if(system.sleep_timer == SYSTEM_BATTERY_CHECK_DELAY) {
+	    if(system.sleep_wake_timer == SYSTEM_BATTERY_CHECK_DELAY) {
 		system_check_battery();
 	    }
 
