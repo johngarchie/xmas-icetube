@@ -1,30 +1,30 @@
-###########################
+##########################
 ## XMAS-ICETUBE PROJECT ##
-###########################
+##########################
 
-Several years ago, my father gave me an Adafruit Ice Tube Clock kit as a
-Christmas gift.  As an excuse to learn AVR programming, I started playing
-with the code, and eventually, none of the original Adafruit code remained.
-The result was a feature-rich reimplementation of the Adafruit firmware.
+Several years ago, my father gave me an Adafruit Ice Tube Clock kit as
+a Christmas gift.  As an excuse to learn AVR programming, I started
+playing with the firmware.  Eventually, none of the original Adafruit
+code remained, and the result was a feature-rich reimplementation of
+the Adafruit firmware.
 
-Once the firmware was mature, I decided to revise the hardware design to
-support many of the hardware modifications from various Ice Tube Clock
-users and myself.  With the help of other clock hackers, especially Phil
-DeGruy and Russell Walker, the xmas-icetube hardware revision became a
-reality.
+Once the firmware was mature, I decided to revise the hardware design
+to support many of the hacks and mods described on the Adafruit
+forums.  With the help of other clock hackers, especially Phil DeGruy
+and Russell Walker, the xmas-icetube hardware revision became a reality.
 
-The xmas-icetube firmware still runs on the Adafruit Ice Tube Clock v1.1 as
-well as the xmas-icetube hardware revision.  For more information on the
-firmware and hardware portions of this project, please read the README
-files in the firmware/ and hardware/ directories.
+Today, the xmas-icetube firmware still runs on the Adafruit Ice Tube
+Clock v1.1 as well as the xmas-icetube hardware revision.  For more
+information on the firmware and hardware portions of this project,
+please check out the firmware/README and hardware/README files.
 
-Finally, the xmas-icetube project is named after Christmas, but is designed
-for use year-round.  And the name is a reference to Christmas as a cultural
-holiday--not a religious holiday.  The project is intended to be compatible
-with all religions.
+Finally, although the xmas-icetube project is named after Christmas,
+it is designed for use year-round.  The name is also a reference to
+Christmas as a cultural holiday--not a religious one.  I sincerely
+hope this project is compatible with all religions.
 
-  John Archie <www.jarchie.com>
-  March 12, 2014
+  John Archie <www.jarchie.com/email>
+  April 2, 2014
 
 
 ###################
@@ -67,45 +67,44 @@ Clock firmware to date."
 ## FEATURES ##
 ##############
 
-On an unmodified Adafruit Ice Tube Clock v1.1, the xmas-icetube firmware
-offers the following improvements over the official Adafruit firmware:
+The xmas-icetube firmware offers the following improvements over
+the official Adafruit firmware:
 
-  - animated display transitions
+  - GPS synchronized timekeeping*
   - fully automatic compensation for clock drift
+  - animated display transitions
   - multiple time and date formats
+  - DST support (USA, EU, or manual)
   - pulsing display brightness during alarm and snooze
   - three alarm times for selectable days of the week
-  - functional alarm during power outage*
+  - functional alarm during power outage**
   - finely adjustable alarm volume (from 0 to 10)
   - progressive alarm option (gradually increasing volume)
-  - selectable alarm sound (high frequency beeps, low frequency beeps, high
-    frequency three beep pulse, low frequency three beep pulse, Merry
-    Christmas, Big Ben, Reveille, or For He's a Jolly Good Fellow)
   - adjustable snooze duration
-  - DST support (USA, EU, or manual)
+  - selectable alarm sound (high frequency beeps, low frequency beeps,
+    high frequency three beep pulse, low frequency three beep pulse,
+    Merry Christmas, Big Ben, Reveille, or For He's a Jolly Good Fellow)
   - 4-fold improvement in battery life
   - no beeping or time loss after external power failure
   - low battery warning before battery failure
   - per-digit brightness adjustment for uneven displays
   - optionally disable display during specified time periods
 
-* Without external power, the alarm sounds with loud high frequency
-  beeps.  The only way to turn the alarm on or off is with the alarm
-  switch.  Snooze is not supported.
+*  An external GPS module, such as the Adafruit Ultimate GPS, is
+   necessary to support GPS synchronized timekeeping.
 
-With hardware modification of the Adafruit Ice Tube Clock v1.1, the
-xmas-icetube firmware supports the following additional features:
+** Without external power, the alarm sounds with loud high frequency
+   beeps.  The only way to turn the alarm on or off is with the alarm
+   switch.  Snooze is not supported.
 
-  - GPS synchronized timekeeping*
-  - highly accurate temperature compensated timekeeping
+The following additional features are supported on the xmas-icetube
+hardware revision, but the Adafruit Ice Tube Clock v1.1 can be
+modified to support any or all of the following as well:
+
   - automatic brightness control by ambient light
   - optionally disable display at night (when dark)
   - 25-fold improvement in battery life
-  - IV-18 tube driven to specifications
+  - highly accurate temperature compensated timekeeping
+  - IV-18 tube driven to specifications (providing more even
+    display illumination and preventing cathode poisoning)
 
-* An external GPS module, such as the Adafruit Ultimate GPS, is necessary
-  to support GPS synchronized timekeeping.
-
-The xmas-icetube hardware revision provides hardware support for all of the
-features mentioned above.  For connecting an optional GPS module, the
-hardware revision provides labeled through-hole solder points.

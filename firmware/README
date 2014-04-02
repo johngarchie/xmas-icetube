@@ -347,16 +347,26 @@ Sometimes cleaning the board thoroughly with flux cleaner--or simply
 alcohol and a toothbrush--will solve the problem.
 
 Second, the 20 pF oscillator capacitors included in the Adafruit kit
-are a bit large.  Replacing C8 and C9 with with 10 pF caps will
-sometimes fix the oscillator.
+are a bit large. Replacing C8 and C9 with with 10 pF caps will
+sometimes fix the oscillator.  Even if the clock is functioning
+normally, installing 10 pF caps will increase timekeeping accuracy.
 
 Finally, replacing the crystal will sometimes resolve the issue.  The
 replacement should be another 32.768 kHz crystal with a 12.5 pF load
 capacitance and equivalent series resistance of 30 kOhm or less.  The
 AB38T-32.768KHZ is a good choice and is available from Digi-Key or
-Mouser.  When soldering the crystal, there should be at least 1 mm
-between the case and circuit board to ensure that solder will not flow
-through the board and contact the metallic crystal housing.
+Mouser.  When installing and soldering the crystal, gently push the
+crystal through the circuit board until there is 2-3 mm of space
+between the bottom of the crystal and the circuit board.  Leaving this
+space prevents undue stress on the leads which could damage the
+crystal; it also ensures solder will not make unwanted electrical
+contact with the metallic crystal housing.
+
+The following threads provide more information on oscillator issues
+after upgrading to the ATmega328p:
+
+    http://forums.adafruit.com/viewtopic.php?p=189366#p189366
+    http://forums.adafruit.com/viewtopic.php?f=41&t=51960
 
 
 #############
