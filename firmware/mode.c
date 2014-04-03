@@ -1866,6 +1866,7 @@ void mode_semitick(void) {
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    time_loadtimeformat();
+		    display_loadcolonstyle();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
@@ -1903,6 +1904,7 @@ void mode_semitick(void) {
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    time_loadtimeformat();
+		    display_loadcolonstyle();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
