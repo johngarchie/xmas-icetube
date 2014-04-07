@@ -64,7 +64,7 @@ void mode_tick(void) {
 		if(system.initial_mcusr & _BV(WDRF)) {
 		    display_pstr(0, PSTR("wdt rset"));
 		} else if(system.initial_mcusr & _BV(EXTRF)) {
-		    display_pstr(0, PSTR("ext rset"));
+		    display_pstr(0, PSTR("pin rset"));
 		} else if(system.initial_mcusr & _BV(PORF)) {
 		    display_pstr(0, PSTR("pwr rset"));
 		} else if(system.initial_mcusr & _BV(BORF)) {
