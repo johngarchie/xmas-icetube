@@ -1710,8 +1710,6 @@ void mode_semitick(void) {
 		    break;
 		case BUTTONS_SET:
 		    if(*mode.tmp & TIME_TIMEFORMAT_12HOUR) {
-			*mode.tmp |= TIME_TIMEFORMAT_SHOWAMPM;
-
 			if(*mode.tmp <= TIME_TIMEFORMAT_HH_MM) {
 			    *mode.tmp |= TIME_TIMEFORMAT_SHOWAMPM;
 			} else {
@@ -1780,8 +1778,6 @@ void mode_semitick(void) {
 			if(++(*mode.tmp) > TIME_TIMEFORMAT_HH_MM) {
 			    *mode.tmp = TIME_TIMEFORMAT_HH_MM_SS;
 			}
-
-			time.timeformat_flags &= ~TIME_TIMEFORMAT_SHOWAMPM;
 		    }
 
 		    time.timeformat_idx = *mode.tmp;
@@ -1842,7 +1838,6 @@ void mode_semitick(void) {
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    time_loadtimeformat();
-		    display_loadcolonstyle();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
@@ -1857,7 +1852,6 @@ void mode_semitick(void) {
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
 			time_loadtimeformat();
-			display_loadcolonstyle();
 		    }
 		    break;
 	    }
@@ -2812,6 +2806,25 @@ void mode_time_display_tick(void) {
 void mode_time_display_semitick(void) {
     if(time.timeformat_idx == TIME_TIMEFORMAT_HHMMSS_split) {
 	display_twodigit_zeropad(7, (((uint16_t)100 * TCNT2) >> 7));
+
+	if(time.timeformat_flags & TIME_TIMEFORMAT_SHOWAMPM) {
+	    if(time.timeformat_flags & TIME_TIMEFORMAT_SHOWDST) {
+		// show rightmost decimal if dst
+		display_dot(8, time.status & TIME_DST);
+	    }
+#ifdef GPS_TIMEKEEPING
+	    else if(time.timeformat_flags & TIME_TIMEFORMAT_SHOWGPS) {
+		display_dot(8, gps.status & GPS_SIGNAL_GOOD);
+	    }
+#endif  // GPS_TIMEKEEPING
+	}
+#ifdef GPS_TIMEKEEPING
+	else if(time.timeformat_flags & TIME_TIMEFORMAT_SHOWDST
+		&& time.timeformat_flags & TIME_TIMEFORMAT_SHOWGPS) {
+	    display_dot(8, gps.status & GPS_SIGNAL_GOOD);
+	}
+#endif  // GPS_TIMEKEEPING
+
 	// update display manually to save microcontroller cycles
 	display.postbuf[8] = display.prebuf[8];
 	display.postbuf[7] = display.prebuf[7];
