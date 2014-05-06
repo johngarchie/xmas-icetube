@@ -114,7 +114,7 @@ void time_init(void) {
 
     // clock crystal resonates at 32.768 kHz and
     // 32,786 Hz / 256 = 128, so set compare match to
-    OCR2A = 127;  // 172 (128 values, including zero)
+    OCR2A = 127;  // 128 values, including zero
 
     // run the once-per-second interrupt when TCNT2 is zero
     OCR2B = 0;
@@ -712,14 +712,17 @@ void time_autodrift(void) {
 	    OCR2A = 128;  // 129 values, including zero
 	} else {
 #ifdef TEMPERATURE_SENSOR
-	    if(temp.adjust) {
-		// make next "second" shorter if required
-		// for temperature compensation 
-		--temp.adjust;
-		OCR2A = 126; // 127 values, including zero
-	    } else {
-		// make next "second" of normal duration
-		OCR2A = 127; // 128 values, including zero
+	    // shorten next "second" for temperature compensation 
+	    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+		if(temp.adjust < 64) {  // less than 1/2 second
+		    // make next "second" shorter by temp.adjust / 128
+		    OCR2A = 127 - temp.adjust;
+		    temp.adjust = 0;
+		} else {  // greater than or equal to 1/2 second
+		    // make next "second" shorter by 1/2
+		    OCR2A = 63;
+		    temp.adjust -= 64;
+		}
 	    }
 #else
 	    // make next "second" of normal duration

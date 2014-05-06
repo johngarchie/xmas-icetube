@@ -13,6 +13,7 @@
 #include <avr/wdt.h>
 
 #include "temp.h"
+#include "time.h"
 #include "usart.h"
 #include "system.h"
 
@@ -162,7 +163,12 @@ void temp_calc_error(void) {
         error *= temp.int_timer;
 	while(error > (1000000000UL >> 7)) {
 	    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-		++temp.adjust;
+		if(temp.adjust == 127) {
+		    temp.adjust = 0;
+		    time_tick();
+		} else {
+		    ++temp.adjust;
+		}
 	    }
 	    error -= (1000000000UL >> 7);
 	}
