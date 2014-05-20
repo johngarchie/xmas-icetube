@@ -372,6 +372,22 @@
 // #define AUTODRIFT_CONSTANT 0
 
 
+// SLEEP DRIFT CORRECTION VALUE
+//
+// At lower voltages, oscillator circuits tend to operate at lower
+// frequencies, so the oscillator will run slightly slower during
+// sleep.  The AUTODRIFT_SLEEP provides an additional drift correction
+// value to be applied during sleep.  Note that this correction is
+// applied *in addition* to the normal drift correction method.
+//
+//
+#ifdef EXTERNAL_CLOCK
+#define AUTODRIFT_SLEEP 1600  // ~5 ppm
+#else
+#define AUTODRIFT_SLEEP 2800  // ~2.8 ppm
+#endif
+
+
 // DEBUGGING FEATURES
 //
 // The following macro enables debugging.  When enabled, debugging

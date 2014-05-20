@@ -95,6 +95,10 @@ void time_init(void) {
     time.drift_delta_seconds = 0;
 #endif  // AUTODRIFT_CONSTANT
 
+#ifdef AUTODRIFT_SLEEP
+    time.drift_sleepadjust_timer = 0;
+#endif  // AUTODRIFT_SLEEP
+
     time_loadstatus();
     time_loaddateformat();
     time_loadtimeformat();
@@ -682,6 +686,8 @@ uint8_t time_isdst_usa(void) {
 
 // manages drift correction
 void time_autodrift(void) {
+    uint8_t next_OCR2A = 0;
+
 #ifndef AUTODRIFT_CONSTANT
     // adjust timekeeping according to current drift_adjust
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
@@ -703,39 +709,70 @@ void time_autodrift(void) {
 	    time.drift_adjust_timer = time.drift_adjust;
 
 	    // clock is slow: make next "second" faster
-	    OCR2A = 126;  // 127 values, including zero
+	    next_OCR2A = 126;  // 127 values, including zero
 	} else if(!time.drift_adjust_timer && time.drift_adjust < 0) {
 	    // reset drift correction timer
 	    time.drift_adjust_timer = -time.drift_adjust;
 
 	    // clock is fast: make next "second" longer
-	    OCR2A = 128;  // 129 values, including zero
+	    next_OCR2A = 128;  // 129 values, including zero
 	} else {
 #ifdef TEMPERATURE_SENSOR
 	    // shorten next "second" for temperature compensation 
-	    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 		if(temp.adjust < 64) {  // less than 1/2 second
 		    // make next "second" shorter by temp.adjust / 128
-		    OCR2A = 127 - temp.adjust;
+		    next_OCR2A = 127 - temp.adjust;
 		    temp.adjust = 0;
 		} else {  // greater than or equal to 1/2 second
 		    // make next "second" shorter by 1/2
-		    OCR2A = 63;
+		    next_OCR2A = 63;
 		    temp.adjust -= 64;
 		}
 	    }
 #else
 	    // make next "second" of normal duration
-	    OCR2A = 127; // 128 values, including zero
+	    next_OCR2A = 127; // 128 values, including zero
 #endif  // TEMPERATURE_SENSOR
 	}
     }
+
+#ifdef AUTODRIFT_SLEEP
+    if(system.status & SYSTEM_SLEEP) {
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+	    if(time.drift_sleepadjust_timer) {
+		// seconds until next drift correction
+		--time.drift_sleepadjust_timer;
+	    }
+
+	    // set timer2 top value to adjust duration of next second
+	    if(!time.drift_sleepadjust_timer) {
+#if AUTODRIFT_SLEEP > 0
+		// reset drift correction timer
+		time.drift_sleepadjust_timer = AUTODRIFT_SLEEP;
+
+		// clock is slow during sleep: make next "second" faster
+		--next_OCR2A;
+#elif AUTODRIFT_SLEEP < 0
+		// reset drift correction timer
+		time.drift_sleepadjust_timer = -AUTODRIFT_SLEEP;
+
+		// clock is fast during sleep: make next "second" slower
+		++next_OCR2A;
+#endif  // AUTODRIFT_SLEEP >/< 0
+	    }
+	}
+    }
+#endif  // AUTODRIFT_SLEEP
+
+    OCR2A = next_OCR2A;  // set next OCR2A value
 
     if(system.status & SYSTEM_SLEEP) {
 	// if drift adjustment calculation is pending,
 	// defer it until external power restored
 	return;
     }
+
 
 #ifndef AUTODRIFT_CONSTANT
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
