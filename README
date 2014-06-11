@@ -88,6 +88,7 @@ the official Adafruit firmware:
   - no beeping or time loss after external power failure
   - low battery warning before battery failure
   - per-digit brightness adjustment for uneven displays
+  - larger range for user-configured display brightness
   - optionally disable display during specified time periods
 
 *  An external GPS module, such as the Adafruit Ultimate GPS, is

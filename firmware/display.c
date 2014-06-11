@@ -51,7 +51,7 @@ uint8_t ee_display_status EEMEM =   DISPLAY_ANIMATED | DISPLAY_ALTNINE
 uint8_t ee_display_colon_style_idx EEMEM = 0;
 #ifdef AUTOMATIC_DIMMER
 uint8_t ee_display_bright_min EEMEM = 0;
-uint8_t ee_display_bright_max EEMEM = 8;
+uint8_t ee_display_bright_max EEMEM = 6;
 uint8_t ee_display_off_threshold EEMEM = 0;
 #else
 uint8_t ee_display_brightness EEMEM = 1;

@@ -35,6 +35,7 @@ boasts the following improvements over the official Adafruit firmware:
   - no beeping or time loss after external power failure
   - 4-fold or 25-fold* increase in backup battery life
   - low battery warning before battery failure
+  - larger range for user-configured display brightness
   - per-digit brightness adjustment for uneven displays
   - automatic brightness control by ambient light*
   - optionally disable display during specified time periods

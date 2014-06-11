@@ -368,7 +368,7 @@
 // disable automatic drift correction.
 //
 //
-// #define AUTODRIFT_PRELOAD  255
+#define AUTODRIFT_PRELOAD  2300
 // #define AUTODRIFT_CONSTANT 0
 
 
