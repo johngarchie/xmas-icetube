@@ -108,6 +108,12 @@ enum {
 };
 
 
+// status flag to be set when the display is about to transition
+// this flag may be cleared as soon as the display code takes
+// over the transition (e.g. after display_transition() is called)
+#define MODE_DISPLAY_PRETRANSITION 0x01
+
+
 #define MODE_TMP_YEAR  0
 #define MODE_TMP_MONTH 1
 #define MODE_TMP_DAY   2
@@ -125,6 +131,7 @@ enum {
 
 
 typedef struct {
+    uint8_t  status; // mode status flags
     uint8_t  state;  // name of current state
     uint16_t timer;  // time in current state (semiseconds)
     int8_t  tmp[3];  // place to store temporary data

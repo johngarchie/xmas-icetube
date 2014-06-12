@@ -1749,13 +1749,13 @@ void mode_semitick(void) {
 			case TIME_TIMEFORMAT_HH_MM_PM:
 			case TIME_TIMEFORMAT_HH_MM_P:
 			    mode_update(MODE_CFGREGN_TIMEFMT_COLON,
-					DISPLAY_TRANS_INSTANT);
+					DISPLAY_TRANS_UP);
 			    break;
 			case TIME_TIMEFORMAT_HHMMSS_split:
 			case TIME_TIMEFORMAT_HHMMSSPM:
 			case TIME_TIMEFORMAT_HHMMSSP:
 			    mode_update(MODE_CFGREGN_TIMEFMT_DOT,
-					DISPLAY_TRANS_INSTANT);
+					DISPLAY_TRANS_UP);
 			    break;
 			default:
 			    mode_update(MODE_CFGREGN_TIMEFMT_SHOWDST,
@@ -1788,6 +1788,7 @@ void mode_semitick(void) {
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
 			time_loadtimeformat();
+			mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    } else {
 			switch(mode.timer & 0x01FF) {
 			    case 0:
@@ -2173,6 +2174,7 @@ void mode_snoozing(void) {
 void mode_update(uint8_t new_state, uint8_t disp_trans) {
     PGM_P pstr_ptr;
 
+    mode.status |= MODE_DISPLAY_PRETRANSITION;
     mode.timer = 0;
     mode.state = new_state;
 
@@ -2696,6 +2698,8 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
     mode.state = new_state;
 
     display_transition(disp_trans);
+
+    mode.status &= ~MODE_DISPLAY_PRETRANSITION;
 }
 
 
@@ -2826,8 +2830,11 @@ void mode_time_display_semitick(void) {
 #endif  // GPS_TIMEKEEPING
 
 	// update display manually to save microcontroller cycles
-	display.postbuf[8] = display.prebuf[8];
-	display.postbuf[7] = display.prebuf[7];
+	if(!(mode.status & MODE_DISPLAY_PRETRANSITION
+		    || display.trans_type != DISPLAY_TRANS_NONE)) {
+	    display.postbuf[8] = display.prebuf[8];
+	    display.postbuf[7] = display.prebuf[7];
+	}
     }
 }
 
