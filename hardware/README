@@ -1,21 +1,20 @@
 ####################################
-## xmas-icetube Hardware Revision ##
+## XMAS-ICETUBE HARDWARE REVISION ##
 ####################################
 
-The xmas-icetube hardware revision is a redesign of the Adafruit Ice Tube
-Clock and is discussed in the following thread:
+The xmas-icetube hardware revision is a revision of the Adafruit Ice Tube
+Clock v1.1 hardware design to support many of the hacks and mods that have
+been posted to the Adafruit forums over the years.  The original circuit
+board has been extensively revised, but the case and overall look of the
+clock is nearly identical to the original design.
+
+The xmas-icetube hardware revision is discussed in the following thread:
 
     http://forums.adafruit.com/viewtopic.php?t=43836
 
-The current versions of the xmas-icetube custom parts are:
-
-  - main board   (Rev. D)
-  - side board   (Rev. C)
-  - acrylic case (Rev. A)
-
 
 ##############
-## Features ##
+## FEATURES ##
 ##############
 
 The xmas-icetube revision has the following improvements over the original
@@ -96,23 +95,15 @@ xmas-icetube revision is not compatible with firmwares developed
 specifically for the Adafruit clock.
 
 
-##############################
-## Editing the Design Files ##
-##############################
-
-The board revisions can be opened and and modified with Eagle,
-which is available from CadSoft:
-
-    http://www.cadsoftusa.com/
-
-The case revision may be viewed and modified in Inkscape:
-
-    http://inkscape.org/
-
-
 ##########################
-## Collecting the Parts ##
+## COLLECTING THE PARTS ##
 ##########################
+
+The current versions of the xmas-icetube custom parts are:
+
+  - main board   (Rev. D)
+  - side board   (Rev. C)
+  - acrylic case (Rev. A)
 
 I ordered my circuit boards from OSH Park and have shared those uploads
 in case others would like to do the same:
@@ -128,9 +119,9 @@ See the enclosed bill of materials (BOM.csv) for a complete parts list,
 including manufacturers, suppliers, and part numbers.
 
 
-#######################
-## Construction Tips ##
-#######################
+########################
+## BUILDING THE CLOCK ##
+########################
 
 For aesthetic reasons, the xmas-icetube design uses TO-92 packages for the
 voltage regulators, so their ability to burn off excess voltage is limited.
@@ -209,8 +200,22 @@ parts in each section.
 10. Assemble the acrylic case and enjoy!
 
 
+##############################
+## EDITING THE DESIGN FILES ##
+##############################
+
+The board revisions can be opened and and modified with Eagle,
+which is available from CadSoft:
+
+    http://www.cadsoftusa.com/
+
+The case revision may be viewed and modified in Inkscape:
+
+    http://inkscape.org/
+
+
 ######################
-## Acknowledgements ##
+## ACKNOWLEDGEMENTS ##
 ######################
 
 The Adafruit Ice Tube Clock board was loosely based on the inGrid
@@ -239,12 +244,11 @@ the xmas-icetube hardware revision.
 
 
 #############
-## License ##
+## LICENSE ##
 #############
 
 The xmas-icetube hardware revision may be used under the Attribution-
 ShareAlike 3.0 (CC BY-SA 3.0), available from Creative Commons:
 
     http://creativecommons.org/licenses/by-sa/3.0/
-
 

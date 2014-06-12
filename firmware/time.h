@@ -131,9 +131,14 @@ typedef struct {
     // seconds; positive values indicate the clock is fast; negative values,
     // slow; 0 indicates no adjustment need be made
 
-    uint16_t drift_adjust_timer; // incremented every second; when
-    // drift_adjust_timer equals abs(drift_adjust), time is adjusted by
-    // 1/128 seconds and the timer is reset to zero
+    uint16_t drift_adjust_timer; // decremented every second; when
+    // drift_adjust_timer equals zero, time is adjusted by 1/128
+    // seconds and the timer is reset to abs(drift_adjust).
+
+#ifdef AUTODRIFT_SLEEP
+    uint16_t drift_sleepadjust_timer;  // like drift_adjust timer,
+    // but for the additional drift correction applied during sleep
+#endif  // AUTODRIFT_SLEEP
 
 #ifndef AUTODRIFT_CONSTANT
     int32_t drift_delta_seconds; // when clock is set, the difference between

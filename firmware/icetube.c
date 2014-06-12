@@ -72,8 +72,6 @@ uint8_t semitick_successful = 1;
 int main(void) {
     cli();  // disable interrupts until system initialized
 
-    //OSCCAL = 0;
-
     // initialize the system: each init function leaves
     // the system in a low-power configuration
     system_init();
@@ -86,6 +84,10 @@ int main(void) {
     mode_init();
     gps_init();
     temp_init();
+
+    // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
+    // An 8 or 4 MHz clock is unstable at 1.7v, but a 2 MHz clock is okay:
+    clock_prescale_set(clock_div_4);
 
     // if on battery power, sleep until external power restored
     if(system_power() == SYSTEM_BATTERY) {
@@ -118,9 +120,8 @@ int main(void) {
 }
 
 
-// counter0 compare match interrupt
-// triggered every second
-// counter0 is clocked by the clock crystal
+// timer2 compare match interrupt
+// timer2 is clocked by the clock crystal and triggered once per second
 ISR(TIMER2_COMPB_vect) {
     NONATOMIC_BLOCK(NONATOMIC_FORCEOFF) {
 	if(system.status & SYSTEM_SLEEP) {
@@ -204,7 +205,7 @@ ISR(ANALOG_COMP_vect) {
     usart_sleep();    // disable usart
     piezo_sleep();    // adjust buzzer timer for slower clock
     temp_sleep();     // disable temperature sensor
-    system_sleep();   // does nothing
+    system_sleep();   // reset sleep/wake timer
 
     // the bod settings allow the clock to run a battery down to 1.7 - 2.0v.
     // An 8 or 4 MHz clock is unstable at 1.7v, but a 2 MHz clock is okay:
@@ -218,13 +219,13 @@ ISR(ANALOG_COMP_vect) {
 
     sei();  // allow interrupts
 
-    system_wake();   // does nothing
-    temp_wake();     // enable temperature sensor
+    system_wake();   // reset sleep/wake timer
+    temp_wake();     // does nothing
     piezo_wake();    // adjust buzzer for faster clock
-    mode_wake();     // update display contents when necessary
-    buttons_wake();  // enable button pull-ups
+    mode_wake();     // update display contents
+    buttons_wake();  // enable button inputs & pull-ups
     alarm_wake();    // enable alarm switch pull-up
-    usart_wake();    // enable and configure usart
+    usart_wake();    // enable usart
     gps_wake();      // enable usart rx interrupt
     display_wake();  // start boost timer and enable display
 }

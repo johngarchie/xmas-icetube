@@ -64,7 +64,7 @@ void mode_tick(void) {
 		if(system.initial_mcusr & _BV(WDRF)) {
 		    display_pstr(0, PSTR("wdt rset"));
 		} else if(system.initial_mcusr & _BV(EXTRF)) {
-		    display_pstr(0, PSTR("ext rset"));
+		    display_pstr(0, PSTR("pin rset"));
 		} else if(system.initial_mcusr & _BV(PORF)) {
 		    display_pstr(0, PSTR("pwr rset"));
 		} else if(system.initial_mcusr & _BV(BORF)) {
@@ -83,6 +83,13 @@ void mode_tick(void) {
 		display_pstr(0, PSTR("gps lost"));
 		display_transition(DISPLAY_TRANS_INSTANT);
 #endif  // GPS_TIMEKEEPING
+#ifdef TEMPERATURE_SENSOR
+	    } else if(system.sleep_wake_timer > 2
+		    && temp.status & TEMP_CONV_INVALID
+		    && time.second & 0x01) {
+		display_pstr(0, PSTR("temp err"));
+		display_transition(DISPLAY_TRANS_INSTANT);
+#endif  // TEMPERATURE_SENSOR
 	    } else {
 		if(time.scroll_delay && time.second % time.scroll_delay == 1) {
 		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
@@ -1512,34 +1519,37 @@ void mode_semitick(void) {
 		case BUTTONS_MENU:
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
-		case BUTTONS_SET:
-		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-			uint8_t autodst = *mode.tmp & TIME_AUTODST_MASK;
+		case BUTTONS_SET: ;
+		    uint8_t new_autodst = *mode.tmp & TIME_AUTODST_MASK;
 
-			if(autodst) {
-			    time_autodst(FALSE);
-			} else {
-			    if(*mode.tmp & TIME_DST) {
-				time_dston(TRUE);
-			    } else {
-				time_dstoff(TRUE);
+		    switch(new_autodst) {
+			case TIME_AUTODST_USA:
+			    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+				time.status &= ~TIME_AUTODST_MASK;
+				time.status |= new_autodst;
+				time_savestatus();
+				time_autodst(FALSE);
 			    }
-			}
-
-			time.status = *mode.tmp;
-			time_savestatus();
-
-			switch(autodst) {
-			    case TIME_AUTODST_USA:
-			    case TIME_AUTODST_NONE:
-				mode_update(MODE_TIME_DISPLAY,
-					    DISPLAY_TRANS_UP);
-				break;
-			    default:  // GMT, CET, or EET
-				mode_update(MODE_CFGREGN_SETDST_ZONE,
-					    DISPLAY_TRANS_UP);
-				break;
-			}
+			    mode_update(MODE_TIME_DISPLAY,
+				    DISPLAY_TRANS_UP);
+			    break;
+			case TIME_AUTODST_NONE:
+			    ATOMIC_BLOCK(ATOMIC_FORCEON) {
+				time.status &= ~TIME_AUTODST_MASK;
+				time_savestatus();
+				if(*mode.tmp & TIME_DST) {
+				    time_dston(TRUE);
+				} else {
+				    time_dstoff(TRUE);
+				}
+			    }
+			    mode_update(MODE_TIME_DISPLAY,
+				    DISPLAY_TRANS_UP);
+			    break;
+			default:  // GMT, CET, or EET
+			    mode_update(MODE_CFGREGN_SETDST_ZONE,
+				    DISPLAY_TRANS_UP);
+			    break;
 		    }
 		    break;
 		case BUTTONS_PLUS:
@@ -1592,9 +1602,10 @@ void mode_semitick(void) {
 		    break;
 		case BUTTONS_SET:
 		    ATOMIC_BLOCK(ATOMIC_FORCEON) {
-			time.status = *mode.tmp;
-			time_autodst(FALSE);
+			time.status &= ~TIME_AUTODST_MASK;
+			time.status |= *mode.tmp & TIME_AUTODST_MASK;
 			time_savestatus();
+			time_autodst(FALSE);
 		    }
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 		    break;
@@ -1699,8 +1710,6 @@ void mode_semitick(void) {
 		    break;
 		case BUTTONS_SET:
 		    if(*mode.tmp & TIME_TIMEFORMAT_12HOUR) {
-			*mode.tmp |= TIME_TIMEFORMAT_SHOWAMPM;
-
 			if(*mode.tmp <= TIME_TIMEFORMAT_HH_MM) {
 			    *mode.tmp |= TIME_TIMEFORMAT_SHOWAMPM;
 			} else {
@@ -1740,13 +1749,13 @@ void mode_semitick(void) {
 			case TIME_TIMEFORMAT_HH_MM_PM:
 			case TIME_TIMEFORMAT_HH_MM_P:
 			    mode_update(MODE_CFGREGN_TIMEFMT_COLON,
-					DISPLAY_TRANS_INSTANT);
+					DISPLAY_TRANS_UP);
 			    break;
 			case TIME_TIMEFORMAT_HHMMSS_split:
 			case TIME_TIMEFORMAT_HHMMSSPM:
 			case TIME_TIMEFORMAT_HHMMSSP:
 			    mode_update(MODE_CFGREGN_TIMEFMT_DOT,
-					DISPLAY_TRANS_INSTANT);
+					DISPLAY_TRANS_UP);
 			    break;
 			default:
 			    mode_update(MODE_CFGREGN_TIMEFMT_SHOWDST,
@@ -1769,8 +1778,6 @@ void mode_semitick(void) {
 			if(++(*mode.tmp) > TIME_TIMEFORMAT_HH_MM) {
 			    *mode.tmp = TIME_TIMEFORMAT_HH_MM_SS;
 			}
-
-			time.timeformat_flags &= ~TIME_TIMEFORMAT_SHOWAMPM;
 		    }
 
 		    time.timeformat_idx = *mode.tmp;
@@ -1781,6 +1788,7 @@ void mode_semitick(void) {
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
 			time_loadtimeformat();
+			mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    } else {
 			switch(mode.timer & 0x01FF) {
 			    case 0:
@@ -1831,7 +1839,6 @@ void mode_semitick(void) {
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    time_loadtimeformat();
-		    display_loadcolonstyle();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
@@ -1846,7 +1853,6 @@ void mode_semitick(void) {
 		default:
 		    if(mode.timer == MODE_TIMEOUT) {
 			time_loadtimeformat();
-			display_loadcolonstyle();
 		    }
 		    break;
 	    }
@@ -1855,6 +1861,7 @@ void mode_semitick(void) {
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    time_loadtimeformat();
+		    display_loadcolonstyle();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
@@ -1892,6 +1899,7 @@ void mode_semitick(void) {
 	    switch(btn) {
 		case BUTTONS_MENU:
 		    time_loadtimeformat();
+		    display_loadcolonstyle();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_DOWN);
 		    break;
 		case BUTTONS_SET:
@@ -2166,6 +2174,7 @@ void mode_snoozing(void) {
 void mode_update(uint8_t new_state, uint8_t disp_trans) {
     PGM_P pstr_ptr;
 
+    mode.status |= MODE_DISPLAY_PRETRANSITION;
     mode.timer = 0;
     mode.state = new_state;
 
@@ -2689,6 +2698,8 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
     mode.state = new_state;
 
     display_transition(disp_trans);
+
+    mode.status &= ~MODE_DISPLAY_PRETRANSITION;
 }
 
 
@@ -2799,9 +2810,31 @@ void mode_time_display_tick(void) {
 void mode_time_display_semitick(void) {
     if(time.timeformat_idx == TIME_TIMEFORMAT_HHMMSS_split) {
 	display_twodigit_zeropad(7, (((uint16_t)100 * TCNT2) >> 7));
+
+	if(time.timeformat_flags & TIME_TIMEFORMAT_SHOWAMPM) {
+	    if(time.timeformat_flags & TIME_TIMEFORMAT_SHOWDST) {
+		// show rightmost decimal if dst
+		display_dot(8, time.status & TIME_DST);
+	    }
+#ifdef GPS_TIMEKEEPING
+	    else if(time.timeformat_flags & TIME_TIMEFORMAT_SHOWGPS) {
+		display_dot(8, gps.status & GPS_SIGNAL_GOOD);
+	    }
+#endif  // GPS_TIMEKEEPING
+	}
+#ifdef GPS_TIMEKEEPING
+	else if(time.timeformat_flags & TIME_TIMEFORMAT_SHOWDST
+		&& time.timeformat_flags & TIME_TIMEFORMAT_SHOWGPS) {
+	    display_dot(8, gps.status & GPS_SIGNAL_GOOD);
+	}
+#endif  // GPS_TIMEKEEPING
+
 	// update display manually to save microcontroller cycles
-	display.postbuf[8] = display.prebuf[8];
-	display.postbuf[7] = display.prebuf[7];
+	if(!(mode.status & MODE_DISPLAY_PRETRANSITION
+		    || display.trans_type != DISPLAY_TRANS_NONE)) {
+	    display.postbuf[8] = display.prebuf[8];
+	    display.postbuf[7] = display.prebuf[7];
+	}
     }
 }
 

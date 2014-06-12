@@ -531,7 +531,7 @@ void piezo_buzzeroff(void) {
     PORTB &= ~_BV(PB2) & ~_BV(PB1);
     
     while(TCCR1B) {
-	ATOMIC_BLOCK(ATOMIC_FORCEON) {
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 	    if(counter_low < TCNT1 && TCNT1 < counter_mid) {
 		// wait until counter is midway to ensure OC1A and OC2B
 		// are both off (reduces clicking noise)

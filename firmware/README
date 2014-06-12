@@ -1,25 +1,21 @@
 ###########################
-## xmas-icetube Firmware ##
+## XMAS-ICETUBE FIRMWARE ##
 ###########################
 
-My father gave me an Ice Tube Clock kit from Adafruit as a Christmas gift
-last year.  As an excuse to learn AVR programming, I started playing with
-the software.  Eventually, none of the original code remained and the project
-became a feature-rich reimplementation of the original Adafruit firmware.
-
-  John Archie <www.jarchie.com>
-  December 27, 2012
+The xmas-icetube firmware is a complete reimplementation of the Adafruit
+Ice Tube Clock firmware and runs on *both* the Adafruit Ice Tube Clock v1.1
+and the xmas-icetube hardware revision.  Since most users will be using the
+xmas-icetube firmware on the Adafruit Ice Tube Clock v1.1, the default
+firmware configuration is set for the Adafruit clock.
 
 
 ##############
 ## FEATURES ##
 ##############
 
-This firmware works with the Adafruit Ice Tube Clock v1.1 as well as the
-xmas-icetube hardware revision.  Many of the features in the xmas-icetube
-firmware were first implemented in other firmware projects; see the CREDITS
-file for details.  This firmware boasts the following improvements over the
-official Adafruit firmware:
+Many of the features in the xmas-icetube firmware were first implemented in
+other firmware projects; see the CREDITS file for details.  This firmware
+boasts the following improvements over the official Adafruit firmware:
 
   - animated display transitions
   - multiple time and date formats
@@ -39,18 +35,20 @@ official Adafruit firmware:
   - no beeping or time loss after external power failure
   - 4-fold or 25-fold* increase in backup battery life
   - low battery warning before battery failure
+  - larger range for user-configured display brightness
   - per-digit brightness adjustment for uneven displays
   - automatic brightness control by ambient light*
   - optionally disable display during specified time periods
   - optionally disable display at night (when dark)*
   - IV-18 VFD tube driven to specifications*
 
-*  These hacks require hardware modification and support must be enabled by
-   uncommenting macros in config.h.  See the HACKS AND MODS section of this
-   file as well as the comments in config.h for more information.
+*  For the Adafruit Ice Tube Clock v1.1, these hacks require hardware
+   modification and support must be enabled by uncommenting macros in
+   config.h.  See the HACKS AND MODS section of this file as well as the
+   comments in config.h for more information.
 
 
-For Ice Tube Clock hackers, this firmware has
+For clock hackers, this firmware has
 
     (1) compatibility with the ATMEGA328P,
     (2) a pseudo object-oriented design,
@@ -222,6 +220,60 @@ The Adafruit Clocks forums is an excellent place to ask for help:
   http://forums.adafruit.com/viewforum.php?f=41
 
 
+:: Reset and Diagnostic Messages ::
+
+After a reset, the microcontroller will examine MCUSR (microcontroller
+unit status register) to determine the reason for the reset, and the
+display will alternate between the restored time and a message showing
+the cause of the reset.  Reset messages can be dismissed by setting
+the time, as the time is usually wrong after a reset.
+
+  "bod rset" (brown out detection reset):  The clock was reset due to
+      insufficient voltage.  This usually happens when power is lost
+      and the backup battery is nearly dead.
+
+  "pin rset" (external reset):  The clock was reset by an external
+      signal to the microcontroller reset pin (pin 1).  Programming
+      the clock through the ISP header will trigger an external reset.
+      Accidently shorting the reset pin to ground will do the same.
+      This message used to read "ext rset", but the "x" looked more
+      like an "H".
+
+  "pwr rset" (power reset):  The clock started up after a complete
+      power loss.  This usually happens if the clock loses external
+      with without a backup battery or with a completely dead backup
+      battery.
+
+  "wdt rset" (watchdog timer reset):  During normal operation the
+      clock will periodically reset the watchdog timer.  If this
+      timer expires, the clock is behaving abnormally and will reset
+      itself in an attempt to fix the problem.  Usually watchdog timer
+      resets are caused by problems with the crystal oscillator; see
+      the troubleshooting entry on crystal oscillator problems.
+
+  "oth rset" (other reset):  If no flags were set in MCUSR to indicate
+      the cause of the reset, the display will flash "oth rest".  In
+      theory this should never happen.
+
+The clock might also flash one of the following status messages:
+
+  "bad batt" (low battery warning):  The microcontroller checks
+      the system voltage whenever the clock sleeps for more than ten
+      minutes.  When the battery is low, the display will flash
+      "bad batt" after the clock wakes, and the message can be
+      dismissed by pressing any button.
+
+  "gps lost" (GPS signal lost; only applies if GPS_TIMEKEEPING was
+      defined in config.h):  The clock is receiving data from the GPS,
+      but the GPS has been unable to acquire a signal for at least
+      three minutes.
+
+  "temp err" (temperature sensor error; only applies if
+      TEMPERATURE_SENSOR was defined in config.h):  If the
+      microcontroller is unable to communicate with the temperature
+      sensor, the display will flash "temp err".
+
+
 :: Programming Fails with an Arduino Chip ::
 
 The Arduino Uno chip is an ATMEGA328P, but will not work in an Ice
@@ -243,20 +295,47 @@ This method is also described in the following thread:
   http://forums.adafruit.com/viewtopic.php?p=184722#p184722
 
 
+:: Other Programming Failures ::
+
+First, ensure that the hardware is connected properly, as described in the
+installation instructions above.  Second, double check the Makefile
+configuration section, paying particular attention to the AVRISP and
+AVRDUDEOPT macros.  Third, try programming the chip at a lower bit rate by
+changing the "-B 2" option to "-B 25" in the AVRDUDEOPT macro:
+
+  AVRDUDEOPT ?= -B 25 -P usb -c $(AVRISP) -p $(AVRMCU)
+
+Fourth, if the chip cannot be programmed in the clock, try programming it
+in a development board such as the Arduino Uno.  Finally, it's possible
+that the chip is somehow damaged or bricked; usually, the simplest solution
+is to simply replace the ATmega328p with a new chip and try again.
+
+
 :: Dim Digits ::
 
-The per-digit brightness control in the xmas-icetube firmware provides one
-way to increase the brightness of dim digits, but a dim initial or final
-digit is typically caused by low voltage across the VFD filament.  The
-easiest way to increase filament current is to replace R3 with a jumper:
+The per-digit brightness control in the xmas-icetube firmware provides
+one way to increase the brightness of dim digits.
 
-  http://forums.adafruit.com/viewtopic.php?p=179107#p179107
+With Adafruit clocks, a dim initial or final digit is almost
+invariably due to insufficient filament current.  In those cases,
+increasing filament current usually produces better results, but
+increasing current may also introduce a brightness gradient across the
+display when the menu-configured brightness level is low.  To find the
+optimal current for a given clock, a good approach is to gradually
+increase current across the filament until all digits have consistent
+brightness at the highest menu-configured brightness setting:
 
-That solution seems to work well in practice, but also causes the voltage
-provided to the VFD driver chip to drop below the minimum allowed voltage
-specified in the datasheet.  A better solution is to replace Q3 with a
-P-FET that outputs more current to the filament.  I recommend using the
-ZVP2110A available from Digi-Key or Mouser.
+First, upgrade Q3 to a FET capable of supplying more current.  One
+such FET is the ZVP2110A available from Digi-Key or Mouser.  If the
+digit remains dim after upgrading Q3, replace R3 with an 11 ohm
+resistor to further increase current.  And if the digit is still dim,
+replace R3 with a jumper.
+
+Note that Q3 provides power to both the filament and VFD driver chip.
+Replacing R3 with a jumper or smaller resistor without first upgrading
+Q3 will increase filament current, but might also result in an
+insufficient logic supply voltage to the VFD driver chip.  That, in
+turn, could cause faulty display operation.
 
 
 :: Flaky Segments ::
@@ -264,19 +343,24 @@ ZVP2110A available from Digi-Key or Mouser.
 On some Adafruit clocks, display segments are flaky.  The exact symptoms
 vary depending on the particular clock, but most commonly, the clock will
 start normally and segments will quickly stop working until few or no
-segments are active.  The following thread describes this problem and
-several solutions in more detail:
+segments are active.  Also common is a display that only shows one or two
+blinking segments.  But occasionally the symptoms are more bizarre such as
+a display with all digits and segments continuously lit or a single digit
+going blank at a certain time.  The following threads describe the flaky
+segment problem and several solutions in more detail:
 
   http://forums.adafruit.com/viewtopic.php?f=41&t=47733
+  http://forums.adafruit.com/viewtopic.php?f=41&t=49619
+  http://forums.adafruit.com/viewtopic.php?f=41&t=50823
+  http://forums.adafruit.com/viewtopic.php?f=41&t=51207
 
-The flaky digit problem can be solved by replacing Q3.  Although Adafruit
+The flaky segment problem can be solved by replacing Q3.  Although Adafruit
 will provide a free replacement for Q3, I recommend replacing Q3 with a
-better P-FET, such as the ZVP2110A available from Digi-Key or Mouser.
+better FET, such as the ZVP2110A available from Digi-Key or Mouser.
 
-By providing additional current across the VFD filament, the ZVP2110A will
-also eliminate the dim digit problem described in the previous trouble
-shooting entry.  In addition, the ZVP2110A extend tube life by slowing
-cathode poisoning.
+By providing additional current across the VFD filament, the ZVP2110A
+will also eliminate the dim digit problem described in the previous
+entry as well as extending tube life by slowing cathode poisoning.
 
 
 :: Nonfunctional Drift Correction ::
@@ -298,20 +382,51 @@ correction method is quite robust:
     http://forums.adafruit.com/viewtopic.php?p=178611#p178611
 
 
-:: Unstable Crystal Oscillator ::
+:: Crystal Oscillator Problems ("wdt rset") ::
 
-In the Adafruit kit, oscillator caps C8 and C9 are a bit large.
-Usually this only means that the clock consistently runs slow, losing
-a few seconds each day.  When the time is periodically corrected, the
-automatic drift correction detects that the clock is running slow and
-compensates timekeeping accordingly.
+The ATmega328p is more prone to oscillator issues than the ATmega168v,
+and users occasionally encounter oscillator problems after upgrading.
 
-Much less commonly, the quartz oscillator will not function--or much
-worse--operate intermittently.  Faulty operation causes time loss
-and/or clock resets.  After such a reset, the clock will periodically
-display "wdt rset" to warn of time loss.  This message indicates that
-the watchdog timer ("wdt") has expired and the watchdog circuit has
-reset ("rset") the clock.  The most straightforward solution to this
-problem is to replace C8 and C9 with 10 pF caps:
+Oscillator problems usually result in inconsistent timekeeping; the
+clock may keep time one day, but not another.  When oscillator
+problems are severe, the microcontroller's watchdog circuit will
+detect that time is not advancing and reset the clock in an attempt to
+fix the problem.  After such a reset, the clock will beep and display
+"wdt rset" to indicate possible time loss due to a watchdog reset.
 
-  http://forums.adafruit.com/viewtopic.php?p=189366#p189366
+Fixing oscillator issues requires some trial and error, but following
+the procedure below will likely fix the problem.
+
+First, excess flux or burnt flux can cause oscillator problems.
+Sometimes cleaning the board thoroughly with flux cleaner--or simply
+alcohol and a toothbrush--will solve the problem.
+
+Second, the 20 pF oscillator capacitors included in the Adafruit kit
+are a bit large. Replacing C8 and C9 with with 10 pF caps will
+sometimes fix the oscillator.  Even if the clock is functioning
+normally, installing 10 pF caps will increase timekeeping accuracy.
+
+Finally, replacing the crystal will sometimes resolve the issue.  The
+replacement should be another 32.768 kHz crystal with a 12.5 pF load
+capacitance and equivalent series resistance of 30 kOhm or less.  The
+AB38T-32.768KHZ is a good choice and is available from Digi-Key or
+Mouser.  When installing and soldering the crystal, gently push the
+crystal through the circuit board until there is 2-3 mm of space
+between the bottom of the crystal and the circuit board.  Leaving this
+space prevents undue stress on the leads which could damage the
+crystal; it also ensures solder will not make unwanted electrical
+contact with the metallic crystal housing.
+
+The following threads provide more information on oscillator issues
+after upgrading to the ATmega328p:
+
+    http://forums.adafruit.com/viewtopic.php?p=189366#p189366
+    http://forums.adafruit.com/viewtopic.php?f=41&t=51960
+
+
+#############
+## LICENSE ##
+#############
+
+The xmas-icetube firmware may be used as described in the LICENSE file.
+
