@@ -212,6 +212,9 @@ void alarm_tick(void) {
 
 	    if(alarm.status & ALARM_SOUNDING_PULSE) {
 		display.status |= DISPLAY_PULSING;
+	    } else {
+		display.status &= ~DISPLAY_PULSING;
+		display_autodim();
 	    }
 
 	    if(system.status & SYSTEM_SLEEP) {
@@ -318,7 +321,9 @@ uint8_t alarm_onbutton(void) {
 	alarm.status &= ~ALARM_SOUNDING;
 	alarm.status |=  ALARM_SNOOZE;
 	alarm.alarm_timer = 0;
-	if(! (alarm.status & ALARM_SNOOZING_PULSE)) {
+	if(alarm.status & ALARM_SNOOZING_PULSE) {
+	    display.status |=  DISPLAY_PULSING;
+	} else {
 	    display.status &= ~DISPLAY_PULSING;
 	    display_autodim();
 	}

@@ -77,7 +77,9 @@ nested structure.
     Change the snooze time (minutes).
 
   "a. pulse"
-    Enable or disable display brightness pulsing during alarm and snooze.
+    Enable display brightness pulsing during alarm and snooze ("puls  on"),
+    alarm only ("puls alr"), snooze only ("puls snz"), or neither
+    ("puls off").
 
 
 "cfg disp"  --  Configure the Display

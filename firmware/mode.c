@@ -819,9 +819,10 @@ void mode_semitick(void) {
 	    break;
 	case MODE_CFGALARM_SETHEARTBEAT_MENU: ;
 	    void menu_cfgalarm_setheartbeat_init(void) {
-		*mode.tmp = alarm.status;
+		*mode.tmp = alarm.status
+		            & (ALARM_SOUNDING_PULSE | ALARM_SNOOZING_PULSE);
 
-		if(*mode.tmp & ALARM_SOUNDING_PULSE) {
+		if(*mode.tmp) {
 		    display.status |=  DISPLAY_PULSING;
 		} else {
 		    display.status &= ~DISPLAY_PULSING;
@@ -850,24 +851,33 @@ void mode_semitick(void) {
 		case BUTTONS_SET:
 		    display.status &= ~DISPLAY_PULSING;
 		    display_autodim();
-		    if(*mode.tmp & ALARM_SOUNDING_PULSE) {
-			alarm.status |=  ALARM_SOUNDING_PULSE;
-			alarm.status |=  ALARM_SNOOZING_PULSE;
-		    } else {
-			alarm.status &= ~ALARM_SOUNDING_PULSE;
-			alarm.status &= ~ALARM_SNOOZING_PULSE;
-		    }
+		    alarm.status &= (  ~ALARM_SOUNDING_PULSE
+			             & ~ALARM_SNOOZING_PULSE);
+		    alarm.status |= *mode.tmp;
 		    alarm_savestatus();
 		    mode_update(MODE_TIME_DISPLAY, DISPLAY_TRANS_UP);
 		    break;
 		case BUTTONS_PLUS:
-		    if(*mode.tmp & ALARM_SOUNDING_PULSE) {
-			*mode.tmp      &= ~ALARM_SOUNDING_PULSE;
+		    switch(*mode.tmp) {
+			case ALARM_SOUNDING_PULSE | ALARM_SNOOZING_PULSE:
+			    *mode.tmp = ALARM_SOUNDING_PULSE;
+			    break;
+			case ALARM_SOUNDING_PULSE:
+			    *mode.tmp = ALARM_SNOOZING_PULSE;
+			    break;
+			case ALARM_SNOOZING_PULSE:
+			    *mode.tmp = 0;
+			    break;
+			default:
+			    *mode.tmp =   ALARM_SOUNDING_PULSE
+				        | ALARM_SNOOZING_PULSE;
+			    break;
+		    }
+		    if(*mode.tmp) {
+			display.status |=  DISPLAY_PULSING;
+		    } else {
 			display.status &= ~DISPLAY_PULSING;
 			display_autodim();
-		    } else {
-			*mode.tmp      |= ALARM_SOUNDING_PULSE;
-			display.status |= DISPLAY_PULSING;
 		    }
 		    mode_update(MODE_CFGALARM_SETHEARTBEAT_TOGGLE,
 			        DISPLAY_TRANS_INSTANT);
@@ -2383,10 +2393,19 @@ void mode_update(uint8_t new_state, uint8_t disp_trans) {
 	    display_dot(1, TRUE);
 	    break;
 	case MODE_CFGALARM_SETHEARTBEAT_TOGGLE:
-	    if(*mode.tmp & ALARM_SOUNDING_PULSE) {
-		pstr_ptr = PSTR("on");
-	    } else {
-		pstr_ptr = PSTR("off");
+	    switch(*mode.tmp) {
+		case ALARM_SOUNDING_PULSE | ALARM_SNOOZING_PULSE:
+		    pstr_ptr = PSTR("on");
+		    break;
+		case ALARM_SOUNDING_PULSE:
+		    pstr_ptr = PSTR("alr");
+		    break;
+		case ALARM_SNOOZING_PULSE:
+		    pstr_ptr = PSTR("snz");
+		    break;
+		default:
+		    pstr_ptr = PSTR("off");
+		    break;
 	    }
 	    mode_texttext_display(PSTR("puls"), pstr_ptr);
 	    break;
@@ -2800,7 +2819,7 @@ void mode_time_display_tick(void) {
     // show alarm status with leftmost dash
     display_dash(0, alarm.status & ALARM_SET
 		    && ( !(alarm.status & (ALARM_SOUNDING | ALARM_SNOOZE))
-		    || time.second & 0x01));
+		    || time.second & 0x01 || display.status & DISPLAY_PULSING));
 
     mode_time_display_semitick();
 }
