@@ -227,8 +227,10 @@ void alarm_tick(void) {
 	    }
 
 	    piezo_setvolume(alarm.volume, 0);
-
 	    piezo_alarm_start();
+
+	    // ensure display is enabled if power present
+	    display_onbutton();
 	}
     }
 }
