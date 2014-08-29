@@ -520,6 +520,11 @@ void time_springforward(void) {
 	    time.month = 1;
 	    ++time.year;
 	}
+
+#ifndef AUTODRIFT_CONSTANT
+	// update automatic drift correction time to reflect change
+	time.drift_total_seconds += 24L * 60L * 60L;  // seconds in a day
+#endif  // ~AUTODRIFT_CONSTANT
     }
 }
 
@@ -544,6 +549,11 @@ void time_fallback(void) {
 	}
 
 	time.day = time_daysinmonth(time.year, time.month);
+
+#ifndef AUTODRIFT_CONSTANT
+	// update automatic drift correction time to reflect DST change
+	time.drift_total_seconds -= 24L * 60L * 60L;  // seconds in a day
+#endif  // ~AUTODRIFT_CONSTANT
     }
 }
 

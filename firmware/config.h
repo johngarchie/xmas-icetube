@@ -170,7 +170,7 @@
 //
 //
 #define OCR0A_MIN   20
-#define OCR0A_SCALE 14
+#define OCR0A_SCALE 11
 #define OCR0A_MAX OCR0A_MIN + 10 * OCR0A_SCALE
 
 
