@@ -90,8 +90,8 @@ void buttons_sleep(void) {
 
     // set to output (clamp to ground)
     MENU_DDR |= _BV(MENU_BIT);
-    SET_DDR  |= _BV(SET_DDR);
-    PLUS_DDR |= _BV(PLUS_DDR);
+    SET_DDR  |= _BV(SET_BIT);
+    PLUS_DDR |= _BV(PLUS_BIT);
 }
 
 
