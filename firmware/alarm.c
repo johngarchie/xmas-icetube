@@ -128,8 +128,8 @@ void alarm_sleep(void) {
 void alarm_tick(void) {
     // will be set to TRUE if alarm should be triggered
     uint8_t is_alarm_trigger = FALSE;
-
-    // check if alarm should be triggered
+    
+    // check if alarm time is now
     for(uint8_t i = 0; i < ALARM_COUNT; ++i) {
 	if((alarm.days[i] & ALARM_ENABLED)
 		&& time.hour == alarm.hours[i]
@@ -141,48 +141,50 @@ void alarm_tick(void) {
 	}
     }
 
-    // sound alarm if alarm should be triggered
-    if(is_alarm_trigger) {
-	if(system.status & SYSTEM_SLEEP) {
-	    // briefly waking the alarm will update
-	    // alarm.status from the alarm switch
-	    alarm_wake();
-	    alarm_sleep();
-	}
+    // check if snooze period is over
+    if((alarm.status & ALARM_SNOOZE)
+	    && (++alarm.alarm_timer == alarm.snooze_time)) {
+	is_alarm_trigger = TRUE;
+    }
 
-	// sound alarm if alarm is set
-	if(alarm.status & ALARM_SET) {
-	    alarm.alarm_timer = 0;
-	    alarm.status |= ALARM_SOUNDING;
-
-	    if(alarm.status & ALARM_SOUNDING_PULSE) {
-		display.status |= DISPLAY_PULSING;
-	    }
-
-	    if(system.status & SYSTEM_SLEEP) {
-		// wake user immediately to reduce alarm time,
-		// save power, and extend coin battery life
-		alarm.volume = alarm.volume_max;
-	    } else {
-		// set initial volume for progressive alarm
-		alarm.volume = alarm.volume_min;
-	    }
-
-	    piezo_setvolume(alarm.volume, 0);
-	    piezo_alarm_start();
-
-	    // ensure display is enabled if power present
-	    display_onbutton();
-	}
-    } else if(alarm.status & ALARM_SOUNDING && system.status & SYSTEM_SLEEP) {
-	// if alarm sounding and system sleeping, query alarm switch
-	// (briefly waking updates alarm.status from the alarm switch)
+    // during sleep, briefly wake alarm to query alarm switch as necessary
+    if(system.status & SYSTEM_SLEEP
+	    && (is_alarm_trigger || alarm.status & ALARM_SOUNDING)) {
 	alarm_wake();
 	alarm_sleep();
     }
 
-    // manage sounding alarm
+    // sound alarm if triggered and alarm switch is set
+    if(is_alarm_trigger && alarm.status & ALARM_SET) {
+	alarm.alarm_timer = 0;
+	alarm.status &= ~ALARM_SNOOZE;
+	alarm.status |= ALARM_SOUNDING;
+
+	if(alarm.status & ALARM_SOUNDING_PULSE) {
+	    display.status |= DISPLAY_PULSING;
+	} else {
+	    display.status &= ~DISPLAY_PULSING;
+	    display_autodim();
+	}
+
+	if(system.status & SYSTEM_SLEEP) {
+	    // wake user immediately to reduce alarm time,
+	    // save power, and extend coin battery life
+	    alarm.volume = alarm.volume_max;
+	} else {
+	    // set initial volume for progressive alarm
+	    alarm.volume = alarm.volume_min;
+	}
+
+	piezo_setvolume(alarm.volume, 0);
+	piezo_alarm_start();
+    }
+
+    // manage sounding alarm volume and timeout
     if(alarm.status & ALARM_SOUNDING) {
+	// ensure display is active
+	display_onbutton();
+
 	if(alarm.volume < alarm.volume_max) {
 	    // gradually increase volume (progressive alarm)
 	    if(alarm.alarm_timer >= alarm.ramp_int) {
@@ -201,37 +203,6 @@ void alarm_tick(void) {
 	}
 
 	++alarm.alarm_timer;
-    }
-
-    // sound alarm on snooze timeout
-    if(alarm.status & ALARM_SNOOZE) {
-	if(++alarm.alarm_timer == alarm.snooze_time) {
-	    alarm.alarm_timer  = 0;
-	    alarm.status &= ~ALARM_SNOOZE;
-	    alarm.status |=  ALARM_SOUNDING;
-
-	    if(alarm.status & ALARM_SOUNDING_PULSE) {
-		display.status |= DISPLAY_PULSING;
-	    } else {
-		display.status &= ~DISPLAY_PULSING;
-		display_autodim();
-	    }
-
-	    if(system.status & SYSTEM_SLEEP) {
-		// wake user immediately to reduce alarm time,
-		// save power, and extend coin battery life
-		alarm.volume = alarm.volume_max;
-	    } else {
-		// set initial volume for progressive alarm
-		alarm.volume = alarm.volume_min;
-	    }
-
-	    piezo_setvolume(alarm.volume, 0);
-	    piezo_alarm_start();
-
-	    // ensure display is enabled if power present
-	    display_onbutton();
-	}
     }
 }
 
