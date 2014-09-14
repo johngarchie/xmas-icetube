@@ -17,6 +17,8 @@ firmware.  If I've forgotten anyone in the list below, please let me know!
   * Phil DeGruy had several useful suggestions and helped fix a bug
     in the automatic dimming code.
 
+  * tpw_rules discovered and fixed a problem with the button sleep code.
+
   * Russell Walker suggested the "rolling colons" time display.
 
   * Justin Hayes suggested improvements to the per-digit brightness
