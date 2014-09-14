@@ -8,6 +8,11 @@ and the xmas-icetube hardware revision.  Since most users will be using the
 xmas-icetube firmware on the Adafruit Ice Tube Clock v1.1, the default
 firmware configuration is set for the Adafruit clock.
 
+The xmas-icetube firmware is discussed in the following Adafruit thread,
+which is a good place to post questions and comments:
+
+  http://forums.adafruit.com/viewtopic.php?f=41&t=34924
+
 
 ##############
 ## FEATURES ##
@@ -50,7 +55,7 @@ boasts the following improvements over the official Adafruit firmware:
 
 For clock hackers, this firmware has
 
-    (1) compatibility with the ATMEGA328P,
+    (1) compatibility with the ATmega328p,
     (2) a pseudo object-oriented design,
     (3) good source code documentation, and
     (4) display/menus by finite state machine.
@@ -63,14 +68,15 @@ For clock hackers, this firmware has
 Installation requires GNU Make, avr-libc, avr-gcc, and avrdude; the
 instructions below presume proficiency with these tools.
 
-This firmware requires the ATMEGA328P, not the ATMEGA168V included with
+This firmware requires the ATmega328p, not the ATmega168v included with
 the Adafruit kit.  Due to the many features, xmas-icetube currently
-requires 20-30 kb of program memory, but the ATMEGA168V only has 16 kb.
-The ATMEGA328P also supports picoPower features that are used to extend
-battery life by 4-fold on the Adafruit clock--and 25-fold with a minor
-hardware modification.  The ATMEGA168V does not support picoPower.
+requires around 30 kB of program memory, but the ATmega168v only has
+16 kB.  The ATmega328p also supports Atmel picoPower features that are
+used to extend battery life by 4-fold on the Adafruit clock (and
+25-fold with a minor hardware modification).  The ATmega168v does not
+support picoPower.
 
-Note that if your ATMEGA328P has an Arduino bootloader installed, it
+Note that if your ATmega328p has an Arduino bootloader installed, it
 will not work without reconfiguration.  See the TROUBLESHOOTING section
 for reconfiguration instructions.
 
@@ -113,7 +119,7 @@ using the included Makefile:
 
 (3) Connect the Programmer
 
-    Ensure the clock has an ATMEGA328P installed and not an ATMEGA168V.
+    Ensure the clock has an ATmega328p installed and not an ATmega168v.
     Unplug and disassemble the clock.  Remove the side PCB with VFD tube.
     Make sure that the AVR programmer will not provide power to the clock.
     (For the Adafruit USBtinyISP, this means ensuring that the
@@ -124,7 +130,7 @@ using the included Makefile:
 
 (4) Install the Firmware
 
-    Install this firmware to an ATMEGA328P by setting the fuse bits,
+    Install this firmware to an ATmega328p by setting the fuse bits,
     writing the flash program, writing the EEPROM data, and setting the
     lock bits:
 
@@ -132,15 +138,14 @@ using the included Makefile:
 
     Alternatively, this firmware may be installed or upgraded in separate
     steps.  If a you wish not to set lockbits or not to overwrite the
-    EEPROM (clock settings), simply skip those commands below.  The
-    following commands are equivalent to "make install-all":
+    EEPROM (clock settings), simply skip those commands below.
 
         % make install-fuse
         % make install-flash
         % make install-eeprom
         % make install-lock
 
-(5) Verify Successful Programming (Optional)
+(5) Verify Successful Programming (Optional but Recommended)
 
     To ensure that the chip has been successfully programmed, one may
     check the chip data against what should have been installed in the
@@ -276,7 +281,7 @@ The clock might also flash one of the following status messages:
 
 :: Programming Fails with an Arduino Chip ::
 
-The Arduino Uno chip is an ATMEGA328P, but will not work in an Ice
+The Arduino Uno chip is an ATmega328p, but will not work in an Ice
 Tube Clock without reconfiguration.  Arduino chips have their fuse
 settings configured to use an external 16 MHz oscillator for the
 system clock.  The Ice Tube Clock does not provide a suitable external
@@ -286,7 +291,7 @@ not function--not even to be reconfigured.
 To provide an external oscillator for reconfiguration, insert the
 Arduino chip into an Arduino board.  Next, connect a programmer to the
 ISP on the Arduino board and reprogram the fuses with the xmas-icetube
-Makefile:  "make install-fuse".  The ATMEGA328P's fuse settings are
+Makefile:  "make install-fuse".  The ATmega328p's fuse settings are
 now configured to use the 8 MHz internal oscillator and can be
 installed and programmed as described in the INSTALLATION section.
 
