@@ -1720,7 +1720,7 @@ void mode_semitick(void) {
 		    break;
 		case BUTTONS_SET:
 		    if(*mode.tmp & TIME_TIMEFORMAT_12HOUR) {
-			if(*mode.tmp <= TIME_TIMEFORMAT_HH_MM) {
+			if(time.timeformat_idx <= TIME_TIMEFORMAT_HH_MM) {
 			    *mode.tmp |= TIME_TIMEFORMAT_SHOWAMPM;
 			} else {
 			    *mode.tmp &= ~TIME_TIMEFORMAT_SHOWAMPM;

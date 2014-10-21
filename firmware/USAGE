@@ -40,8 +40,8 @@ sounding alarm off.
 ## MENU SETTINGS ##
 ###################
 
-Because of the many configuration options, the menus options are arranged in a
-nested structure.
+Because of the many configuration options, the menus options are arranged
+in a nested structure.
 
 "set alar"
   "alarm 1 " / "alarm 2 " / "alarm 3 "
