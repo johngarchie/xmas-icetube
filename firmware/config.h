@@ -10,7 +10,7 @@
 //
 // When configuring this firmware for use with the xmas-icetube
 // revision, the configuration macros for the following features
-// should also be enabled: the automatic dimmer hack, software
+// should also be enabled: the automatic dimmer hack, the software
 // temperature compensated timekeeping, and the IV-18 to-spec hack.
 //
 //
@@ -47,15 +47,20 @@
 
 // AUTOMATIC DIMMER HACK
 //
-// Defining the following macro enables support for Automatic dimming
-// when a pull-up resister and CdS photoresistor are installed in R3
-// and CT1, adjacent to the ATMEGA's PC5 pin.  This hack also allows
-// for the clock to be disabled at night (when dark).
+// Defining the following macro enables support for Automatic dimming.
+// This hack also allows for the clock display to be disabled at night
+// (when dark).
 //
-// I suggest using a 5.6k pull-up resistor with an Advanced Photonix
-// Inc PDV-P8001 photoresistor.  Note that photoresistors purchased
-// from Adafruit should behave like the PDV-P8001 and are acceptable
-// substitutes.  For more details, visit the Adafruit Clocks forum:
+// In the Adafruit Ice Tube Clock v1.1, this features requires a
+// pull-up resister to be installed in R4 and a CdS photoresistor to
+// be installed in CT1.  CT1 is the two expansion pins nestled among
+// L1, R4, and SPK.  I suggest using a 5.6k pull-up resistor with an
+// Advanced Photonix Inc PDV-P8001 photoresistor.  Note that
+// photoresistors purchased from Adafruit should behave like the
+// PDV-P8001 and are acceptable substitutes.
+//
+// The automatic dimmer hack is discussed extensively on the
+// Adafruit Clocks forum:
 //
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=12932
 //   http://forums.adafruit.com/viewtopic.php?p=219736#p219736
@@ -65,7 +70,7 @@
 
 // GPS TIMEKEEPING
 //
-// Defining the following macro enables GPS detection on the ATMEGA's
+// Defining the following macro enables GPS detection on the ATmega's
 // RX pin.  The connection speed is 9600 baud by default for
 // compatibility with the Adafruit Ultimate GPS Module.  For more
 // information, visit the following pages:
@@ -80,8 +85,8 @@
 
 // USART BAUD RATE
 //
-// The USART baud rate is used for both the debugging features and GPS
-// timekeeping and may be changed below.
+// The USART baud rate defined below is used for both the debugging
+// output and GPS timekeeping.
 //
 //
 #define USART_BAUDRATE 9600
@@ -102,27 +107,35 @@
 // SOFTWARE TEMPERATURE COMPENSATED TIMEKEEPING
 //
 // This hack requires attaching a DS18B20 OneWire temperature sensor
-// to ATMEGA328P PC1 pin, but unfortunately the internal temperature
+// to ATmega328p PC1 pin, but unfortunately the internal temperature
 // of the clock is above the ambiant temperature.  As a result, this
 // modification is not useful for displaying temperature.
 //
 // This modification is, however, useful for temperature compensated
-// timekeeping, however.  The XTAL_TURNOVER_TEMP macro specifies the
-// temperature at which the crystal oscillates at maximum frequency in
-// units of deg C / 16.  The XTAL_FREQUENCY_COEF macro specifies the
-// parabolic temperature dependence of the crystal in units -ppb /
-// (deg C)^2.  For a turnover temperature of 25 deg C and a frequency
-// coefficient of -0.034 ppm / (deg C)^2, XTAL_TURNOVER_TEMP should be
-// defined as 400 (25 * 16), and XTAL_FREQUENCY_COEF should be defined
-// as 34 (-0.034 * -1000).
+// timekeeping, and was primarally intended for the xmas-icetube
+// hardware revision.  The DS32kHz, described in the previous section,
+// is a simpler solution for the Adafruit Ice Tube Clock v1.1, but the
+// DS18B20 will also in the Adafruit design.   The DS18B20 should be
+// installed in parasitic mode by grounding both the VDD and GND leads.
+// The DQ lead should be connected directly to PC1 pin on the
+// ATmega328p and also to PC5 via a 4.7k pull-up resistor.
 //
-// The technique for temperature compensation is described in the
-// following thread:
+// The XTAL_TURNOVER_TEMP macro specifies the temperature at which the
+// crystal oscillates at maximum frequency in units of deg C / 16.
+// The XTAL_FREQUENCY_COEF macro specifies the parabolic temperature
+// dependence of the crystal in units -ppb / (deg C)^2.  For a
+// turnover temperature of 25 deg C and a frequency coefficient of
+// -0.034 ppm / (deg C)^2, XTAL_TURNOVER_TEMP should be defined as 400
+// (25 * 16), and XTAL_FREQUENCY_COEF should be defined as 34
+// (-0.034 * -1000).
+//
+// The technique for software temperature compensation is described in
+// the following thread:
 //
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=43998
 //
 // WARNING:  If your clock is modified for the original extended
-// battery hack, which shorts the ATMEGA328P PC1 pin to ground,
+// battery hack, which shorts the ATmega328P PC1 pin to ground,
 // enabling the macros below might damage your clock!  The original
 // extended battery hack is described in the following thread:
 //
@@ -154,9 +167,9 @@
 //   OCR0A = OCR0A_MIN + OCR0A_SCALE * brightness
 //
 // where brightness is 0-10 as set through the configuration menu.
-// The grid/segment voltage can be estimated by
+// The grid/segment voltage can be roughly estimated by
 //
-//   voltage [approximately equals] OCR0A / 4 + 6
+//   voltage = OCR0A / 4 + 6
 //
 // The IV-18 display has an absolute maximum grid/segment voltage of
 // 70 volts, but on the Ice Tube Clock, a Zener diode prevents this
@@ -184,20 +197,20 @@
 // be slight ghosting, especially of decimals at higher boost voltage.
 //
 // I recommend digit multiplexing for use with the Adafruit Ice Tube
-// Clock v1.1 without the to-spec hack.
+// Clock v1.1, without the to-spec hack.
 //
-// Subdigit multiplexing is like digit multiplexing, but displays each
-// digit twice--once showing only segments B, C, and H (those lit when
-// displaying "1.") and once showing only the other segments.  This
-// method eliminates ghosting and reduces the overall brightness.
+// Subdigit multiplexing is similar to digit multiplexing, but
+// displays each digit twice--once showing only segments B, C, and H
+// (those lit when displaying "1.") and once showing only the other
+// segments.  This method eliminates ghosting, but reduces overall
+// brightness.
 //
 // I recommend subdigit multiplexing for use with the to-spec hack and
-// the xmas-icetube hardware revision.  I find the reduction in
-// overall brightness to be a benefit here, as the minimum brightness
-// attainable with PWM brightness control and simple digit
-// multiplexing is a bit too bright for my taste.  And the maximum
-// brightness with plain PWM and simple digit multiplexing is
-// unnecessarally bright.
+// the xmas-icetube hardware revision.  The reduction in overall
+// brightness is a benefit here, as the minimum brightness attainable
+// with PWM brightness control and digit multiplexing is a bit too
+// bright.  And the maximum brightness with plain PWM and digit
+// multiplexing is unnecessarally bright.
 //
 // Segment multiplexing displays each segment (on all digits where
 // that segment is displayed) in rapid succession.  This method
@@ -212,7 +225,7 @@
 // many digits, that segment will be dimmer than if one segment is
 // displayed on only a few digits.  Also, more current will flow
 // through segments with the least resistance (at the right of the
-// display), so those digits will appear slightly brighter.
+// display), so those digits appear slightly brighter.
 //
 #define DIGIT_MULTIPLEXING
 // #define SUBDIGIT_MULTIPLEXING
@@ -221,10 +234,10 @@
 
 // IV-18 TO-SPEC HACK
 //
-// The Ice Tube Clock does not drive the IV-18 VFD tube to
-// specifications, but with some rewiring and additional circuitry,
-// enabling the following macros will drive the IV-18 tube as it was
-// designed.  The following thread on the Adafruit Clocks forum
+// The Adafruit Ice Tube Clock v1.1 does not drive the IV-18 VFD tube
+// to specifications, but with some rewiring and additional circuitry,
+// enabling the following macros will drive the IV-18 tube as
+// intended.  The following thread on the Adafruit Clocks forum
 // describes the required hardware modifications for this hack:
 //
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=41811
@@ -256,12 +269,13 @@
 //
 // If D1 is a power blocking diode (as in the xmas-icetube hardware
 // revision), I suggest an OCR0A_VALUE of 192.  If D1 is a Schottky
-// diode (as in the original Adafruit design), I suggest an
-// OCR0A_VALUE value of 128.  Ideally, the exact value should be tuned
-// for your particular clock:  OCR0A_VALUE should be large enough such
-// that the boost circuit generates just over 50v with the display
-// installed and at maximum brightness, but OCR0A_VALUE should be no
-// larger than necessary, as that would waste electricity.
+// diode (as in the original Adafruit design), I suggest an OCR0A_VALUE
+// value of 128.  Ideally, the exact value should be tuned for your
+// particular clock:  OCR0A_VALUE should be large enough such that the
+// boost circuit generates just over 50v with the display installed
+// and at maximum brightness, but OCR0A_VALUE should be no larger than
+// necessary to prevent excessive voltage from being lost through the
+// Zeener diode.
 //
 //
 // #define OCR0A_VALUE 128
@@ -274,12 +288,11 @@
 // To drive the filament to specifications, do not define any of the
 // filament current or voltage macros.
 //
-// Some tubes may make a humming or whining sound when driven at with
-// AC.  If that noise is unacceptable, it might be worth trying to
-// divide the frequency with the FILAMENT_FREQUENCY_DIV macro.  For
-// example, if FILAMENT_FREQUENCY_DIV is defined as 3, the AC
-// frequency will be 12/3 = 4 kHz.  The AC frequency may be divided by
-// any value below 256.
+// Some tubes may make a humming or whining sound when driven with AC.
+// If that noise is unacceptable, the frequency can be divided with
+// the FILAMENT_FREQUENCY_DIV macro.  For example, if FILAMENT_FREQUENCY_DIV
+// is defined as 3, the AC frequency will be 12/3 = 4 kHz.  The AC
+// frequency may be divided by any value below 256.
 //
 // Although not to-spec, a sure-fire way to eliminate hum is to simply
 // drive the filament with DC.  With a high boost voltage, there
@@ -287,16 +300,16 @@
 //
 // Defining the FILAMENT_DRIVE_DC_FWD macro will drive the display
 // with direct current instead of alternating current.  Current will
-// flow from the right to left of the display.  Defining the
+// flow from right to left across the display.  Defining the
 // FILAMENT_DRIVE_DC_REV macro will use direct current flowing from
-// the left to right of the display.
+// left to right across the display.
 //
 // Defining either FILAMENT_VOLTAGE_3_3 or FILAMENT_VOLTAGE_2_5 will
 // reduce the filament voltage to either 3.3 or 2.5 volts,
-// respectively.  Voltage is reduced by reducing the duty cycle from
-// 100% to 66% or 50%.  These macros also affect drive frequency; if
-// the FILAMENT_FREQUENCY_DIV macro is undefined (or defined as 1),
-// the frequency will be approximately
+// respectively.  Voltage is reduced by changing the duty cycle from
+// 100% to either 66% or 50%.  These macros also affect drive
+// frequency; if the FILAMENT_FREQUENCY_DIV macro is undefined (or
+// defined as 1), the frequency will be approximately
 //
 //              ALTERNATING CURRENT    DIRECT CURRENT
 // 5.0 VOLTS          13.0 kHz              --
@@ -323,24 +336,24 @@
 
 // AUTOMATIC DRIFT CORRECTION
 //
-// As the user changes the time to correct for time drift, the clock
-// will eventually determine how fast or slow the crystal oscillates.
-// The clock will eventually use this information to correct time
-// drift.  The automatic drift correction algorithm is described in
-// the following post:
+// As the user changes time to correct for drift, the clock will
+// eventually determine how fast or slow the crystal oscillates.  The
+// clock will use this information to correct for time drift.  A more
+// detailed description of the automatic drift correction algorithm
+// is given in the following post:
 //
 //   http://forums.adafruit.com/viewtopic.php?p=178611#p178611
 //
 // If one already knows how fast or slow the clock runs without drift
-// correction, one might wish to preload this information so that the
-// clock will keep accurate time immediately after flashing.
+// correction, one can preload this information so that the clock will
+// keep accurate time immediately after flashing.
 //
 // The desired drift correction is defined by a single number.  The
 // magnitude (absolute value) defines how often a 1/128 second
-// correction must be made.  If the clock is slow, time must be
-// adjusted *forward*, so the sign should be *positive*.  If the clock
-// is fast, time must be adjusted *back*, so the sign should be
-// *negative*.  A drift correction value of zero indicates that no
+// correction must be made in seconds.  If the clock is slow, time
+// must be adjusted *forward*, so the sign should be *positive*.  If
+// the clock is fast, time must be adjusted *back*, so the sign should
+// be *negative*.  A drift correction value of zero indicates that no
 // drift correction should be performed.
 //
 // For example, assume a clock runs slow by 3 seconds per day, typical
@@ -365,7 +378,7 @@
 // slow when the user changes the time. 
 //
 // Defining the AUTODRIFT_CONSTANT macro as zero will completely
-// disable automatic drift correction.
+// disable drift correction.
 //
 //
 // #define AUTODRIFT_PRELOAD  255
@@ -391,8 +404,9 @@
 // DEBUGGING FEATURES
 //
 // The following macro enables debugging.  When enabled, debugging
-// information may be sent over USART via the DUMPINT() and DUMPSTR()
-// macros defined in usart.h.  The default speed is 9600 baud.
+// information may be transmitted over USART via the DUMPINT() and
+// DUMPSTR() macros defined in usart.h.  The baud rate is specified by
+// the USART_BAUDRATE macro, which is defined earlier in this file.
 //
 //
 // #define DEBUG
