@@ -329,7 +329,7 @@ increase current across the filament until all digits have consistent
 brightness at the highest menu-configured brightness setting:
 
 First, upgrade Q3 to a FET capable of supplying more current.  One
-such FET is the ZVP2110A available from Digi-Key or Mouser.  If the
+such FET is the ZVP2110A available from Digi-Key or Mouser.**  If the
 digit remains dim after upgrading Q3, replace R3 with an 11 ohm
 resistor to further increase current.  And if the digit is still dim,
 replace R3 with a jumper.
@@ -339,6 +339,10 @@ Replacing R3 with a jumper or smaller resistor without first upgrading
 Q3 will increase filament current, but might also result in an
 insufficient logic supply voltage to the VFD driver chip.  That, in
 turn, could cause faulty display operation.
+
+**UPDATE:  For anyone who purchased an official Adafruit kit, Adafruit
+           will now provide a free ZVP2110A to resolve the issue:
+           http://forums.adafruit.com/viewtopic.php?p=340772#p340772
 
 
 :: Flaky Segments ::
@@ -359,11 +363,15 @@ segment problem and several solutions in more detail:
 
 The flaky segment problem can be solved by replacing Q3.  Although Adafruit
 will provide a free replacement for Q3, I recommend replacing Q3 with a
-better FET, such as the ZVP2110A available from Digi-Key or Mouser.
+better FET, such as the ZVP2110A available from Digi-Key or Mouser.**
 
 By providing additional current across the VFD filament, the ZVP2110A
 will also eliminate the dim digit problem described in the previous
 entry as well as extending tube life by slowing cathode poisoning.
+
+**UPDATE:  For anyone who purchased an official Adafruit kit, Adafruit
+           will now provide a free ZVP2110A to resolve the issue:
+           http://forums.adafruit.com/viewtopic.php?p=340772#p340772
 
 
 :: Nonfunctional Drift Correction ::
