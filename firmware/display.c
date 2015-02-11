@@ -197,13 +197,30 @@ const uint8_t vfd_segment_pins[] PROGMEM = {
 #define COLON_FRAME_END COLON_FRAME(0, 0, 0)
 
 // the following macros extract the various fields of a colon frame
-#define COLON_DELAY(frame) ((frame >> 3) & 0xFE00)
+#define COLON_DELAY(frame) ((frame & 0xFE00) >> 3)
 #define COLON_PREVDEC(frame) (frame & 0x0100)
 #define COLON_SEGS(frame) (frame & 0x00FF)
 
 // codes for various time separators
 const uint16_t colon_space[] PROGMEM = {
     COLON_FRAME(8, FALSE, 0),
+    COLON_FRAME_END,
+};
+
+const uint16_t colon_decimal_solid[] PROGMEM = {
+    COLON_FRAME(8, TRUE, 0),
+    COLON_FRAME_END,
+};
+
+const uint16_t colon_decimal_slow[] PROGMEM = {
+    COLON_FRAME(12, TRUE,  0),
+    COLON_FRAME(12, FALSE, 0),
+    COLON_FRAME_END,
+};
+
+const uint16_t colon_decimal_fast[] PROGMEM = {
+    COLON_FRAME(6, TRUE,  0),
+    COLON_FRAME(6, FALSE, 0),
     COLON_FRAME_END,
 };
 
@@ -257,9 +274,12 @@ const uint16_t colon_blink[] PROGMEM = {
 };
 
 // program pointers to rolling colon styles
-#define COLON_SEQUENCES_SIZE 7
+#define COLON_SEQUENCES_SIZE 10
 const PROGMEM uint16_t* const colon_styles[] PROGMEM = {
     colon_space,
+    colon_decimal_solid,
+    colon_decimal_slow,
+    colon_decimal_fast,
     colon_figure_eight,
     colon_lower_circle_roll,
     colon_2segment_circle_roll,
@@ -1764,6 +1784,7 @@ void display_char(uint8_t idx, char c) {
     if(c == ':') {
 	display.colon_prebuf |= _BV(8 - idx);
 	display.prebuf[idx] = COLON_SEGS(display.colon_frame);
+	if(idx && COLON_PREVDEC(display.colon_frame)) display.prebuf[idx-1] |= SEG_H;
 	return;
     } else {
 	display.colon_prebuf &= ~_BV(8 - idx);
