@@ -72,9 +72,8 @@ This firmware requires the ATmega328p, not the ATmega168v included with
 the Adafruit kit.  Due to the many features, xmas-icetube currently
 requires around 30 kB of program memory, but the ATmega168v only has
 16 kB.  The ATmega328p also supports Atmel picoPower features that are
-used to extend battery life by 4-fold on the Adafruit clock (and
-25-fold with a minor hardware modification).  The ATmega168v does not
-support picoPower.
+used to extend battery life by 4-fold (and 25-fold with a minor hardware
+modification).  The ATmega168v does not support picoPower.
 
 Note that if your ATmega328p has an Arduino bootloader installed, it
 will not work without reconfiguration.  See the TROUBLESHOOTING section
@@ -91,8 +90,8 @@ Compilation and installation has been tested under
     (c) Windows 7 with WinAVR and Cygwin's perl and bash packages.
 
 To compile and install this firmware, first configure compile-time
-options by editing config.h.  Then, build and install the project
-using the included Makefile:
+options by editing the Makefile and config.h.  Then build and install the
+project using the included Makefile:
 
 (1) Edit the Configuration Variables
 
@@ -100,8 +99,8 @@ using the included Makefile:
     as needed to enable support for various hardware hacks.  The default
     values in config.h are suitable for the Adafruit Ice Tube Clock v1.1
     and includes support for the autodimmer and GPS mods.  For the
-    xmas-icetube clock, it may be more convenient to copy the config.h file
-    from the hardware directory and edit that as desired:
+    xmas-icetube hardware revision, it may be more convenient to copy the
+    config.h file from the hardware directory and edit that as desired:
 
 	% cp ../hardware/config.h config.h
 
@@ -137,7 +136,7 @@ using the included Makefile:
         % make install-all
 
     Alternatively, this firmware may be installed or upgraded in separate
-    steps.  If a you wish not to set lockbits or not to overwrite the
+    steps.  If you wish not to set lockbits or not to overwrite the
     EEPROM (clock settings), simply skip those commands below.
 
         % make install-fuse
@@ -145,7 +144,7 @@ using the included Makefile:
         % make install-eeprom
         % make install-lock
 
-(5) Verify Successful Programming (Optional but Recommended)
+(5) Verify Successful Programming (Optional, but Recommended)
 
     To ensure that the chip has been successfully programmed, one may
     check the chip data against what should have been installed in the
@@ -174,7 +173,7 @@ The USAGE file contains an overview of how to use the clock.
 ####################
 
 Development of the various hacks and mods supported by this firmware
-have been discussed extensively in the Adafruit discussion board.
+have been discussed extensively on the Adafruit discussion board.
 Options requiring hardware changes can be enabled by uncommenting
 macros in the config.h file.  Comments in the config.h describe each
 optional feature in detail.
@@ -219,7 +218,6 @@ For many hardware issues, the Adafruit FAQs are quite helpful:
   http://forums.adafruit.com/viewtopic.php?f=41&t=27032
   http://learn.adafruit.com/ice-tube-clock-kit/faq
 
-
 The Adafruit Clocks forums is an excellent place to ask for help:
 
   http://forums.adafruit.com/viewforum.php?f=41
@@ -258,7 +256,7 @@ the time, as the time is usually wrong after a reset.
 
   "oth rset" (other reset):  If no flags were set in MCUSR to indicate
       the cause of the reset, the display will flash "oth rest".  In
-      theory this should never happen.
+      theory, this should never happen.
 
 The clock might also flash one of the following status messages:
 
@@ -331,7 +329,7 @@ increase current across the filament until all digits have consistent
 brightness at the highest menu-configured brightness setting:
 
 First, upgrade Q3 to a FET capable of supplying more current.  One
-such FET is the ZVP2110A available from Digi-Key or Mouser.  If the
+such FET is the ZVP2110A available from Digi-Key or Mouser.**  If the
 digit remains dim after upgrading Q3, replace R3 with an 11 ohm
 resistor to further increase current.  And if the digit is still dim,
 replace R3 with a jumper.
@@ -341,6 +339,10 @@ Replacing R3 with a jumper or smaller resistor without first upgrading
 Q3 will increase filament current, but might also result in an
 insufficient logic supply voltage to the VFD driver chip.  That, in
 turn, could cause faulty display operation.
+
+**UPDATE:  For anyone who purchased an official Adafruit kit, Adafruit
+           will now provide a free ZVP2110A to resolve the issue:
+           http://forums.adafruit.com/viewtopic.php?p=340772#p340772
 
 
 :: Flaky Segments ::
@@ -361,11 +363,15 @@ segment problem and several solutions in more detail:
 
 The flaky segment problem can be solved by replacing Q3.  Although Adafruit
 will provide a free replacement for Q3, I recommend replacing Q3 with a
-better FET, such as the ZVP2110A available from Digi-Key or Mouser.
+better FET, such as the ZVP2110A available from Digi-Key or Mouser.**
 
 By providing additional current across the VFD filament, the ZVP2110A
 will also eliminate the dim digit problem described in the previous
 entry as well as extending tube life by slowing cathode poisoning.
+
+**UPDATE:  For anyone who purchased an official Adafruit kit, Adafruit
+           will now provide a free ZVP2110A to resolve the issue:
+           http://forums.adafruit.com/viewtopic.php?p=340772#p340772
 
 
 :: Nonfunctional Drift Correction ::
@@ -379,7 +385,7 @@ The clock estimates time drift when users change the time by more than
 the correct time, (2) wait for the clock to drift by more than 15
 seconds, and (3) set the correct time.
 
-Occasionally setting an incorrect time will not have much affect on
+Occasionally setting an incorrect time will not have much effect on
 drift correction, and changing time for different timezones or
 daylight saving is similarly unproblematic.  The automatic drift
 correction method is quite robust:
@@ -393,7 +399,7 @@ The ATmega328p is more prone to oscillator issues than the ATmega168v,
 and users occasionally encounter oscillator problems after upgrading.
 
 Oscillator problems usually result in inconsistent timekeeping; the
-clock may keep time one day, but not another.  When oscillator
+clock may keep accurate time one day, but not on another.  When oscillator
 problems are severe, the microcontroller's watchdog circuit will
 detect that time is not advancing and reset the clock in an attempt to
 fix the problem.  After such a reset, the clock will beep and display

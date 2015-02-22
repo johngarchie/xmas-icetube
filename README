@@ -35,32 +35,37 @@ Below is a selection of comments posted on the Adafruit Clocks
 forum.  They are listed in reverse chronological order.  And to
 everyone quoted below:  Thank you all for the kind words!
 
-"Every mod works beautifully...  The code truly is clever...
-[John's] code is so clean that it's easy to add things."
-    --rcb
-      http://forums.adafruit.com/viewtopic.php?p=244224#p244224
+  "[The xmas firmware] just worked from the beginning...
+   Great documentation!"
+     --MikeHg
+       http://forums.adafruit.com/viewtopic.php?p=324261#p324261
 
-"This firmware is really cool. I highly recommend anyone with an
-ATmega328p lying around to program it with this firmware and use
-it instead of the one that comes with the kit."
-    --motocoder
-      http://forums.adafruit.com/viewtopic.php?p=243916#p243916
+  "Every mod works beautifully...  The code truly is clever...
+   [John's] code is so clean that it's easy to add things."
+     --rcb
+       http://forums.adafruit.com/viewtopic.php?p=244224#p244224
 
-"[John] has done a lot of nice work and added a lot of features.
-I can recommend his firmware as an upgrade..."
-    --adafruit_support_bill,
-      http://forums.adafruit.com/viewtopic.php?p=211476#p211476
+  "This firmware is really cool. I highly recommend anyone with an
+   ATmega328p lying around to program it with this firmware and use
+   it instead of the one that comes with the kit."
+     --motocoder
+       http://forums.adafruit.com/viewtopic.php?p=243916#p243916
 
-"...I LOVE your firmware, and for about 2 weeks I was still
-finding new options and features in the menu."
-    --wildtang3nt
-      http://forums.adafruit.com/viewtopic.php?p=204665#p204665
+  "[John] has done a lot of nice work and added a lot of features.
+   I can recommend his firmware as an upgrade..."
+     --adafruit_support_bill,
+       http://forums.adafruit.com/viewtopic.php?p=211476#p211476
 
-"+10 for John's firmware!  Please do not let the 'xmas' name sway
-you from giving it a try. It's the most feature complete Ice-Tube
-Clock firmware to date."
-    --revnull
-      http://forums.adafruit.com/viewtopic.php?p=180609#p180609
+  "...I LOVE your firmware, and for about 2 weeks I was still
+   finding new options and features in the menu."
+     --wildtang3nt
+       http://forums.adafruit.com/viewtopic.php?p=204665#p204665
+
+  "+10 for John's firmware!  Please do not let the 'xmas' name sway
+   you from giving it a try. It's the most feature complete Ice-Tube
+   Clock firmware to date."
+     --revnull
+       http://forums.adafruit.com/viewtopic.php?p=180609#p180609
 
 
 ##############

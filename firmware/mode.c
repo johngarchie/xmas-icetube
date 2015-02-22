@@ -2821,6 +2821,7 @@ void mode_time_display_tick(void) {
 		    && ( !(alarm.status & (ALARM_SOUNDING | ALARM_SNOOZE))
 		    || time.second & 0x01 || display.status & DISPLAY_PULSING));
 
+    display_updatecolons();
     mode_time_display_semitick();
 }
 

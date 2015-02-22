@@ -64,8 +64,8 @@ enum {
 #define DISPLAY_TRANS_UD_DELAY 50  // (semiticks)
 
 // duration of blinking dot times
-#define DISPLAY_DOTFLASH_SLOW_TIME  800  // (semiticks)
-#define DISPLAY_DOTFLASH_FAST_TIME  415  // (semiticks)
+#define DISPLAY_DOTFLASH_SLOW_TIME  768  // (semiticks)
+#define DISPLAY_DOTFLASH_FAST_TIME  384  // (semiticks)
 
 
 typedef struct {
