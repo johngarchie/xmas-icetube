@@ -36,6 +36,62 @@ pressing any button will enable snooze.  Only the alarm switch will turn a
 sounding alarm off.
 
 
+###################################
+## RESET AND DIAGNOSTIC MESSAGES ##
+###################################
+
+After a reset, the microcontroller will examine MCUSR (microcontroller
+unit status register) to determine the reason for the reset, and the
+display will alternate between the restored time and a message showing
+the cause of the reset.  Reset messages can be dismissed by setting
+the time, as the time is usually wrong after a reset.
+
+  "bod rset" (brown out detection reset):  The clock was reset due to
+      insufficient voltage.  This usually happens when power is lost
+      and the backup battery is nearly dead.
+
+  "pin rset" (external reset):  The clock was reset by an external
+      signal to the microcontroller reset pin (pin 1).  Programming
+      the clock through the ISP header will trigger an external reset.
+      Accidently shorting the reset pin to ground will do the same.
+      This message used to read "ext rset", but the "x" looked more
+      like an "H".
+
+  "pwr rset" (power reset):  The clock started up after a complete
+      power loss.  This usually happens if the clock loses external
+      with without a backup battery or with a completely dead backup
+      battery.
+
+  "wdt rset" (watchdog timer reset):  During normal operation the
+      clock will periodically reset the watchdog timer.  If this
+      timer expires, the clock is behaving abnormally and will reset
+      itself in an attempt to fix the problem.  Usually watchdog timer
+      resets are caused by problems with the crystal oscillator; see
+      the troubleshooting entry on crystal oscillator problems.
+
+  "oth rset" (other reset):  If no flags were set in MCUSR to indicate
+      the cause of the reset, the display will flash "oth rest".  In
+      theory, this should never happen.
+
+The clock might also flash one of the following status messages:
+
+  "bad batt" (low battery warning):  The microcontroller checks
+      the system voltage whenever the clock sleeps for more than ten
+      minutes.  When the battery is low, the display will flash
+      "bad batt" after the clock wakes, and the message can be
+      dismissed by pressing any button.
+
+  "gps lost" (GPS signal lost; only applies if GPS_TIMEKEEPING was
+      defined in config.h):  The clock is receiving data from the GPS,
+      but the GPS has been unable to acquire a signal for at least
+      three minutes.
+
+  "temp err" (temperature sensor error; only applies if
+      TEMPERATURE_SENSOR was defined in config.h):  If the
+      microcontroller is unable to communicate with the temperature
+      sensor, the display will flash "temp err".
+
+
 ###################
 ## MENU SETTINGS ##
 ###################

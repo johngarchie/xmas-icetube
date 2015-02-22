@@ -19,16 +19,26 @@
 
 // ADAFRUIT-STYLE BUTTONS
 //
-// By default, the xmas-icetube firmware uses a unique button scheme:
-// The menu button means "enter menu" or "exit menu."  Meanwhile, the
-// plus button means "next menu item," "next selected option," or
-// "increment selected number."  The set button means "set".
+// By default, the xmas-icetube firmware uses a unique button scheme where
+// there is one button mapped to each basic function:
 //
-// The following macro enables Adafruit-style buttons: The menu button
-// means "enter menu," "next menu item," or "exit menu".  The plus
-// button means "next selected option," "increment selected number,"
-// or "exit menu."  The set button means "set" or "exit menu."
+//    enter/exit menu:  menu button
+//    next:             plus button
+//    select/set:       set button
 //
+// With the Adafruit button scheme, the buttons used for the first two
+// functions depend on context:
+//
+//    enter/exit menu:  menu button to enter menu,
+//                      plus button to exit menu when a menu label is displayed,
+//                      menu button to exit menu when a setting value is displayed
+//    next:             menu button when a menu label is displayed,
+//                      plus button when a setting value is displayed
+//    select/set:       set button
+//
+// Although the xmas button scheme is simpler and less context dependent,
+// some users still prefer the Adafruit scheme, typically for reasons of 
+// familiarity.  The following macro enables the Adafruit button scheme.
 //
 // #define ADAFRUIT_BUTTONS
 
@@ -51,7 +61,7 @@
 // This hack also allows for the clock display to be disabled at night
 // (when dark).
 //
-// In the Adafruit Ice Tube Clock v1.1, this features requires a
+// In the Adafruit Ice Tube Clock v1.1, this feature requires a
 // pull-up resister to be installed in R4 and a CdS photoresistor to
 // be installed in CT1.  CT1 is the two expansion pins nestled among
 // L1, R4, and SPK.  I suggest using a 5.6k pull-up resistor with an
