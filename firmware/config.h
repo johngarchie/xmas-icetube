@@ -82,17 +82,25 @@
 
 // GPS TIMEKEEPING
 //
-// Defining the following macro enables GPS detection on the ATmega's
-// RX pin.  The connection speed is 9600 baud by default for
-// compatibility with the Adafruit Ultimate GPS Module.  For more
+// Defining the GPS_TIMEKEEPING macro below enables GPS detection on
+// the ATmega's RX pin.  The connection speed is 9600 baud by default
+// for compatibility with the Adafruit Ultimate GPS Module.  For more
 // information, visit the following pages:
 //
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=36873
 //   http://www.ladyada.net/make/icetube/mods.html
 //   http://forums.adafruit.com/viewtopic.php?f=41&t=32660
 //
+// In most cases, the clock should report an error if the GPS loses
+// its fix.  But users with no GPS reception might want to disable the
+// "gps lost" error message.  Those users will instead move their
+// clocks to an area of good reception whenever they wish to
+// syncronize the clock time with the GPS time.  To disable the GPS
+// lost error message, comment out the GPS_LOST_ERROR_MSG macro below.
+//
 //
 #define GPS_TIMEKEEPING
+#define GPS_LOST_ERROR_MSG
 
 
 // USART BAUD RATE

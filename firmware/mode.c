@@ -77,12 +77,12 @@ void mode_tick(void) {
 		    && time.second & 0x01) {
 		display_pstr(0, PSTR("bad batt"));
 		display_transition(DISPLAY_TRANS_INSTANT);
-#ifdef GPS_TIMEKEEPING
+#if defined(GPS_TIMEKEEPING) && defined(GPS_LOST_ERROR_MSG)
 	    } else if(gps.data_timer && !gps.warn_timer
 		    && time.second & 0x01) {
 		display_pstr(0, PSTR("gps lost"));
 		display_transition(DISPLAY_TRANS_INSTANT);
-#endif  // GPS_TIMEKEEPING
+#endif  // GPS_TIMEKEEPING && GPS_LOST_ERROR_MSG
 #ifdef TEMPERATURE_SENSOR
 	    } else if(system.sleep_wake_timer > 2
 		    && temp.status & TEMP_CONV_INVALID
