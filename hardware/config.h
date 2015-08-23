@@ -10,7 +10,7 @@
 //
 // When configuring this firmware for use with the xmas-icetube
 // revision, the configuration macros for the following features
-// should also be enabled: the automatic dimmer hack, the software
+// should also be enabled:  the automatic dimmer hack, the software
 // temperature compensated timekeeping, and the IV-18 to-spec hack.
 //
 //
@@ -19,26 +19,28 @@
 
 // ADAFRUIT-STYLE BUTTONS
 //
-// By default, the xmas-icetube firmware uses a unique button scheme where
-// there is one button mapped to each basic function:
+// By default, the xmas-icetube firmware uses a unique button scheme
+// where there is one button mapped to each basic function:
 //
-//    enter/exit menu:  menu button
-//    next:             plus button
-//    select/set:       set button
+//   enter/exit menu:  menu button
+//   next:             plus button
+//   select/set:       set button
 //
 // With the Adafruit button scheme, the buttons used for the first two
 // functions depend on context:
 //
-//    enter/exit menu:  menu button to enter menu,
-//                      plus button to exit menu when a menu label is displayed,
-//                      menu button to exit menu when a setting value is displayed
-//    next:             menu button when a menu label is displayed,
-//                      plus button when a setting value is displayed
-//    select/set:       set button
+//   enter/exit menu:  menu button when time is displayed,
+//                     plus button when a menu label is displayed,
+//                     menu button when a setting value is displayed
+//   next:             menu button when a menu label is displayed,
+//                     plus button when a setting value is displayed
+//   select/set:       set button
 //
-// Although the xmas button scheme is simpler and less context dependent,
-// some users still prefer the Adafruit scheme, typically for reasons of 
+// In addition to being simpler, the xmas button scheme works more
+// intuitively with the xmas nested configuration menus.  Even so, some
+// users still prefer the Adafruit scheme, typically for reasons of
 // familiarity.  The following macro enables the Adafruit button scheme.
+//
 //
 // #define ADAFRUIT_BUTTONS
 
@@ -118,17 +120,17 @@
 //
 // This hack requires attaching a DS18B20 OneWire temperature sensor
 // to ATmega328p PC1 pin, but unfortunately the internal temperature
-// of the clock is above the ambiant temperature.  As a result, this
-// modification is not useful for displaying temperature.
+// of the clock is above the ambient temperature.  As a result, this
+// modification is not useful for displaying room temperature.
 //
 // This modification is, however, useful for temperature compensated
-// timekeeping, and was primarally intended for the xmas-icetube
+// timekeeping, and was primarily intended for the xmas-icetube
 // hardware revision.  The DS32kHz, described in the previous section,
 // is a simpler solution for the Adafruit Ice Tube Clock v1.1, but the
-// DS18B20 will also in the Adafruit design.   The DS18B20 should be
+// DS18B20 will also work in the Adafruit design.   The DS18B20 should be
 // installed in parasitic mode by grounding both the VDD and GND leads.
-// The DQ lead should be connected directly to PC1 pin on the
-// ATmega328p and also to PC5 via a 4.7k pull-up resistor.
+// The DQ lead should be connected to the PC1 pin on the ATmega328p and
+// to PC5 via a 4.7k pull-up resistor.
 //
 // The XTAL_TURNOVER_TEMP macro specifies the temperature at which the
 // crystal oscillates at maximum frequency in units of deg C / 16.
@@ -182,14 +184,14 @@
 //   voltage = OCR0A / 4 + 6
 //
 // The IV-18 display has an absolute maximum grid/segment voltage of
-// 70 volts, but on the Ice Tube Clock, a Zener diode prevents this
-// from exceeding 60 volts.  And the clock's fuse will probably kick
-// in before that point.  Thus the hardware will ensure that the
-// grid/segment voltage maximum is never exceeded.
+// 70 volts, but on the Adafruit Ice Tube Clock, a Zener diode prevents
+// this from exceeding 60 volts.  And the clock's fuse might blow before
+// that point, so the hardware will ensure that the grid/segment voltage
+// maximum is never exceeded.
 //
-// For a dim display, I suggest setting OCR0A_MIN to 30 and
-// OCR0A_SCALE to 14.  If the fuse becomes warm during operation,
-// reduce OCR0A_SCALE or install a higher power fuse.
+// For a dim display, I suggest setting OCR0A_MIN to 30 and OCR0A_SCALE
+// to 14.  If the fuse blows or becomes warm during operation, reduce
+// OCR0A_SCALE or install a higher power fuse.
 //
 //
 // #define OCR0A_MIN   50
@@ -285,7 +287,7 @@
 // boost circuit generates just over 50v with the display installed
 // and at maximum brightness, but OCR0A_VALUE should be no larger than
 // necessary to prevent excessive voltage from being lost through the
-// Zeener diode.
+// Zener diode.
 //
 //
 #define OCR0A_VALUE 192
@@ -296,17 +298,17 @@
 //
 // The options below should only be used with the to-spec hack above.
 // To drive the filament to specifications, do not define any of the
-// filament current or voltage macros.
+// filament current or voltage macros below.
 //
 // Some tubes may make a humming or whining sound when driven with AC.
-// If that noise is unacceptable, the frequency can be divided with
-// the FILAMENT_FREQUENCY_DIV macro.  For example, if FILAMENT_FREQUENCY_DIV
+// If the noise is unacceptable, the frequency can be divided with
+// FILAMENT_FREQUENCY_DIV.  For example, if FILAMENT_FREQUENCY_DIV macro
 // is defined as 3, the AC frequency will be 12/3 = 4 kHz.  The AC
 // frequency may be divided by any value below 256.
 //
 // Although not to-spec, a sure-fire way to eliminate hum is to simply
 // drive the filament with DC.  With a high boost voltage, there
-// should not be a noticable brightness gradient.
+// should not be a noticeable brightness gradient.
 //
 // Defining the FILAMENT_DRIVE_DC_FWD macro will drive the display
 // with direct current instead of alternating current.  Current will
@@ -346,11 +348,11 @@
 
 // AUTOMATIC DRIFT CORRECTION
 //
-// As the user changes time to correct for drift, the clock will
-// eventually determine how fast or slow the crystal oscillates.  The
-// clock will use this information to correct for time drift.  A more
-// detailed description of the automatic drift correction algorithm
-// is given in the following post:
+// As the user changes time to correct for time error, the clock will
+// eventually determine how fast or slow the crystal oscillates and
+// use this information to correct for time drift.  A more detailed
+// description of the automatic drift correction algorithm is given
+// in the following post:
 //
 //   http://forums.adafruit.com/viewtopic.php?p=178611#p178611
 //
@@ -362,14 +364,14 @@
 // magnitude (absolute value) defines how often a 1/128 second
 // correction must be made in seconds.  If the clock is slow, time
 // must be adjusted *forward*, so the sign should be *positive*.  If
-// the clock is fast, time must be adjusted *back*, so the sign should
-// be *negative*.  A drift correction value of zero indicates that no
-// drift correction should be performed.
+// the clock is fast, time must be adjusted *backward*, so the sign
+// should be *negative*.  A drift correction value of zero indicates
+// that no drift correction should be performed.
 //
 // For example, assume a clock runs slow by 3 seconds per day, typical
 // of an unmodified Adafruit Ice Tube Clock.  To compensate, the clock
 // must make 3 * 128 = 384 corrections per day, since each correction
-// is 1/128 second.  Those corrections must be made over one day or
+// is 1/128 seconds.  Those corrections must be made over one day or
 // 24 * 60 * 60 = 86400 seconds.  Therefore, the clock should make
 // corrections at intervals of 86400 / 384 = 255 seconds.  Because the
 // clock runs slow, the drift correction value should be positive 255.
@@ -385,7 +387,7 @@
 // enables drift correction immediately after programming, but the
 // clock will always use the specified drift correction value.  The
 // clock will not automatically determine if it is running fast or
-// slow when the user changes the time. 
+// slow when the user changes the time.
 //
 // Defining the AUTODRIFT_CONSTANT macro as zero will completely
 // disable drift correction.
