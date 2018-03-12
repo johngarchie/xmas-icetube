@@ -30,9 +30,6 @@ if(@ARGV && ($ARGV[0] eq "fuse" || $ARGV[0] eq "vfuse")) {
     my $high_fuse     = hex $2;
     my $extended_fuse = hex $3;
 
-    # strip reserved fuse bits
-    $extended_fuse &= 0x07;
-
     # print avrdude fuse bit options
     if($ARGV[0] eq "fuse") {
 	printf "-u -U lfuse:w:0x%02X:m\n", $low_fuse;
