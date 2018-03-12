@@ -157,7 +157,7 @@ uint8_t display_varsemitick(void);
 void display_semitick(void);
 
 // toggle push-pull outputs to generate alternating current on vfd fillament
-inline void display_semisemitick(void) {
+static inline void display_semisemitick(void) {
     // multiplex the display
     if(display.multiplex_div && !--display.multiplex_div) {
 	display.multiplex_div = display_varsemitick();
