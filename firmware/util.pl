@@ -105,7 +105,7 @@ if(@ARGV && ($ARGV[0] eq "fuse" || $ARGV[0] eq "vfuse")) {
     my $ram_usage    = $usage{".data"} + $usage{".bss"};
     my $eeprom_usage = $usage{".eeprom"};
 
-    printf "ATMEGA328P MEMORY USAGE SUMMARY$/$/";
+    printf "ATMEGA328P/ATMEGA328 MEMORY USAGE SUMMARY$/$/";
 
     printf "Program memory (FLASH):  %3d%%    (%5d/%5d)$/",
 	   (100 * $flash_usage / FLASH_AVAIL),

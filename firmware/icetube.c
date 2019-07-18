@@ -39,16 +39,16 @@
 #include "temp.h"
 
 
-// define ATmega328p lock bits
-#ifdef __AVR_ATmega328P__
+// define ATmega328p/ATmega328 lock bits
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
 // disable self-programming to prevent flash corruption
 LOCKBITS = BLB0_MODE_2 & BLB1_MODE_2;
 #else
 #error LOCKBITS not defined for MCU
-#endif  // __AVR_ATmega328P__
+#endif  // __AVR_ATmega328P__ || __AVR_ATmega328__
 
-// define fuse bits for the ATmega168 and ATmega328p
-#ifdef __AVR_ATmega328P__
+// define fuse bits for the ATmega328p/ATmega328
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
 FUSES = {
     .low      = 0x62,
     .high     = 0xD1,
@@ -56,7 +56,7 @@ FUSES = {
 };
 #else
 #error FUSES not defined for MCU
-#endif  // __AVR_ATmega328P__
+#endif  // __AVR_ATmega328P__ || __AVR_ATmega328__
 
 
 // according to some reports, the first byte of EEPROM memory is

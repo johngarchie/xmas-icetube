@@ -131,7 +131,10 @@ void system_sleep_loop(void) {
 	    } else {
 		// otherwise, sleep with BOD disabled to save power
 		set_sleep_mode(SLEEP_MODE_PWR_SAVE);
+
+#ifdef __AVR_ATmega328P__
 		sleep_bod_disable();
+#endif  // __AVR_ATmega328P__
 	    }
 
 	    // enter sleep mode
