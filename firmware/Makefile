@@ -52,6 +52,11 @@ SHELL ?= /bin/sh
 # included utility script for development tasks
 UTILSCRIPT ?= util.pl
 
+# if avrdude generates an error when programming the extended fuses
+# try changing the following option to "nostrip" to leave reserved
+# fuse bits set as 1; otherwise reserved fuse bits will be set to 0
+FUSE_OPT ?= strip
+
 # build project and print memory usage
 all: $(addprefix $(PROJECT),.elf _flash.hex _eeprom.hex _fuse.hex _lock.hex)
 	-@echo
@@ -101,12 +106,12 @@ install: $(addprefix $(PROJECT),_fuse.hex _flash.hex _eeprom.hex _lock.hex)
 # install everything--fuses, flash, eeprom, and lock
 install-all: $(addprefix $(PROJECT),_fuse.hex _flash.hex _eeprom.hex _lock.hex)
 	-@echo $(AVRDUDE) $(AVRDUDEOPT) \
-		`./$(UTILSCRIPT) fuse < $(PROJECT)_fuse.hex` \
+		`./$(UTILSCRIPT) fuse $(FUSE_OPT) < $(PROJECT)_fuse.hex` \
 		-U flash:w:$(PROJECT)_flash.hex:i \
 		-U eeprom:w:$(PROJECT)_eeprom.hex:i \
 		`./$(UTILSCRIPT) lock < $(PROJECT)_lock.hex`
 	-@$(AVRDUDE) $(AVRDUDEOPT) \
-		`./$(UTILSCRIPT) fuse < $(PROJECT)_fuse.hex` \
+		`./$(UTILSCRIPT) fuse $(FUSE_OPT) < $(PROJECT)_fuse.hex` \
 		-U flash:w:$(PROJECT)_flash.hex:i \
 		-U eeprom:w:$(PROJECT)_eeprom.hex:i \
 		`./$(UTILSCRIPT) lock < $(PROJECT)_lock.hex`
@@ -114,25 +119,25 @@ install-all: $(addprefix $(PROJECT),_fuse.hex _flash.hex _eeprom.hex _lock.hex)
 # verifies everything--fuses, flash, eeprom, and lock
 verify-all: $(addprefix $(PROJECT),_fuse.hex _flash.hex _eeprom.hex _lock.hex)
 	-@echo $(AVRDUDE) $(AVRDUDEOPT) \
-		`./$(UTILSCRIPT) vfuse < $(PROJECT)_fuse.hex` \
+		`./$(UTILSCRIPT) vfuse $(FUSE_OPT) < $(PROJECT)_fuse.hex` \
 		-U flash:v:$(PROJECT)_flash.hex:i \
 		-U eeprom:v:$(PROJECT)_eeprom.hex:i \
 		`./$(UTILSCRIPT) vlock < $(PROJECT)_lock.hex`
 	-@$(AVRDUDE) $(AVRDUDEOPT) \
-		`./$(UTILSCRIPT) vfuse < $(PROJECT)_fuse.hex` \
+		`./$(UTILSCRIPT) vfuse $(FUSE_OPT) < $(PROJECT)_fuse.hex` \
 		-U flash:v:$(PROJECT)_flash.hex:i \
 		-U eeprom:v:$(PROJECT)_eeprom.hex:i \
 		`./$(UTILSCRIPT) vlock < $(PROJECT)_lock.hex`
 
 # set fuse bits on avr chip
 install-fuse: $(PROJECT)_fuse.hex $(UTILSCRIPT)
-	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) fuse < $<`
-	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) fuse < $<`
+	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) fuse $(FUSE_OPT) < $<`
+	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) fuse $(FUSE_OPT) < $<`
 
 # verify fuse bits on avr chip
 verify-fuse: $(PROJECT)_fuse.hex $(UTILSCRIPT)
-	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) vfuse < $<`
-	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) vfuse < $<`
+	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) vfuse $(FUSE_OPT) < $<`
+	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) vfuse $(FUSE_OPT) < $<`
 
 # install executable code to avr chip
 install-flash: $(PROJECT)_flash.hex

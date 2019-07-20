@@ -629,7 +629,7 @@ void display_on(void) {
 #ifndef SEGMENT_MULTIPLEXING
 // utility function for display_varsemitick();
 // combines two characters for the scroll-left transition
-inline uint8_t display_combineLR(uint8_t a, uint8_t b) {
+static inline uint8_t display_combineLR(uint8_t a, uint8_t b) {
     uint8_t c = 0;
 
     if(a & SEG_B) c |= SEG_F;
@@ -643,7 +643,7 @@ inline uint8_t display_combineLR(uint8_t a, uint8_t b) {
 
 // utility function for display_varsemitick();
 // shifts the given digit up by one
-inline uint8_t display_shiftU1(uint8_t digit) {
+static inline uint8_t display_shiftU1(uint8_t digit) {
     uint8_t shifted = 0;
 
     if(digit & SEG_G) shifted |= SEG_A;
@@ -657,7 +657,7 @@ inline uint8_t display_shiftU1(uint8_t digit) {
 
 // utility function for display_varsemitick();
 // shifts the given digit up by two
-inline uint8_t display_shiftU2(uint8_t digit) {
+static inline uint8_t display_shiftU2(uint8_t digit) {
     uint8_t shifted = 0;
 
     if(digit & SEG_D) shifted |= SEG_A;
@@ -668,7 +668,7 @@ inline uint8_t display_shiftU2(uint8_t digit) {
 
 // utility function for display_varsemitick();
 // shifts the given digit down by one
-inline uint8_t display_shiftD1(uint8_t digit) {
+static inline uint8_t display_shiftD1(uint8_t digit) {
     uint8_t shifted = 0;
 
     if(digit & SEG_A) shifted |= SEG_G;
@@ -682,7 +682,7 @@ inline uint8_t display_shiftD1(uint8_t digit) {
 
 // utility function for display_varsemitick();
 // shifts the given digit down by two
-inline uint8_t display_shiftD2(uint8_t digit) {
+static inline uint8_t display_shiftD2(uint8_t digit) {
     uint8_t shifted = 0;
 
     if(digit & SEG_A) shifted |= SEG_D;
@@ -911,7 +911,7 @@ uint8_t display_varsemitick(void) {
 #ifdef SEGMENT_MULTIPLEXING
 // utility function for display_varsemitick();
 // shifts digits up by one
-inline void display_shiftU1(uint8_t bits[], volatile uint8_t buf[],
+static inline void display_shiftU1(uint8_t bits[], volatile uint8_t buf[],
 	                    uint8_t segment) {
     switch(segment) {
       case SEG_A:
@@ -942,7 +942,7 @@ inline void display_shiftU1(uint8_t bits[], volatile uint8_t buf[],
 
 // utility function for display_varsemitick();
 // shifts digits up by two
-inline void display_shiftU2(uint8_t bits[], volatile uint8_t buf[],
+static inline void display_shiftU2(uint8_t bits[], volatile uint8_t buf[],
 	                    uint8_t segment) {
     if(segment == SEG_A) {
 	for(uint8_t digit_idx = 1; digit_idx < DISPLAY_SIZE; ++digit_idx) {
@@ -957,7 +957,7 @@ inline void display_shiftU2(uint8_t bits[], volatile uint8_t buf[],
 
 // utility function for display_varsemitick();
 // shifts digits down by one
-inline void display_shiftD1(uint8_t bits[], volatile uint8_t buf[],
+static inline void display_shiftD1(uint8_t bits[], volatile uint8_t buf[],
 	                    uint8_t segment) {
     switch(segment) {
       case SEG_G:
@@ -987,7 +987,7 @@ inline void display_shiftD1(uint8_t bits[], volatile uint8_t buf[],
 
 // utility function for display_varsemitick();
 // shifts digits down by two
-inline void display_shiftD2(uint8_t bits[], volatile uint8_t buf[],
+static inline void display_shiftD2(uint8_t bits[], volatile uint8_t buf[],
 	                    uint8_t segment) {
     if(segment == SEG_D) {
 	for(uint8_t digit_idx = 1; digit_idx < DISPLAY_SIZE; ++digit_idx) {
@@ -1002,7 +1002,7 @@ inline void display_shiftD2(uint8_t bits[], volatile uint8_t buf[],
 
 // utility function for display_varsemitick();
 // combines two characters for the scroll-left transition
-inline void display_shiftL(uint8_t bits[], uint8_t segment) {
+static inline void display_shiftL(uint8_t bits[], uint8_t segment) {
     uint8_t digit_idx = 0;
     uint8_t trans_idx = DISPLAY_SIZE - (display.trans_timer >> 1);
 

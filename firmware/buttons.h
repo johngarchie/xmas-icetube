@@ -35,7 +35,7 @@ void buttons_init(void);
 void buttons_sleep(void);
 void buttons_wake(void);
 
-inline void buttons_tick(void) {};
+static inline void buttons_tick(void) {};
 void buttons_semitick(void);
 
 uint8_t buttons_process(void);

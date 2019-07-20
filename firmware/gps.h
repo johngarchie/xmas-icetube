@@ -69,7 +69,7 @@ void gps_wake(void);
 void gps_sleep(void);
 
 void gps_tick(void);
-inline void gps_semitick(void) {};
+static inline void gps_semitick(void) {};
 
 void gps_loadrelutc(void);
 void gps_saverelutc(void);
@@ -78,13 +78,13 @@ void gps_settime(void);
 
 #else  // GPS_TIMEKEEPING
 
-inline void gps_init(void) {};
+static inline void gps_init(void) {};
 
-inline void gps_wake(void) {};
-inline void gps_sleep(void) {};
+static inline void gps_wake(void) {};
+static inline void gps_sleep(void) {};
 
-inline void gps_tick(void) {};
-inline void gps_semitick(void) {};
+static inline void gps_tick(void) {};
+static inline void gps_semitick(void) {};
 
 #endif  // GPS_TIMEKEEPING
 

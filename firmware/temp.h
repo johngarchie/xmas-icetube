@@ -31,22 +31,22 @@ typedef struct {
 extern volatile temp_t temp;
 
 void temp_init(void);
-inline void temp_wake(void) {};
+static inline void temp_wake(void) {};
 void temp_sleep(void);
 
 void temp_tick(void);
-inline void temp_semitick(void) {};
+static inline void temp_semitick(void) {};
 
 int16_t temp_degF(void);
 int16_t temp_degC(void);
 
 #else  // TEMPERATURE_SENSOR
 
-inline void temp_init(void)     {};
-inline void temp_wake(void)     {};
-inline void temp_sleep(void)    {};
-inline void temp_tick(void)     {};
-inline void temp_semitick(void) {};
+static inline void temp_init(void)     {};
+static inline void temp_wake(void)     {};
+static inline void temp_sleep(void)    {};
+static inline void temp_tick(void)     {};
+static inline void temp_semitick(void) {};
 
 #endif  // TEMPERATURE_SENSOR
 

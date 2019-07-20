@@ -30,8 +30,8 @@ if(@ARGV && ($ARGV[0] eq "fuse" || $ARGV[0] eq "vfuse")) {
     my $high_fuse     = hex $2;
     my $extended_fuse = hex $3;
 
-    # strip reserved fuse bits
-    $extended_fuse &= 0x07;
+    # strip reserved fuse bits if second parameter is "strip"
+    $extended_fuse &= 0x07 if exists $ARGV[1] && $ARGV[1] eq "strip";
 
     # print avrdude fuse bit options
     if($ARGV[0] eq "fuse") {
@@ -117,7 +117,7 @@ if(@ARGV && ($ARGV[0] eq "fuse" || $ARGV[0] eq "vfuse")) {
 	   (100 * $eeprom_usage / EEPROM_AVAIL),
 	   $eeprom_usage, EEPROM_AVAIL;
 } else {
-    die "Usage:  $0 [time|fuse|lock|memusage]\n";
+    die "Usage:  $0 [time|fuse|lock|memusage]$/";
 }
 
 

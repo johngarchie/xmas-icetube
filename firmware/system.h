@@ -75,7 +75,7 @@ void system_init(void);
 void system_wake(void);
 void system_sleep(void);
 
-inline void system_tick(void) { 
+static inline void system_tick(void) { 
     // if sleeping, enable analog comparater so system will know
     // if external power has been restored;  this must be done
     // here instead of in system_sleep_loop() because the analog
@@ -87,7 +87,7 @@ inline void system_tick(void) {
    ++system.sleep_wake_timer;  // and increment sleep/wake timer
 };
 
-inline void system_semitick(void) {};
+static inline void system_semitick(void) {};
 
 void system_idle_loop(void);
 void system_sleep_loop(void);

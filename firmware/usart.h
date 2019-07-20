@@ -31,8 +31,8 @@ void usart_init(void);
 void usart_wake(void);
 void usart_sleep(void);
 
-inline void usart_tick(void) {};
-inline void usart_semitick(void) {};
+static inline void usart_tick(void) {};
+static inline void usart_semitick(void) {};
 
 #ifdef DEBUG
 void usart_dumpvar(PGM_P name, int32_t value);
@@ -50,11 +50,11 @@ void usart_putc(char c);
 
 void usart_init(void);
 
-inline void usart_wake(void) {};
-inline void usart_sleep(void) {};
+static inline void usart_wake(void) {};
+static inline void usart_sleep(void) {};
 
-inline void usart_tick(void) {};
-inline void usart_semitick(void) {};
+static inline void usart_tick(void) {};
+static inline void usart_semitick(void) {};
 
 #define DUMPINT(VAR)
 #define DUMPSTR(STR)

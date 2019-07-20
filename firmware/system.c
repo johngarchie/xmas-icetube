@@ -94,6 +94,18 @@ void system_idle_loop(void) {
 }
 
 
+#ifdef __AVR_ATmega328P__
+// disable bod and sleep within a function to prevent compiler
+// optimization from breaking this code
+void system_bod_disable_sleep(void) {
+    sleep_bod_disable();
+    sei();
+    sleep_cpu();
+    cli();
+}
+#endif
+
+
 // repeatedly enter power save mode until power restored
 void system_sleep_loop(void) {
     sleep_enable();                 // permit sleep mode
@@ -128,19 +140,21 @@ void system_sleep_loop(void) {
 		// if the alarm buzzer is active, remain in idle mode
 		// so buzzer continues sounding for next second
 		set_sleep_mode(SLEEP_MODE_IDLE);
+		sei();
+		sleep_cpu();
+		cli();
 	    } else {
 		// otherwise, sleep with BOD disabled to save power
 		set_sleep_mode(SLEEP_MODE_PWR_SAVE);
 
 #ifdef __AVR_ATmega328P__
-		sleep_bod_disable();
+		system_bod_disable_sleep();
+#else
+		sei();
+		sleep_cpu();
+		cli();
 #endif  // __AVR_ATmega328P__
 	    }
-
-	    // enter sleep mode
-	    sei();
-	    sleep_cpu();
-	    cli();
 
 	    // analog comparator will have already been enabled
 	    // in the TIMER2_COMPB_vect interrupt (icetube.c)

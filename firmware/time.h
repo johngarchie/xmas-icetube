@@ -166,7 +166,7 @@ void time_wake(void);
 void time_sleep(void);
 
 void time_tick(void);
-inline void time_semitick(void) {};
+static inline void time_semitick(void) {};
 
 void time_savetime(void);
 void time_savedate(void);
