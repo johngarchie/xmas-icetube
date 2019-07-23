@@ -86,8 +86,8 @@ AVR Dragon, and an Arduino programed with the ArduinoISP sketch.
 Compilation and installation has been tested under
 
     (a) Ubuntu Linux 12.04 with the avr-gcc and avrdude packages,
-    (b) Mac OS 10.9 with MacPorts' avr-gcc and avrdude packages, and
-    (c) Windows 7 with WinAVR and Cygwin's perl and bash packages.
+    (b) MacOS 10.14.5 with CrossPack for AVR Development, and
+    (c) Windows 10 with WinAVR and Cygwin's perl and bash packages.
 
 To compile and install this firmware, first configure compile-time
 options by editing the Makefile and config.h.  Then build and install the
