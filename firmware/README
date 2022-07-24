@@ -88,7 +88,7 @@ Compilation and installation has been tested under
     (a) Ubuntu Linux 12.04 with the avr-gcc and avrdude packages,
     (b) MacOS 10.14.5 with CrossPack for AVR Development, and
     (c) Windows 10 with WinAVR and Cygwin's perl and bash packages, and
-	(d) Debian Bullseye (with Raspberry Pi Desktop) with avr-gcc, avrdude and libc packages.
+    (d) Debian Bullseye (with Raspberry Pi Desktop) with avr-gcc, avrdude and libc packages.
 
 To compile and install this firmware, first configure compile-time
 options by editing the Makefile and config.h.  Then build and install the
