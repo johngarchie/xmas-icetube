@@ -53,9 +53,14 @@ SHELL ?= /bin/sh
 UTILSCRIPT ?= util.pl
 
 # if avrdude generates an error when programming the extended fuses
-# try changing the following option to "nostrip" to leave reserved
-# fuse bits set as 1; otherwise reserved fuse bits will be set to 0
-FUSE_OPT ?= strip
+# try changing the following option to "strip" to set reserved fuse
+# bits to 0; otherwise reserved fuse bits will be left as 1
+FUSE_OPT ?= nostrip
+
+# if avrdude generates an error when programming the lock bits try
+# changing the following option to "strip" to set reserved lock bits
+# to 0; otherwise reserved lock bits will be left as 1
+LOCK_OPT ?= nostrip
 
 # build project and print memory usage
 all: $(addprefix $(PROJECT),.elf _flash.hex _eeprom.hex _fuse.hex _lock.hex)
@@ -109,12 +114,12 @@ install-all: $(addprefix $(PROJECT),_fuse.hex _flash.hex _eeprom.hex _lock.hex)
 		`./$(UTILSCRIPT) fuse $(FUSE_OPT) < $(PROJECT)_fuse.hex` \
 		-U flash:w:$(PROJECT)_flash.hex:i \
 		-U eeprom:w:$(PROJECT)_eeprom.hex:i \
-		`./$(UTILSCRIPT) lock < $(PROJECT)_lock.hex`
+		`./$(UTILSCRIPT) lock $(LOCK_OPT) < $(PROJECT)_lock.hex`
 	-@$(AVRDUDE) $(AVRDUDEOPT) \
 		`./$(UTILSCRIPT) fuse $(FUSE_OPT) < $(PROJECT)_fuse.hex` \
 		-U flash:w:$(PROJECT)_flash.hex:i \
 		-U eeprom:w:$(PROJECT)_eeprom.hex:i \
-		`./$(UTILSCRIPT) lock < $(PROJECT)_lock.hex`
+		`./$(UTILSCRIPT) lock $(LOCK_OPT) < $(PROJECT)_lock.hex`
 
 # verifies everything--fuses, flash, eeprom, and lock
 verify-all: $(addprefix $(PROJECT),_fuse.hex _flash.hex _eeprom.hex _lock.hex)
@@ -122,12 +127,12 @@ verify-all: $(addprefix $(PROJECT),_fuse.hex _flash.hex _eeprom.hex _lock.hex)
 		`./$(UTILSCRIPT) vfuse $(FUSE_OPT) < $(PROJECT)_fuse.hex` \
 		-U flash:v:$(PROJECT)_flash.hex:i \
 		-U eeprom:v:$(PROJECT)_eeprom.hex:i \
-		`./$(UTILSCRIPT) vlock < $(PROJECT)_lock.hex`
+		`./$(UTILSCRIPT) vlock $(LOCK_OPT) < $(PROJECT)_lock.hex`
 	-@$(AVRDUDE) $(AVRDUDEOPT) \
 		`./$(UTILSCRIPT) vfuse $(FUSE_OPT) < $(PROJECT)_fuse.hex` \
 		-U flash:v:$(PROJECT)_flash.hex:i \
 		-U eeprom:v:$(PROJECT)_eeprom.hex:i \
-		`./$(UTILSCRIPT) vlock < $(PROJECT)_lock.hex`
+		`./$(UTILSCRIPT) vlock $(LOCK_OPT) < $(PROJECT)_lock.hex`
 
 # set fuse bits on avr chip
 install-fuse: $(PROJECT)_fuse.hex $(UTILSCRIPT)
@@ -157,13 +162,13 @@ verify-eeprom: $(PROJECT)_eeprom.hex
 
 # set lock bits on avr chip
 install-lock: $(PROJECT)_lock.hex $(UTILSCRIPT)
-	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) lock < $<`
-	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) lock < $<`
+	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) lock $(LOCK_OPT) < $<`
+	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) lock $(LOCK_OPT) < $<`
 
 # verify lock bits on avr chip
 verify-lock: $(PROJECT)_lock.hex $(UTILSCRIPT)
-	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) vlock < $<`
-	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) vlock < $<`
+	-@echo $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) vlock $(LOCK_OPT) < $<`
+	-@     $(AVRDUDE) $(AVRDUDEOPT) `./$(UTILSCRIPT) vlock $(LOCK_OPT) < $<`
 
 # delete build files
 clean:

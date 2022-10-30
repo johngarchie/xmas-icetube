@@ -53,8 +53,8 @@ if(@ARGV && ($ARGV[0] eq "fuse" || $ARGV[0] eq "vfuse")) {
     $line =~ m/^:........(..)..\s*$/;
     my $lock_byte = hex $1;
 
-    # strip reserved lock bits
-    $lock_byte &= 0x3F;
+    # strip reserved lock bits if second parameter is "strip"
+    $lock_byte &= 0x3F if exists $ARGV[1] && $ARGV[1] eq "strip";
 
     # print avrdude lock bit options
     if($ARGV[0] eq "lock") {
