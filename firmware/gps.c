@@ -248,8 +248,8 @@ ISR(USART_RX_vect) {
 	    case FIELD_RMC_CODE:
 		gps.checksum ^= c;
 
-		const char *gprmc_str = "GPRMC";
-		if(gps.idx >= 5 || c != gprmc_str[gps.idx]) {
+	        const char *rmc_str = "**RMC";
+	        if(gps.idx >= 5 || (gps.idx >= 2 && c != rmc_str[gps.idx])) {
 		    gps.status |= GPS_INVALID_RMC;
 		}
 		break;
