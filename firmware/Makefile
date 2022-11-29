@@ -29,8 +29,9 @@ AVRCLOCK ?= 8000000
 
 # avr in-system programmer
 AVRISP ?= usbtiny
-#AVRISP ?= arduino
+#AVRISP ?= avrisp #arduino
 #AVRISP ?= dragon_isp
+#AVRISP ?= buspirate
 
 # avr programming utilities
 AVRCPP     ?= avr-gcc
@@ -43,7 +44,8 @@ AVRCPPFLAGS   ?= -I. -mmcu=$(AVRMCU) -std=gnu99 -Os -Wall -DF_CPU=$(AVRCLOCK)
 #AVRCPPFLAGS   += -gstabs -Wa,-ahlmsd=$*.lst  # for assembler listings
 AVRSIZEOPT    ?= -A
 AVRDUDEOPT    ?= -B 4 -P usb -c $(AVRISP) -p $(AVRMCU)  # usbtiny & dragon_isp
-#AVRDUDEOPT    ?= -b 19200 -P /dev/ttyACM0 -c $(AVRISP) -p $(AVRMCU) # arduino
+#AVRDUDEOPT    ?= -b 19200 -P /dev/ttyACM0 -c $(AVRISP) -p $(AVRMCU) -v # arduino
+#AVRDUDEOPT    ?= -P /dev/ttyUSB0 -c $(AVRISP) -p $(AVRMCU) -v # buspirate
 AVROBJCOPYOPT ?=
 
 # explicitly specify a bourne-compatable shell
